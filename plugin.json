@@ -1,0 +1,7 @@
+{
+  "name": "Agzam's plugin",
+  "author": "Agzam4",
+  "main": "example.ExamplePlugin",
+  "description": "New commands & core protection from thorium reactors",
+  "version": 1.1
+}
