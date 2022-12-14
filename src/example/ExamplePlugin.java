@@ -1,5 +1,7 @@
 package example;
 
+import java.util.Arrays;
+
 import javax.swing.plaf.nimbus.State;
 
 import arc.*;
@@ -44,6 +46,8 @@ public class ExamplePlugin extends Plugin{
     private World world;
     private String worldinfo = "";
 	private boolean chatFilter;
+	
+	private DataCollecter dataCollect;
     
 
     private static final char emojiCopper = 		'\uf838';
@@ -89,13 +93,22 @@ public class ExamplePlugin extends Plugin{
     		emojiSlag,
     		emojiCryofluid
     };
+
+    private ServerEventsManager eventsManager;
 //    private 
     
     //called when game initializes
     @Override
     public void init() {
+    	eventsManager = new ServerEventsManager();
+//    	eventsManager.startEventsLoop();
+    	
     	maps = new Maps();
     	maps.load();
+    	
+    	dataCollect = new DataCollecter();
+    	dataCollect.init();
+    	dataCollect.collect();
     	
 //    	Blocks.
 //    	Events.on(GameOverEvent.class, event -> {
@@ -185,14 +198,59 @@ public class ExamplePlugin extends Plugin{
         		Call.sendMessage("[gold]" + emojiAlert + " Внимание " + emojiAlert + " []Игрок [" + colorToHex(player.color()) + "]" + player.name + " []строит реактор (" + position + ")");
             }
         });
-
+        
         // add a chat filter that changes the contents of all messages
         Vars.netServer.admins.addChatFilter((player, text) -> {
         	if(chatFilter) {
-            	text = text.replace("нуб", "про");
-            	text = text.replace("Нуб", "Про");
-            	text = text.replace("НУБ", "ПРО");
+        		char[] msg = text.toCharArray();
+        		
+        		StringBuilder result = new StringBuilder();
+
+        		int noobI = -1;
+        		StringBuilder noob = new StringBuilder();
+        		for (int i = 0; i < msg.length; i++) {
+					char c = msg[i];
+					char uc = Character.toUpperCase(c);
+					if(noob.length() == 0 && (uc == 'N' || uc == 'Н')) {
+						noob.append(c);
+						noobI = c;
+					} else if(uc == 'O' || uc == 'У' || uc == 'Y') {
+						noob.append(c);
+					} else if(uc == 'Б' || uc == 'B') {
+						noob.append(c);
+					} else {
+						if(noob.length() > 2) {
+							char end = Character.toUpperCase(noob.charAt(noob.length()-1));
+							if(end == 'B' || end == 'Б') {
+								result.substring(noobI);
+								if(end == 'B') {
+									result.append("Pr");
+									for (int j = 0; j < noob.length()-2; j++) {
+										result.append('o');
+									}
+								} else {
+									result.append("Пр");
+									for (int j = 0; j < noob.length()-2; j++) {
+										result.append('о');
+									}
+								}
+							}
+						}
+						
+						Log.info(noob.toString());
+						
+						noob.delete(0, noob.length());
+					}
+					result.append(msg[i]);
+				}
+        		
+//            	text = text.replace("нуб", "про");
+//            	text = text.replace("Нуб", "Про");
+//            	text = text.replace("НУБ", "ПРО");
+        		
+        		text = result.toString();
         	}
+        	dataCollect.messageEvent(player, text);
         	return text;
         });
 
@@ -217,6 +275,12 @@ public class ExamplePlugin extends Plugin{
                     }
                 }
             }
+        });
+        
+        handler.register("cdata", "cdata", args -> {
+        	Log.info("Statistics file: " + DataCollecter.getPathToFile());
+        	Log.info("User dir: " + System.getProperty("user.dir"));
+        	Log.info("Sleep time: " + dataCollect.getSleepTime());
         });
     }
 
@@ -333,6 +397,8 @@ public class ExamplePlugin extends Plugin{
     		if(summaryCounter == 0) return;
 
 			worldInfo.append("Информация о карте:\n");
+			worldInfo.append("Название: " + Vars.state.map.name() + "\n");
+			worldInfo.append("Ресурсы:\n");
     		for (int i = 0; i < counter.length; i++) {
     			float cv = ((float)counter[i])*typesCounter/summaryCounter/3f;
     			if(cv > 1/3f) cv = 1/3f;
@@ -420,7 +486,7 @@ public class ExamplePlugin extends Plugin{
         
         handler.<Player>register("plugininfo", "info about pluging", (arg, player) -> {
         	player.sendMessage(""
-        			+ "[green] Agzam's plugin v1.3\n"
+        			+ "[green] Agzam's plugin v1.4\n"
         			+  "[gray]========================================================\n"
         			+ "[white] Added [royal]skip map[white] commands\n"
         			+ "[white] Added protection from [violet]thorium reactors[white]\n"
@@ -430,6 +496,18 @@ public class ExamplePlugin extends Plugin{
         			+ "[white] and more other\n"
         			+  "[gray] Download: github.com/Agzam4/Mindustry-plugin");
         			
+        });
+        handler.<Player>register("captureunits", "[item] [count]", "Заполните ядро предметами [red]Только для администраторов", (arg, player) -> {
+        	if(player.admin()) {
+        		int count = 0;
+        		for (int i = 0; i < Groups.unit.size(); i++) {
+        			Groups.unit.index(i).team = player.team();
+        			count++;
+				}
+				player.sendMessage("[gold]Захвачено " + count + " юнитов");
+        	} else {
+				player.sendMessage("[red]Команда только для администраторов");
+        	}
         });
         
         handler.<Player>register("fillitems", "[item] [count]", "Заполните ядро предметами [red]Только для администраторов", (arg, player) -> {
@@ -498,7 +576,7 @@ public class ExamplePlugin extends Plugin{
 //          info("Core filled.");
         	} else {
         		admins = new Administration();
-				player.sendMessage("[red] Команда только для администраторов");
+				player.sendMessage("[red]Команда только для администраторов");
         	}
         });
         
@@ -539,29 +617,138 @@ public class ExamplePlugin extends Plugin{
             	Vars.netServer.admins.save();
         	} else {
         		admins = new Administration();
-				player.sendMessage("[red] Команда только для администраторов");
+				player.sendMessage("[red]Команда только для администраторов");
         	}
         });
-    	
+
         handler.<Player>register("chatfilter", "[on/off]", "Включить/выключить фильтр чата [red] Только для администраторов", (arg, player) -> {
         	if(player.admin()) {
         		if(arg.length == 0) {
     				player.sendMessage("Недостаточно аргументов");
     				return;
         		}
-        		if(arg[0].equals("on")) {
+        		if(arg[1].equals("on")) {
     				chatFilter = true;
     				player.sendMessage("[green]Чат фильтр включен");
-        		}else if(arg[0].equals("off")) {
-    				chatFilter = false;
-    				player.sendMessage("[green]Чат фильтр выключен");
+        		}else if(arg[1].equals("off")) {
+        			chatFilter = false;
+    				player.sendMessage("[red]Чат фильтр выключен");
         		}else {
     				player.sendMessage("Неверный аргумент, используйте [gold]on/off");
     				return;
         		}
         	} else {
         		admins = new Administration();
-				player.sendMessage("[red] Команда только для администраторов");
+				player.sendMessage("[red]Команда только для администраторов");
+        	}
+        });
+
+        handler.<Player>register("dct", "[time]", "Установить интервал (секунд/10) обновлений данных [red] Только для администраторов", (arg, player) -> {
+        	if(player.admin()) {
+        		if(arg.length == 0) {
+        			player.sendMessage("Интервал обновлений: " + dataCollect.getSleepTime() + " секунд/10");
+    				return;
+        		}
+        		if(arg.length == 1) {
+        			long count = 0;
+        			try {
+        				count = Long.parseLong(arg[0]);
+					} catch (Exception e) {
+	        			player.sendMessage("[red]Вводить можно только числа!");
+					}
+        			count *= 1_00;
+        			
+        			if(count <= 0) {
+	        			player.sendMessage("[red]Интервал не может быть меньше 1!");
+        			}
+        			dataCollect.setSleepTime(count);
+        			player.sendMessage("Установлен интервал: " + count + " ms");
+    				return;
+        		}
+        		if(arg.length == 2) {
+        			boolean isOn = false;
+            		if(arg[1].equals("on")) {
+        				isOn = true;
+//        				player.sendMessage("[green]Чат фильтр включен");
+            		}else if(arg[1].equals("off")) {
+        				isOn = false;
+//        				player.sendMessage("[red]Событие " + " [red]выключен");
+            		}else {
+        				player.sendMessage("Неверный аргумент, используйте [gold]on/off");
+        				return;
+            		}
+            		
+        			for (int i = 0; i < ServerEventsManager.EVENTS_ID.length; i++) {
+        				if(arg[0].equals(ServerEventsManager.EVENTS_ID[i])) {
+        					eventsManager.isEventsOn[i] = isOn;
+        					if(isOn) {
+        						eventsManager.startEventsLoop();
+            					player.sendMessage("Событие [gold]" + ServerEventsManager.EVENTS_ID[i] + " [green]запущено!");
+        					}else {
+            					player.sendMessage("Событие [gold]" + ServerEventsManager.EVENTS_ID[i] + " [red]выключено!");
+        					}
+        					
+            				return;
+        				}
+					}
+        			player.sendMessage("Событие не найдено.\nID событий:\n[lightgray]" + Arrays.toString(ServerEventsManager.EVENTS_ID));
+    				return;
+        		}
+        	} else {
+        		admins = new Administration();
+				player.sendMessage("[red]Команда только для администраторов");
+        	}
+        });
+        
+        handler.<Player>register("event", "[id] [on/off]", "Включить/выключить событие [red] Только для администраторов", (arg, player) -> {
+        	if(player.admin()) {
+        		if(arg.length == 0) {
+        			player.sendMessage("Недостаточно аргументов.\nID событий:\n[lightgray]" + Arrays.toString(ServerEventsManager.EVENTS_ID));
+    				return;
+        		}
+        		if(arg.length == 1) {
+        			for (int i = 0; i < ServerEventsManager.EVENTS_ID.length; i++) {
+        				if(arg[0].equals(ServerEventsManager.EVENTS_ID[i])) {
+        					player.sendMessage("Событие [gold]" + ServerEventsManager.EVENTS_ID[i] + "[] имеет значение: " + eventsManager.isEventsOn[i]);
+            				return;
+        				}
+					}
+        			player.sendMessage("Событие не найдено.\nID событий:\n[lightgray]" + Arrays.toString(ServerEventsManager.EVENTS_ID));
+    				return;
+        		}
+        		if(arg.length == 2) {
+        			boolean isOn = false;
+            		if(arg[1].equals("on")) {
+        				isOn = true;
+//        				player.sendMessage("[green]Чат фильтр включен");
+            		}else if(arg[1].equals("off")) {
+        				isOn = false;
+//        				player.sendMessage("[red]Событие " + " [red]выключен");
+            		}else {
+        				player.sendMessage("Неверный аргумент, используйте [gold]on/off");
+        				return;
+            		}
+            		
+        			for (int i = 0; i < ServerEventsManager.EVENTS_ID.length; i++) {
+        				if(arg[0].equals(ServerEventsManager.EVENTS_ID[i])) {
+        					eventsManager.isEventsOn[i] = isOn;
+        					
+        					if(isOn) {
+        						eventsManager.startEventsLoop();
+            					player.sendMessage("Событие [gold]" + ServerEventsManager.EVENTS_ID[i] + " [green]запущено!");
+        					}else {
+            					player.sendMessage("Событие [gold]" + ServerEventsManager.EVENTS_ID[i] + " [red]выключено!");
+        					}
+        					
+            				return;
+        				}
+					}
+        			player.sendMessage("Событие не найдено.\nID событий:\n[lightgray]" + Arrays.toString(ServerEventsManager.EVENTS_ID));
+    				return;
+        		}
+        	} else {
+        		admins = new Administration();
+				player.sendMessage("[red]Команда только для администраторов");
         	}
         });
 
