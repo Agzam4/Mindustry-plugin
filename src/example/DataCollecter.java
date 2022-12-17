@@ -3,6 +3,7 @@ package example;
 import java.io.Writer;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 
 import arc.Core;
@@ -88,10 +89,69 @@ public class DataCollecter {
 	}
 	
 	public void save() {
-		String json = JsonIO.write(this);
+//		String json = JsonIO.write(this);
+		
+		StringBuilder json = new StringBuilder();
+		
+		json.append("{\n");
+		createJsonValue(json, "dayMaxOnlineCount", dayMaxOnlineCount);
+		createJsonValue(json, "onlineCount", onlineCount);
+		createJsonValue(json, "waveNumber", waveNumber);
+		createJsonValue(json, "messagesCount", messagesCount);
+		createJsonValue(json, "mapName", mapName);
+		createJsonValue(json, "locations", locations);
+		json.append('}');
+		
 		Fi fi = new Fi(getPathToFile());
-		fi.writeString(json);
+		fi.writeString(json.toString());
 //		Files.writeString(json);//(Vars.saveDirectory, json);
+	}
+
+	private void createJsonValue(StringBuilder json, String name, String[][] values) {
+		json.append("\t\"");
+		json.append(name);
+		json.append("\": [");
+		for (int i = 0; i < values.length; i++) {
+			if(values[i] == null) {
+				json.append("null");
+			} else {
+				json.append('[');
+				for (int j = 0; j < values[i].length; j++) {
+					if(values[i][j] == null) {
+						json.append("null");
+					} else {
+						json.append('"');
+						json.append(values[i][j]);
+						json.append('"');
+					}
+					if(j != values.length - 1) {
+						json.append(", ");
+					}
+				}
+				json.append(']');
+			}
+			
+			if(i != values.length - 1) {
+				json.append(", ");
+			}
+		}
+		json.append("]\n");
+	}
+	
+	private void createJsonValue(StringBuilder json, String name, String value) {
+		json.append("\t\"");
+		json.append(name);
+		json.append("\": \"");
+		json.append(value);
+		json.append("\",\n");
+	}
+	
+	private void createJsonValue(StringBuilder json, String name, int value) {
+		json.append("\t\"");
+		json.append(name);
+		json.append("\": ");
+		json.append(value);
+		json.append(",\n");
 	}
 	
 	public static String getPathToFile() {

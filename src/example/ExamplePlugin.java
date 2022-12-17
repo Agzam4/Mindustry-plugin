@@ -202,6 +202,7 @@ public class ExamplePlugin extends Plugin{
         // add a chat filter that changes the contents of all messages
         Vars.netServer.admins.addChatFilter((player, text) -> {
         	if(chatFilter) {
+        		text = "[white]" + text + "[white]";
         		char[] msg = text.toCharArray();
         		
         		StringBuilder result = new StringBuilder();
@@ -213,32 +214,30 @@ public class ExamplePlugin extends Plugin{
 					char uc = Character.toUpperCase(c);
 					if(noob.length() == 0 && (uc == 'N' || uc == 'Н')) {
 						noob.append(c);
-						noobI = c;
+						noobI = i;
 					} else if(uc == 'O' || uc == 'У' || uc == 'Y') {
 						noob.append(c);
 					} else if(uc == 'Б' || uc == 'B') {
 						noob.append(c);
 					} else {
 						if(noob.length() > 2) {
+							boolean isUpper = Character.isUpperCase(noob.charAt(0));
 							char end = Character.toUpperCase(noob.charAt(noob.length()-1));
 							if(end == 'B' || end == 'Б') {
-								result.substring(noobI);
+								result.delete(noobI, noobI+noob.length());
 								if(end == 'B') {
-									result.append("Pr");
-									for (int j = 0; j < noob.length()-2; j++) {
+									result.append(isUpper ? "Pr" : "pr");
+									for (int j = 0; j < noob.length()-3; j++) {
 										result.append('o');
 									}
 								} else {
-									result.append("Пр");
+									result.append(isUpper ? "Пр" : "пр");
 									for (int j = 0; j < noob.length()-2; j++) {
 										result.append('о');
 									}
 								}
 							}
 						}
-						
-						Log.info(noob.toString());
-						
 						noob.delete(0, noob.length());
 					}
 					result.append(msg[i]);
@@ -486,7 +485,7 @@ public class ExamplePlugin extends Plugin{
         
         handler.<Player>register("plugininfo", "info about pluging", (arg, player) -> {
         	player.sendMessage(""
-        			+ "[green] Agzam's plugin v1.4\n"
+        			+ "[green] Agzam's plugin v1.4.2\n"
         			+  "[gray]========================================================\n"
         			+ "[white] Added [royal]skip map[white] commands\n"
         			+ "[white] Added protection from [violet]thorium reactors[white]\n"
@@ -627,10 +626,10 @@ public class ExamplePlugin extends Plugin{
     				player.sendMessage("Недостаточно аргументов");
     				return;
         		}
-        		if(arg[1].equals("on")) {
+        		if(arg[0].equals("on")) {
     				chatFilter = true;
     				player.sendMessage("[green]Чат фильтр включен");
-        		}else if(arg[1].equals("off")) {
+        		}else if(arg[0].equals("off")) {
         			chatFilter = false;
     				player.sendMessage("[red]Чат фильтр выключен");
         		}else {
@@ -800,12 +799,16 @@ public class ExamplePlugin extends Plugin{
 
         boolean checkPass(){
             if(votes >= votesRequired()){
-                Call.sendMessage("[gold]Голосование закончилось. Карта успешно пропущена!");
+//            	if(eventsManager.isLoaded) {
+                    Call.sendMessage("[gold]Голосование закончилось. Карта успешно пропущена!");
 
-                Events.fire(new GameOverEvent(Team.derelict));
-//                Groups.player.each(p -> p.uuid().equals(target.uuid()), p -> p.kick(KickReason.vote, kickDuration * 1000));
-                map[0] = null;
-                task.cancel();
+                    Events.fire(new GameOverEvent(Team.derelict));
+//                    Groups.player.each(p -> p.uuid().equals(target.uuid()), p -> p.kick(KickReason.vote, kickDuration * 1000));
+                    map[0] = null;
+                    task.cancel();
+//            	} else {
+//                    Call.sendMessage("[red]Голосование закончилось. Текущая карта еще не прогрузилась!");
+//            	}
                 return true;
             }
             return false;
