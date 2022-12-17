@@ -1,5 +1,6 @@
 package example;
 
+import arc.Events;
 import arc.graphics.Color;
 import arc.util.Log;
 import mindustry.Vars;
@@ -7,7 +8,9 @@ import mindustry.content.Blocks;
 import mindustry.content.Liquids;
 import mindustry.content.StatusEffects;
 import mindustry.core.World;
+import mindustry.game.EventType.*;
 import mindustry.gen.Building;
+import mindustry.gen.Call;
 import mindustry.gen.Groups;
 import mindustry.gen.Player;
 import mindustry.gen.Unit;
@@ -23,6 +26,8 @@ public class ServerEventsManager {
 	 * Water enemy can broke ice - OK
 	 * Cryofluid filling
 	 * cryofluid cooling
+	 * 
+	 * Remove rules
 	 */
 
 	public static long eventsTPS = 1_000 / 60;
@@ -46,36 +51,37 @@ public class ServerEventsManager {
 	private Block[][] blocks;
 	private byte[][] cold;
 	
-	private boolean isLoaded = false;
-	private boolean isStatePlaying = false;
+	public boolean isLoaded = true;
 	
 	boolean isRunning = false;
 	
 	public void startEventsLoop() {
-		if(isRunning) return;
-		Log.info("Event was started!");
 		
+		Events.on(WorldLoadBeginEvent.class, e -> {
+			Vars.world.setGenerating(true);
+        });
+		
+		Events.on(WorldLoadEndEvent.class, e -> {
+			Log.info("Loaded!");
+			updateWorld(Vars.world);
+			Vars.world.setGenerating(false);
+        });
+		
+		if(isRunning) return;
 		new Thread(() -> {
+			isLoaded = false;
+			Call.announce("Новогднее событие начнется на следующей карте!");
+			Call.sendMessage("[sky]Новогднее событие начнется на следующей карте!");
 			while (isEventsOn[0]) {
 				isRunning = true;
 //				World world = Vars.world;
 				try {
-					if(isStatePlaying != Vars.state.isPlaying()) {
-						isStatePlaying = Vars.state.isPlaying();
-						Log.info("isStatePlaying: " + isStatePlaying);
-						
-						if(isStatePlaying) {
-							if(!Vars.state.map.name().equals(lastmapname)) {
-								updateWorld(Vars.world);
-							}
-						}
-					}
 					
 					if(isLoaded) {
-						if(!Vars.state.rules.lighting) {
-							Vars.state.rules.lighting = true;
-							Vars.state.rules.ambientLight = new Color(0f, 0f, 0f, .5f);
-						}
+//						if(!Vars.state.rules.lighting) {
+//							Vars.state.rules.lighting = true;
+//							Vars.state.rules.ambientLight = new Color(0f, 0f, 0f, .5f);
+//						}
 						for (int i = 0; i < Groups.unit.size(); i++) {
 							Unit unit = Groups.unit.index(i);
 							if(!unit.isFlying()) {
@@ -95,9 +101,16 @@ public class ServerEventsManager {
 											unit.apply(StatusEffects.unmoving, 30);
 										}
 									}
-									cold[tileX][tileY] = 0;
 									
-									returnTileBack(tile, unit.tileX(), unit.tileY());
+									if(tile.floor().isLiquid || tile.overlay().isLiquid) {
+										cold[tileX][tileY] = 0;
+										returnTileBack(tile, unit.tileX(), unit.tileY());
+									} else if(Math.random() > 10f/unit.bounds() && Math.random() < .05){
+										cold[tileX][tileY] = 0; 
+										returnTileBack(tile, unit.tileX(), unit.tileY());
+									} else {
+										continue;
+									}
 									
 									double randAlign = Math.random()*Math.toRadians(360);
 									double randHypot = Math.random()*unit.bounds()/20f;
@@ -134,7 +147,7 @@ public class ServerEventsManager {
 							if(cold[tileX][tileY] >= 50) {
 								if(!player.unit().hasEffect(StatusEffects.freezing)) {
 									player.unit().damage(1, true);
-									player.unit().apply(StatusEffects.freezing, 300);
+									player.unit().apply(StatusEffects.freezing, 180);
 								}
 							}
 							
@@ -162,7 +175,8 @@ public class ServerEventsManager {
 													if(tile == null) continue;
 													
 													if(Math.random() > hypot/r) {
-														int remove = 2 - (int) (hypot*2/r);
+														int remove = 25 - (int) (hypot*25/r);
+														remove *= Math.random();
 														if(remove > cold[x][y]) cold[x][y] = 0;
 														else cold[x][y] -= remove;
 														if(cold[x][y] <= 0) {
@@ -193,7 +207,6 @@ public class ServerEventsManager {
 					e.printStackTrace();
 				}
 			}
-			Log.info("Event is ended!");
 			isRunning = false;
 		}).start();
 	}
@@ -210,7 +223,8 @@ public class ServerEventsManager {
 
 	private void updateWorld(World world) {
 		isLoaded = false;
-
+		
+//		world.isGenerating();	
 		int w = world.width();
 		int h = world.height();
 		width = w;
@@ -220,6 +234,29 @@ public class ServerEventsManager {
 		overlay = new Floor[w][h];
 		blocks = new Block[w][h];
 		cold = new byte[w][h];
+		
+		StringBuffer infotitle = new StringBuffer();
+		final String infoTilteString = "Новогоднее событие!".toUpperCase();
+		for (int i = 0; i < infoTilteString.length(); i++) {
+			char ch = infoTilteString.charAt(i);
+			if(i%2 == 0) {
+				infotitle.append("[white]");
+			} else {
+				if(i%4 == 1) {
+					infotitle.append("[red]");
+				}
+				if(i%4 == 3) {
+					infotitle.append("[green]");
+				}
+			}
+			infotitle.append(ch);
+		}
+		infotitle.append("[sky]\n");
+		
+        Call.sendMessage(infotitle.toString() 
+        		+ "Карта покрылась снегом и льдом Некоторые руды оказались под снегом.\n"
+        		+ "Найдите способ растопить снег и лед, и добраться до занесенных снегом руд\n\n"
+        		+ "[lightgray](Используйте [gold]/mapinfo[lightgray] для статистики ресурсов)");
 		
 		for (int y = 0; y < h; y++) {
 			for (int x = 0; x < w; x++) {
@@ -245,7 +282,8 @@ public class ServerEventsManager {
 					if(tile.overlay().liquidDrop == Liquids.water) {
 						overlay = (Floor) Blocks.ice;
 						overlay.isLiquid = true;
-						tile.setFloorNet(floor, Blocks.ice);
+						tile.setFloorNet(floor);
+						tile.setOverlay(overlay);
 						cold[x][y] = 100;
 						isIce = true;
 					}
@@ -253,7 +291,8 @@ public class ServerEventsManager {
 						floor = (Floor) Blocks.ice;
 						floor.isLiquid = true;
 						cold[x][y] = 100;
-						tile.setFloorNet(floor, overlay);
+						tile.setFloor(floor);
+						tile.setOverlay(overlay);
 						isIce = true;
 					}
 					if(overlay != Blocks.ice) {
@@ -264,12 +303,16 @@ public class ServerEventsManager {
 						}
 					}
 					if(!isIce) {
-						if(floor == Blocks.sand || floor == Blocks.darksand) {
-							tile.setFloorNet((Floor) Blocks.iceSnow, overlay);
-							cold[x][y] = 110;
-						} else {
-							tile.setFloorNet((Floor) Blocks.snow, overlay);
-							cold[x][y] = 120;
+						if(floor != Blocks.space && overlay != Blocks.space) {
+							if(floor == Blocks.sand || floor == Blocks.darksand) {
+								tile.setFloor((Floor) Blocks.iceSnow);
+								tile.setOverlay(overlay);
+								cold[x][y] = 110;
+							} else {
+								tile.setFloor((Floor) Blocks.snow);
+								tile.setOverlay(overlay);
+								cold[x][y] = 120;
+							}
 						}
 					}
 				}
@@ -278,6 +321,5 @@ public class ServerEventsManager {
 		
 		lastmapname = Vars.state.map.name();
 		isLoaded = true;
-		Log.info("Map loaded! (" + lastmapname + ")");	
 	}
 }
