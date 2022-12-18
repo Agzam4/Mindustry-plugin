@@ -16,6 +16,7 @@ import mindustry.gen.Player;
 import mindustry.gen.Unit;
 import mindustry.world.Block;
 import mindustry.world.Tile;
+import mindustry.world.blocks.defense.OverdriveProjector.OverdriveBuild;
 import mindustry.world.blocks.environment.Floor;
 import mindustry.world.modules.PowerModule;
 
@@ -156,12 +157,8 @@ public class ServerEventsManager {
 							if(tileBuilding != null) {
 								Building building = tileBuilding.build;
 								if(building != null) {
-//									Liquids 
-//									building.liquids().get(Liquids.cryofluid);
 									PowerModule powerModule = building.power();
 									if(powerModule != null) {
-//										Log.info(powerModule.status);
-										
 										int r = (int) (world.tile(tileX, tileY).block().lightRadius/10*powerModule.status);
 										for (int y = tileY-r; y <= tileY+r; y++) {
 											for (int x = tileX-r; x <= tileX+r; x++) {
@@ -189,12 +186,6 @@ public class ServerEventsManager {
 									}
 								}
 							}
-							// world.tile(tileX, tileY).floor().emitLight || 
-//							Log.info(world.tile(tileX, tileY).block().name + ": " + world.tile(tileX, tileY).block().lightRadius);
-							/*
-							if((world.tile(tileX, tileY).block().emitLight && world.tile(tileX, tileY).block() != null)) {
-								
-							}*/
 						}
 					}
 				} catch (Exception e) {
@@ -212,8 +203,16 @@ public class ServerEventsManager {
 	}
 	
 	private void returnTileBack(Tile tile, int x, int y) {
-		tile.setFloorNet(floor[x][y], overlay[x][y]);
 		cold[x][y] = 0;
+		if(tile.floor().name.equals(Blocks.ice.name)) {
+			Building building = tile.build;
+			if(building != null) {
+				building.damagePierce(building.health / 100, true);
+				building.damage(10);
+				return;
+			}
+		}
+		tile.setFloorNet(floor[x][y], overlay[x][y]);
 		if(!tile.block().isAir() && !tile.floor().hasBuilding() && !tile.overlay().hasBuilding() && !tile.block().hasBuilding()) {
 			tile.setNet(blocks[x][y]);
 		}
@@ -221,7 +220,12 @@ public class ServerEventsManager {
 	
 	int width, height;
 
+	public void fastStart() {
+		updateWorld(Vars.world);
+	}
+
 	private void updateWorld(World world) {
+		
 		isLoaded = false;
 		
 //		world.isGenerating();	
@@ -268,10 +272,10 @@ public class ServerEventsManager {
 				if(!tile.floor().hasBuilding() && !tile.overlay().hasBuilding() && !tile.block().hasBuilding() && !tile.block().emitLight && !tile.overlay().emitLight && !tile.floor().emitLight) { // !tile.getClass().equals(SpawnBlock.class)
 					if(!tile.block().isAir()) {
 						if(tile.block().name.indexOf("boulder") != -1) {
-							tile.setNet(Blocks.snowBoulder);
+							tile.setBlock(Blocks.snowBoulder);
 							cold[x][y] = 100;
 						} else {
-							tile.setNet(Blocks.snowWall);
+							tile.setBlock(Blocks.snowWall);
 							cold[x][y] = 100;
 						}
 					}
