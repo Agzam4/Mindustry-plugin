@@ -23,6 +23,7 @@ import mindustry.game.Team;
 import mindustry.game.Teams;
 import mindustry.game.EventType.*;
 import mindustry.game.Gamemode;
+import mindustry.game.Rules;
 import mindustry.gen.*;
 import mindustry.io.JsonIO;
 import mindustry.mod.*;
@@ -106,7 +107,7 @@ public class ExamplePlugin extends Plugin{
     @Override
     public void init() {
     	eventsManager = new ServerEventsManager();
-    	
+    	eventsManager.init();
 //    	eventsManager.isEventsOn[0] = true;
 //		eventsManager.startEventsLoop();
 //    	eventsManager.startEventsLoop();
@@ -624,7 +625,7 @@ public class ExamplePlugin extends Plugin{
         
         handler.<Player>register("plugininfo", "info about pluging", (arg, player) -> {
         	player.sendMessage(""
-        			+ "[green] Agzam's plugin v1.5\n"
+        			+ "[green] Agzam's plugin v1.6\n"
         			+  "[gray]========================================================\n"
         			+ "[white] Added [royal]skip map[white] commands\n"
         			+ "[white] Added protection from [violet]thorium reactors[white]\n"
@@ -922,7 +923,7 @@ public class ExamplePlugin extends Plugin{
 				player.sendMessage("[red]Команда только для администраторов");
         	}
         });
-        
+
         handler.<Player>register("config", "[name] [value...]", "Конфикурация сервера [red] Только для администраторов", (arg, player) -> {
         	if(player.admin()) {
         		if(arg.length == 0){
@@ -959,6 +960,29 @@ public class ExamplePlugin extends Plugin{
         			}
         		}else{
         			player.sendMessage("[red]Unknown config: '" + arg[0] + "'. Run the command with no arguments to get a list of valid configs.");
+        		}
+        	} else {
+        		admins = new Administration();
+        		player.sendMessage("[red]Команда только для администраторов");
+        	}
+        });
+        
+
+        handler.<Player>register("sandbox", "[on/off]", "Бесконечные ресурсы", (arg, player) -> {
+        	if(player.admin()) {
+        		if(arg.length == 0) {
+            		player.sendMessage("[gold]infiniteResources: [gray]" + Vars.state.rules.infiniteResources);
+        			
+        		} else {
+        			if(arg[0].equals("on")) {
+                		Vars.state.rules.infiniteResources = true;
+        			}else if(arg[0].equals("off")) {
+                		player.sendMessage("[green]Включено!");
+                		Vars.state.rules.infiniteResources = false;
+                		player.sendMessage("[red]Выключено!");
+        			} else {
+                		player.sendMessage("[red]Только on/off");
+        			}
         		}
         	} else {
         		admins = new Administration();
@@ -1064,4 +1088,6 @@ public class ExamplePlugin extends Plugin{
     public int votesRequiredSkipmap(){
         return (int) Math.ceil(Groups.player.size()*2d/3d);
     }
+    
+    
 }
