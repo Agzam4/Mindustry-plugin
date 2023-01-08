@@ -1,7 +1,9 @@
 package example;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 
 import javax.swing.plaf.nimbus.State;
 
@@ -12,31 +14,32 @@ import arc.struct.ObjectSet;
 import arc.struct.Seq;
 import arc.util.*;
 import arc.util.CommandHandler.Command;
-import arc.util.serialization.JsonReader;
-import arc.util.serialization.JsonValue;
-import arc.util.serialization.JsonValue.ValueType;
+import example.events.ServerEvent;
+import example.events.ServerEventsManager;
 import mindustry.*;
 import mindustry.content.*;
 import mindustry.core.GameState;
 import mindustry.core.World;
 import mindustry.game.Team;
-import mindustry.game.Teams;
+import mindustry.gen.Call;
+import mindustry.gen.Groups;
+import mindustry.gen.Player;
+import mindustry.gen.Unit;
+import mindustry.game.EventType;
 import mindustry.game.EventType.*;
+import mindustry.game.GameStats;
 import mindustry.game.Gamemode;
-import mindustry.game.Rules;
-import mindustry.gen.*;
-import mindustry.io.JsonIO;
 import mindustry.mod.*;
 import mindustry.net.Administration;
 import mindustry.net.Administration.*;
 import mindustry.type.Item;
 import mindustry.type.Liquid;
-import mindustry.type.StatusEffect;
-import mindustry.world.Block;
-import mindustry.world.blocks.storage.*;
+import mindustry.type.UnitType;
 import mindustry.world.blocks.storage.CoreBlock.CoreBuild;
 import mindustry.maps.Map;
 import mindustry.maps.*;
+
+import static mindustry.Vars.*;
 
 public class ExamplePlugin extends Plugin{
 
@@ -101,13 +104,31 @@ public class ExamplePlugin extends Plugin{
     };
 
     private ServerEventsManager eventsManager;
+    private Team admin;
+    
+    
+    private int ignoreUnitId = -1;
 //    private 
+    
+    private int updateId = 0;
+    
+    
+    SkipmapVoteSession[] currentlyMapSkipping = {null};
+//    
+    
+    // TODO: bans command
     
     //called when game initializes
     @Override
     public void init() {
+    	
     	eventsManager = new ServerEventsManager();
     	eventsManager.init();
+    	
+    	admin = Team.all[10];
+    	admin.name = "admin";
+    	
+//    	admin.rules().
 //    	eventsManager.isEventsOn[0] = true;
 //		eventsManager.startEventsLoop();
 //    	eventsManager.startEventsLoop();
@@ -126,6 +147,83 @@ public class ExamplePlugin extends Plugin{
     	adminCommands.add("dct");
     	adminCommands.add("event");
     	adminCommands.add("team");
+    	adminCommands.add("sandbox");
+    	adminCommands.add("unit");
+    	adminCommands.add("bans");
+    	adminCommands.add("unban");
+    	
+    	Events.run(Trigger.update, () -> {
+    		eventsManager.update();
+    	});
+    	
+    	Events.on(GameOverEvent.class, e -> {
+    		StringBuilder result = new StringBuilder(state.map.name());
+    		result.append("\nСчёт: [lightgray]");
+    		result.append(state.wave);
+    		result.append('/');
+    		result.append(state.map.getHightScore());
+    		if(state.wave > state.map.getHightScore()) {
+        		result.append("[gold] (Новый рекорд!)");
+    		}
+    		Call.sendMessage(result.toString());
+    		currentlyMapSkipping[0] = null;
+    	});
+    	
+    	Events.on(WorldLoadEndEvent.class, e -> {
+    		StringBuilder result = new StringBuilder(state.map.name());
+    		result.append("\nРекорд на карте: [lightgray]");
+    		result.append(state.wave);
+    		Call.sendMessage(result.toString());
+    		currentlyMapSkipping[0] = null;
+    		eventsManager.worldLoadEnd(e);
+    	});
+    	
+    	Events.on(PlayerJoin.class, e -> {
+    		eventsManager.playerJoin(e);
+//    		int id = Groups.player.size();
+//    		boolean[] isUsed = new boolean[id];
+//    		
+//    		for (int i = 0; i < Groups.player.size(); i++) {
+//				Player player = Groups.player.index(i);
+//				if(player.name().startsWith("[" + (i+1))) {
+//					isUsed[i] = true;
+//				}
+//			}
+//    		
+//    		for (int i = 0; i < isUsed.length; i++) {
+//				if(!isUsed[i]) {
+//		    		e.player.name("[" + (i+1) + "] " + e.player.name());
+//		    		break;
+//				}
+//			}
+    		e.player.name(e.player.name().replaceAll(" ", "_"));
+    		
+			float rate = 1f - (e.player.getInfo().timesKicked * 5 / (float) e.player.getInfo().timesJoined);
+			rate = Math.max(rate, 0);
+			rate = Math.min(rate, 1f);
+			
+			if(e.player.getInfo().timesJoined != 1) {
+				int startCount = (int) Math.ceil(rate*5);
+				StringBuilder stars = new StringBuilder();
+				Color color = Color.HSVtoRGB(rate*120, 100, 100);
+				stars.append("[#");
+				stars.append(color.toString());
+				stars.append("]");
+				for (int j = 0; j < startCount; j++) {
+					stars.append('\ue809');
+				}
+				Color color2 = Color.HSVtoRGB(rate*120, 100, 33);
+				stars.append("[#");
+				stars.append(color2.toString());
+				stars.append("]");
+				for (float j = startCount+1; j < 5; j++) {
+					stars.append('\ue809');
+				}
+				Call.sendMessage("Игрок " + e.player.name() + "[white] имеет рейтинг " + stars.toString());
+			} else {
+				Call.sendMessage("Игрок " + e.player.name() + "[white] в первый раз на этом сервере!");
+			}
+    	});
     	
 //    	Blocks.
 //    	Events.on(GameOverEvent.class, event -> {
@@ -493,105 +591,118 @@ public class ExamplePlugin extends Plugin{
 //            }
 //        });
         
-        GrieferVoteSession[] grieferVoteSession = {null};
+//        handler.<Player>register("griefer", "[имя_грифера]", "Лучший способ наказать наказать грифера", (arg, player) -> {
+//            if(Groups.player.size() < 3){ // FIXME
+//                player.sendMessage("[scarlet]Для начала голосования необходимо как минимум 3 игрока.");
+//                return;
+//            }
+//
+//            if(grieferVoteSession[0] != null){
+//                player.sendMessage("[scarlet]Голосование уже идет."); // FIXME
+//                return;
+//            }
+//
+//            if(arg.length == 0){
+//                StringBuilder builder = new StringBuilder();
+//                builder.append("[orange]Список игроков: \n");
+//
+//                Groups.player.each(p -> !p.admin && p.con != null && p != player, p -> {
+//                    builder.append("[lightgray] ").append(p.name).append("[accent] (#").append(p.id()).append(")\n");
+//                });
+//                player.sendMessage(builder.toString());
+//            }else{
+//                Player found;
+//                if(arg[0].length() > 1 && arg[0].startsWith("#") && Strings.canParseInt(arg[0].substring(1))){
+//                    int id = Strings.parseInt(arg[0].substring(1));
+//                    found = Groups.player.find(p -> p.id() == id);
+//                }else{
+//                    found = Groups.player.find(p -> p.name.equalsIgnoreCase(arg[0]));
+//                }
+//
+//                if(found != null){
+//                    if(found == player){
+//                        player.sendMessage("[scarlet]Вы не можете проголосовать за то, чтобы наказать себя.");
+//                    }else if(found.admin){
+//                        player.sendMessage("[scarlet]Вы действительно думали, что сможете наказать администратора?");
+//                    }else if(found.isLocal()){
+//                        player.sendMessage("[scarlet]Локальные игроки не могут быть наказаны.");
+//                    }else if(found.team() != player.team()){
+//                        player.sendMessage("[scarlet]Только игроки Вашей команды могут быть наказаны");
+//                    }else{
+//                    	GrieferVoteSession session = new GrieferVoteSession(grieferVoteSession, found);
+//                        grieferVoteSession[0] = session;
+//                        session.vote(player, 1);
+//                    }
+//                }else{
+//                    player.sendMessage("[scarlet]Игрок с именем [orange]'" + arg[0] + "'[scarlet] не найден.");
+//                }
+//            }
+//        });
         
-        handler.<Player>register("griefer", "[имя_грифера]", "Лучший способ наказать наказать грифера", (arg, player) -> {
-            if(Groups.player.size() < 3){ // FIXME
-                player.sendMessage("[scarlet]Для начала голосования необходимо как минимум 3 игрока.");
-                return;
-            }
-
-            if(grieferVoteSession[0] != null){
-                player.sendMessage("[scarlet]Голосование уже идет."); // FIXME
-                return;
-            }
-
-            if(arg.length == 0){
-                StringBuilder builder = new StringBuilder();
-                builder.append("[orange]Список игроков: \n");
-
-                Groups.player.each(p -> !p.admin && p.con != null && p != player, p -> {
-                    builder.append("[lightgray] ").append(p.name).append("[accent] (#").append(p.id()).append(")\n");
-                });
-                player.sendMessage(builder.toString());
-            }else{
-                Player found;
-                if(arg[0].length() > 1 && arg[0].startsWith("#") && Strings.canParseInt(arg[0].substring(1))){
-                    int id = Strings.parseInt(arg[0].substring(1));
-                    found = Groups.player.find(p -> p.id() == id);
-                }else{
-                    found = Groups.player.find(p -> p.name.equalsIgnoreCase(arg[0]));
-                }
-
-                if(found != null){
-                    if(found == player){
-                        player.sendMessage("[scarlet]Вы не можете проголосовать за то, чтобы наказать себя.");
-                    }else if(found.admin){
-                        player.sendMessage("[scarlet]Вы действительно думали, что сможете наказать администратора?");
-                    }else if(found.isLocal()){
-                        player.sendMessage("[scarlet]Локальные игроки не могут быть наказаны.");
-                    }else if(found.team() != player.team()){
-                        player.sendMessage("[scarlet]Только игроки Вашей команды могут быть наказаны");
-                    }else{
-                    	GrieferVoteSession session = new GrieferVoteSession(grieferVoteSession, found);
-                        grieferVoteSession[0] = session;
-                        session.vote(player, 1);
-                    }
-                }else{
-                    player.sendMessage("[scarlet]Игрок с именем [orange]'" + arg[0] + "'[scarlet] не найден.");
-                }
-            }
-        });
-        
-        handler.<Player>register("gvote", "<y/n>", "Голосовать за наказание для игрока", (arg, player) -> {
-            if(grieferVoteSession[0] == null){
-                player.sendMessage("[scarlet]Никто ни за кого не голосует.");
-            }else{
-                if(player.isLocal()){
-                    player.sendMessage("[scarlet]Локальные игроки не могут голосовать. Вместо этого кикните игрока сами.");
-                    return;
-                }
-
-                //hosts can vote all they want
-                if((grieferVoteSession[0].voted.contains(player.uuid()) || grieferVoteSession[0].voted.contains(admins.getInfo(player.uuid()).lastIP))){
-                    player.sendMessage("[scarlet]Вы уже проголосовали.");
-                    return;
-                }
-
-                if(grieferVoteSession[0].target == player){
-                    player.sendMessage("[scarlet]Вы не можете голосовать за себя");
-                    return;
-                }
-
-                if(grieferVoteSession[0].target.team() != player.team()){
-                    player.sendMessage("[scarlet]Только игроки Вашей команды могут быть наказаны");
-                    return;
-                }
-                
-                int sign = 0;
-                String signString = arg[0].toLowerCase();
-                if(signString.equals("y") || signString.equals("yes")) sign = 1;
-                if(signString.equals("n") || signString.equals("no")) sign = -1;
-
-                if(sign == 0){
-                    player.sendMessage("[scarlet]Голосуйте либо \"y\" (да), либо \"n\" (нет).");
-                    return;
-                }
-
-                grieferVoteSession[0].vote(player, sign);
-            }
-        });
+//        handler.<Player>register("gvote", "<y/n>", "Голосовать за наказание для игрока", (arg, player) -> {
+//            if(grieferVoteSession[0] == null){
+//                player.sendMessage("[scarlet]Никто ни за кого не голосует.");
+//            }else{
+//                if(player.isLocal()){
+//                    player.sendMessage("[scarlet]Локальные игроки не могут голосовать. Вместо этого кикните игрока сами.");
+//                    return;
+//                }
+//
+//                //hosts can vote all they want
+//                if((grieferVoteSession[0].voted.contains(player.uuid()) || grieferVoteSession[0].voted.contains(admins.getInfo(player.uuid()).lastIP))){
+//                    player.sendMessage("[scarlet]Вы уже проголосовали.");
+//                    return;
+//                }
+//
+//                if(grieferVoteSession[0].target == player){
+//                    player.sendMessage("[scarlet]Вы не можете голосовать за себя");
+//                    return;
+//                }
+//
+//                if(grieferVoteSession[0].target.team() != player.team()){
+//                    player.sendMessage("[scarlet]Только игроки Вашей команды могут быть наказаны");
+//                    return;
+//                }
+//                
+//                int sign = 0;
+//                String signString = arg[0].toLowerCase();
+//                if(signString.equals("y") || signString.equals("yes")) sign = 1;
+//                if(signString.equals("n") || signString.equals("no")) sign = -1;
+//
+//                if(sign == 0){
+//                    player.sendMessage("[scarlet]Голосуйте либо \"y\" (да), либо \"n\" (нет).");
+//                    return;
+//                }
+//
+//                grieferVoteSession[0].vote(player, sign);
+//            }
+//        });
         
         /**
          *  SKIP MAP COMMANDS
          */
         
-        SkipmapVoteSession[] currentlyMapSkipping = {null};
+//        SkipmapVoteSession[] currentlyMapSkipping = {null};
         
         handler.<Player>register("skipmap", "Начать голосование за пропуск карты", (arg, player) -> {
-        	SkipmapVoteSession session = new SkipmapVoteSession(currentlyMapSkipping);
-            session.vote(player, 1);
-            currentlyMapSkipping[0] = session;
+        	if(currentlyMapSkipping[0] == null) {
+            	SkipmapVoteSession session = new SkipmapVoteSession(currentlyMapSkipping);
+                session.vote(player, 1);
+                currentlyMapSkipping[0] = session;
+        	} else {
+                player.sendMessage("[scarlet]Голосование уже идет: [gold]/smvote <y/n>");
+//                if(player.isLocal()){
+//                    player.sendMessage("[scarlet]Локальные игроки не могут голосовать.");
+//                    return;
+//                }
+//                
+//                if((currentlyMapSkipping[0].voted.contains(player.uuid()) || currentlyMapSkipping[0].voted.contains(admins.getInfo(player.uuid()).lastIP))){
+//                    player.sendMessage("[scarlet]Ты уже проголосовал. Молчи!");
+//                    return;
+//                }
+//
+//                currentlyMapSkipping[0].vote(player, 1);
+        	}
         });
     	
         handler.<Player>register("smvote", "<y/n>", "Проголосовать за/протов пропуск карты", (arg, player) -> {
@@ -625,7 +736,7 @@ public class ExamplePlugin extends Plugin{
         
         handler.<Player>register("plugininfo", "info about pluging", (arg, player) -> {
         	player.sendMessage(""
-        			+ "[green] Agzam's plugin v1.6\n"
+        			+ "[green] Agzam's plugin v1.7\n"
         			+  "[gray]========================================================\n"
         			+ "[white] Added [royal]skip map[white] commands\n"
         			+ "[white] Added protection from [violet]thorium reactors[white]\n"
@@ -640,40 +751,119 @@ public class ExamplePlugin extends Plugin{
         handler.<Player>register("fillitems", "[item] [count]", "Заполните ядро предметами [red]Только для администраторов", (arg, player) -> {
         	if(player.admin()) {
         		try {
+        			
+
+        			final Item serpuloItems[] = {
+        					Items.scrap, Items.copper, Items.lead, Items.graphite, Items.coal, Items.titanium, Items.thorium, Items.silicon, Items.plastanium,
+        					Items.phaseFabric, Items.surgeAlloy, Items.sporePod, Items.sand, Items.blastCompound, Items.pyratite, Items.metaglass
+        			};
+        			
+        			final Item erekirOnlyItems[] = {
+							/* Items.graphite, */ /* Items.thorium, */ /* Items.silicon, */ /* Items.phaseFabric, */ /*Items.surgeAlloy,*/ /*Items.sand,*/
+        					Items.beryllium, Items.tungsten, Items.oxide, Items.carbide, Items.fissileMatter, Items.dormantCyst
+        			};
+        			
+        			if(Items.copper.localizedName.equalsIgnoreCase(Items.copper.name)) {
+        		    	Items.beryllium.localizedName = "бериллий";
+        		    	Items.blastCompound.localizedName = "взрывчатка";
+        		    	Items.carbide.localizedName = "карбид";
+        		    	Items.coal.localizedName = "уголь";
+        		    	Items.copper.localizedName = "медь";
+        		    	Items.dormantCyst.localizedName = "оболчка";
+        		    	Items.fissileMatter.localizedName = "материя";
+        		    	Items.graphite.localizedName = "грфит";
+        		    	Items.lead.localizedName = "свинец";
+        		    	Items.metaglass.localizedName = "стекло";
+        		    	Items.oxide.localizedName = "оксид";
+        		    	Items.phaseFabric.localizedName = "фаза";
+        		    	Items.plastanium.localizedName = "пластан";
+        		    	Items.pyratite.localizedName = "пиротит";
+        		    	Items.sand.localizedName = "песок";
+        		    	Items.scrap.localizedName = "железо";
+        		    	Items.silicon.localizedName = "кремний";
+        		    	Items.sporePod.localizedName = "споры";
+        		    	Items.surgeAlloy.localizedName = "кинетик";
+        		    	Items.thorium.localizedName = "торий";
+        		    	Items.titanium.localizedName = "титан";
+        		    	Items.tungsten.localizedName = "вольфрам";
+        		    	Items.fissileMatter.localizedName = "материя";
+        		    	Items.dormantCyst.localizedName = "обломки";
+        			}
+            		if(arg.length == 0) {
+            			StringBuilder ruNames = new StringBuilder("Русские названия предметов: ");
+            			Log.info("Ru names");
+            			for (int i = 0; i < serpuloItems.length; i++) {
+                			Log.info(i + "s) " + serpuloItems[i].name);
+							ruNames.append(getColoredLocalizedItemName(serpuloItems[i]));
+							ruNames.append(", ");
+						}
+            			for (int i = 0; i < erekirOnlyItems.length; i++) {
+                			Log.info(i + "e) " + serpuloItems[i].name);
+							ruNames.append(getColoredLocalizedItemName(erekirOnlyItems[i]));
+							if(i + 1 < erekirOnlyItems.length) {
+								ruNames.append(", ");
+							}
+						}
+    					player.sendMessage(ruNames.toString());
+    					return;
+            		}
+            		
             		Item item = Items.copper;
             		
             		String itemname = arg[0].toLowerCase();
-            		if(itemname.equals("blastCompound") 	|| itemname.equals("взрывчатка")	|| itemname.equals("\uf82a")) 	item = Items.blastCompound;
-            		else if(itemname.equals("coal") 		|| itemname.equals("уголь")			|| itemname.equals("\uf833")) 	item = Items.coal;
-            		else if(itemname.equals("copper") 		|| itemname.equals("медь")			|| itemname.equals("\uf838")) 	item = Items.copper;
-            		else if(itemname.equals("graphite") 	|| itemname.equals("графит")		|| itemname.equals("\uf835")) 	item = Items.graphite;
-            		else if(itemname.equals("lead") 		|| itemname.equals("свинец")		|| itemname.equals("\uf837")) 	item = Items.lead;
-            		else if(itemname.equals("metaglass") 	|| itemname.equals("стекло")		|| itemname.equals("\uf836")) 	item = Items.metaglass;
-            		else if(itemname.equals("phaseFabric") 	|| itemname.equals("фаза")			|| itemname.equals("\uf82d")) 	item = Items.phaseFabric;
-            		else if(itemname.equals("plastanium") 	|| itemname.equals("пластан")		|| itemname.equals("\uf82e")) 	item = Items.plastanium;
-            		else if(itemname.equals("pyratite") 	|| itemname.equals("пиротит")		|| itemname.equals("\uf829")) 	item = Items.pyratite;
-            		else if(itemname.equals("sand") 		|| itemname.equals("песок")			|| itemname.equals("\uf834")) 	item = Items.sand;
-            		else if(itemname.equals("scrap") 		|| itemname.equals("железо")		|| itemname.equals("\uf830")) 	item = Items.scrap;
-            		else if(itemname.equals("silicon") 		|| itemname.equals("кремень")		|| itemname.equals("\uf82f")) 	item = Items.silicon;
-            		else if(itemname.equals("sporePod") 	|| itemname.equals("споры")			|| itemname.equals("\uf82b")) 	item = Items.sporePod;
-            		else if(itemname.equals("surgeAlloy") 	|| itemname.equals("кинетик")		|| itemname.equals("\uf82c")) 	item = Items.surgeAlloy;
-            		else if(itemname.equals("thorium") 		|| itemname.equals("торий")			|| itemname.equals("\uf831")) 	item = Items.thorium;
-            		else if(itemname.equals("titanium") 	|| itemname.equals("титан")			|| itemname.equals("\uf832")) 	item = Items.titanium;
-            		else {
-    					player.sendMessage("Русские названия предметов: взрывчатка, уголь, медь, графит, свинец, стекло, фаза, пластан, пиротит, песок, железо, кремень, споры, кинетик, торий, титан");
+
+            		for (int i = 0; i < serpuloItems.length; i++) {
+						Item si = serpuloItems[i];
+						if(itemname.equalsIgnoreCase(si.name) || itemname.equalsIgnoreCase(si.localizedName)) {
+							item = si;
+							break;
+						}
+					}
+            		if(item == null) {
+                		for (int i = 0; i < erekirOnlyItems.length; i++) {
+    						Item ei = erekirOnlyItems[i];
+    						if(itemname.equalsIgnoreCase(ei.name) || itemname.equalsIgnoreCase(ei.localizedName)) {
+    							item = ei;
+    							break;
+    						}
+    					}
             		}
-            		if(arg.length == 0) {
-    					player.sendMessage("Русские названия предметов: взрывчатка, уголь, медь, графит, свинец, стекло, фаза, пластан, пиротит, песок, железо, кремень, споры, кинетик, торий, титан");
+            		if(item == null) {
+                		if(itemname.equals("\uf82a")) 	item = Items.blastCompound;
+                		else if(itemname.equals("\uf833")) 	item = Items.coal;
+                		else if(itemname.equals("\uf838")) 	item = Items.copper;
+                		else if(itemname.equals("\uf835")) 	item = Items.graphite;
+                		else if(itemname.equals("\uf837")) 	item = Items.lead;
+                		else if(itemname.equals("\uf836")) 	item = Items.metaglass;
+                		else if(itemname.equals("\uf82d")) 	item = Items.phaseFabric;
+                		else if(itemname.equals("\uf82e")) 	item = Items.plastanium;
+                		else if(itemname.equals("\uf829")) 	item = Items.pyratite;
+                		else if(itemname.equals("\uf834")) 	item = Items.sand;
+                		else if(itemname.equals("\uf830")) 	item = Items.scrap;
+                		else if(itemname.equals("\uf82f")) 	item = Items.silicon;
+                		else if(itemname.equals("\uf82b")) 	item = Items.sporePod;
+                		else if(itemname.equals("\uf82c")) 	item = Items.surgeAlloy;
+                		else if(itemname.equals("\uf831")) 	item = Items.thorium;
+                		else if(itemname.equals("\uf832")) 	item = Items.titanium;
             		}
             		
-            		Team team = player.team();
-            		
-            		int count = arg.length > 1 ? Integer.parseInt(arg[1]) : 0;
-            		
-            		for(CoreBuild core : team.cores()){
-            			core.items.add(item, count);
+            		if(item == null) {
+            			if(itemname.equalsIgnoreCase(Items.dormantCyst.name) || itemname.equalsIgnoreCase(Items.dormantCyst.localizedName)) {
+            				item = Items.dormantCyst;
+            			}
+            			if(itemname.equalsIgnoreCase(Items.fissileMatter.name) || itemname.equalsIgnoreCase(Items.fissileMatter.localizedName)) {
+            				item = Items.fissileMatter;
+            			}
             		}
-					player.sendMessage("Added " + "[gold]x" + count + " [orange]" + item.name);
+            		if(item != null) {
+            			Team team = player.team();
+
+            			int count = arg.length > 1 ? Integer.parseInt(arg[1]) : 0;
+            			for(CoreBuild core : team.cores()){
+            				core.items.add(item, count);
+            			}
+            			player.sendMessage("Added " + "[gold]x" + count + " [orange]" + item.name);
+            		}
 				} catch (Exception e) {
 					player.sendMessage(e.getMessage());
 				}
@@ -745,7 +935,7 @@ public class ExamplePlugin extends Plugin{
 				player.sendMessage("[red]Команда только для администраторов");
         	}
         });
-
+        
         handler.<Player>register("dct", "[time]", "Установить интервал (секунд/10) обновлений данных [red] Только для администраторов", (arg, player) -> {
         	if(player.admin()) {
         		if(arg.length == 0) {
@@ -768,35 +958,6 @@ public class ExamplePlugin extends Plugin{
         			player.sendMessage("Установлен интервал: " + count + " ms");
     				return;
         		}
-        		if(arg.length == 2) {
-        			boolean isOn = false;
-            		if(arg[1].equals("on")) {
-        				isOn = true;
-//        				player.sendMessage("[green]Чат фильтр включен");
-            		}else if(arg[1].equals("off")) {
-        				isOn = false;
-//        				player.sendMessage("[red]Событие " + " [red]выключен");
-            		}else {
-        				player.sendMessage("Неверный аргумент, используйте [gold]on/off");
-        				return;
-            		}
-            		
-        			for (int i = 0; i < ServerEventsManager.EVENTS_ID.length; i++) {
-        				if(arg[0].equals(ServerEventsManager.EVENTS_ID[i])) {
-        					eventsManager.isEventsOn[i] = isOn;
-        					if(isOn) {
-        						eventsManager.startEventsLoop();
-            					player.sendMessage("Событие [gold]" + ServerEventsManager.EVENTS_ID[i] + " [green]запущено!");
-        					}else {
-            					player.sendMessage("Событие [gold]" + ServerEventsManager.EVENTS_ID[i] + " [red]выключено!");
-        					}
-        					
-            				return;
-        				}
-					}
-        			player.sendMessage("Событие не найдено.\nID событий:\n[lightgray]" + Arrays.toString(ServerEventsManager.EVENTS_ID));
-    				return;
-        		}
         	} else {
         		admins = new Administration();
 				player.sendMessage("[red]Команда только для администраторов");
@@ -806,17 +967,27 @@ public class ExamplePlugin extends Plugin{
         handler.<Player>register("event", "[id] [on/off/faston]", "Включить/выключить событие [red] Только для администраторов", (arg, player) -> {
         	if(player.admin()) {
         		if(arg.length == 0) {
-        			player.sendMessage("Недостаточно аргументов.\nID событий:\n[lightgray]" + Arrays.toString(ServerEventsManager.EVENTS_ID));
+        			StringBuilder msg = new StringBuilder("[red]Недостаточно аргументов.[white]\nID событий:");
+        			for (int i = 0; i < ServerEventsManager.getServerEventsCount(); i++) {
+        				msg.append('\n');
+        				ServerEvent event = ServerEventsManager.getServerEvent(i);
+        				msg.append('[');
+        				msg.append(event.getColor());
+        				msg.append(']');
+        				msg.append(event.getCommandName());
+					}
+        			player.sendMessage(msg.toString());
     				return;
         		}
         		if(arg.length == 1) {
-        			for (int i = 0; i < ServerEventsManager.EVENTS_ID.length; i++) {
-        				if(arg[0].equals(ServerEventsManager.EVENTS_ID[i])) {
-        					player.sendMessage("Событие [gold]" + ServerEventsManager.EVENTS_ID[i] + "[] имеет значение: " + eventsManager.isEventsOn[i]);
+        			for (int i = 0; i < ServerEventsManager.getServerEventsCount(); i++) {
+        				ServerEvent event = ServerEventsManager.getServerEvent(i);
+        				if(arg[0].equals(event.getCommandName())) {
+        					player.sendMessage("Событие [" + event.getColor() + "]" + event.getName() + " [white] имеет значение: " + event.isRunning());
             				return;
         				}
 					}
-        			player.sendMessage("Событие не найдено.\nID событий:\n[lightgray]" + Arrays.toString(ServerEventsManager.EVENTS_ID));
+        			player.sendMessage("[red]Событие не найдено, [gold]/event [red] для списка событий");
     				return;
         		}
         		if(arg.length == 2) {
@@ -830,27 +1001,58 @@ public class ExamplePlugin extends Plugin{
         				isOn = true;
         				isFast = true;
             		}else {
-        				player.sendMessage("Неверный аргумент, используйте [gold]on/off");
+        				player.sendMessage("Неверный аргумент, используйте [gold]on/off[]");
         				return;
             		}
-        			for (int i = 0; i < ServerEventsManager.EVENTS_ID.length; i++) {
-        				if(arg[0].equals(ServerEventsManager.EVENTS_ID[i])) {
-        					eventsManager.isEventsOn[i] = isOn;
+            		
+            		for (int i = 0; i < ServerEventsManager.getServerEventsCount(); i++) {
+        				ServerEvent event = ServerEventsManager.getServerEvent(i);
+        				if(arg[0].equals(event.getCommandName())) {
+        					boolean isRunning = event.isRunning();
+        					if(isRunning && isOn) {
+            					player.sendMessage("[red]Событие уже запущено");
+                				return;
+        					}
+        					if(!isRunning && !isOn) {
+            					player.sendMessage("[red]Событие итак не запущено");
+                				return;
+        					}
         					
         					if(isOn) {
-        						eventsManager.startEventsLoop();
-            					player.sendMessage("Событие [gold]" + ServerEventsManager.EVENTS_ID[i] + " [green]запущено!");
-            					if(isFast) {
-            						eventsManager.fastStart();
-            					}
-        					}else {
-            					player.sendMessage("Событие [gold]" + ServerEventsManager.EVENTS_ID[i] + " [red]выключено!");
+        						if(isFast) {
+                					eventsManager.fastRunEvent(event.getCommandName());
+                					player.sendMessage("[white]Событие резко запущено! [gold]/sync");
+        						} else {
+                					eventsManager.runEvent(event.getCommandName());
+                					player.sendMessage("[green]Событие запущено!");
+        						}
+        					} else {
+            					eventsManager.stopEvent(event.getCommandName());
+            					player.sendMessage("[red]Событие остановлено!");
         					}
         					
             				return;
         				}
 					}
-        			player.sendMessage("Событие не найдено.\nID событий:\n[lightgray]" + Arrays.toString(ServerEventsManager.EVENTS_ID));
+            		
+//        			for (int i = 0; i < ServerEventsManager.EVENTS_ID.length; i++) {
+//        				if(arg[0].equals(ServerEventsManager.EVENTS_ID[i])) {
+//        					eventsManager.isEventsOn[i] = isOn;
+//        					
+//        					if(isOn) {
+//        						eventsManager.startEventsLoop();
+//            					player.sendMessage("Событие [gold]" + ServerEventsManager.EVENTS_ID[i] + " [green]запущено!");
+//            					if(isFast) {
+//            						eventsManager.fastStart();
+//            					}
+//        					}else {
+//            					player.sendMessage("Событие [gold]" + ServerEventsManager.EVENTS_ID[i] + " [red]выключено!");
+//        					}
+//        					
+//            				return;
+//        				}
+//					}
+        			player.sendMessage("[red]Событие не найдено, [gold]/event [red] для списка событий");
     				return;
         		}
         	} else {
@@ -913,7 +1115,23 @@ public class ExamplePlugin extends Plugin{
     						targetPlayer.unit().maxHealth(1000f);
     						targetPlayer.unit().apply(StatusEffects.invincible, Float.MAX_VALUE);
     					}
-    					player.sendMessage("Игрок " + targetPlayer.name() + " отправлен в команду " + team.name);
+    					if(team.name.equals(admin.name)) {
+    						targetPlayer.unit().healTime(.01f);
+    						targetPlayer.unit().healthMultiplier(100);
+    						targetPlayer.unit().maxHealth(1000f);
+    						targetPlayer.unit().hitSize(0);
+    						targetPlayer.unit().apply(StatusEffects.invincible, Float.MAX_VALUE);
+    						
+    				    	admin.rules().infiniteResources = true;
+    				    	admin.rules().cheat = true;
+    				    	admin.rules().infiniteAmmo = true;
+    				    	admin.rules().blockDamageMultiplier = Float.MAX_VALUE;
+    				    	admin.rules().blockHealthMultiplier = Float.MAX_VALUE;
+    				    	admin.rules().buildSpeedMultiplier = 100;
+    				    	admin.rules().unitDamageMultiplier = Float.MAX_VALUE;
+    					}
+    					player.sendMessage("Игрок " + targetPlayer.name() + " отправлен в команду [#" + team.color + "]" + team.name);
+    					targetPlayer.sendMessage("Вы отправлены в команду [#" + team.color + "]" + team.name);
     				}
     				
     				return;
@@ -924,7 +1142,7 @@ public class ExamplePlugin extends Plugin{
         	}
         });
 
-        handler.<Player>register("config", "[name] [value...]", "Конфикурация сервера [red] Только для администраторов", (arg, player) -> {
+        handler.<Player>register("config", "[name] [set/add] [value...]", "Конфикурация сервера [red] Только для администраторов", (arg, player) -> {
         	if(player.admin()) {
         		if(arg.length == 0){
         			player.sendMessage("All config values:");
@@ -937,26 +1155,39 @@ public class ExamplePlugin extends Plugin{
         		Config c = Config.all.find(conf -> conf.name.equalsIgnoreCase(arg[0]));
 
         		if(c != null){
-        			if(arg.length == 1){
+        			if(arg.length == 1) {
         				player.sendMessage(c.name + " is currently " + c.get());
-        			}else{
-        				if(arg[1].equals("default")){
+        			}else if(arg.length > 2) {
+        				if(arg[2].equals("default")){
         					c.set(c.defaultValue);
         				}else if(c.isBool()){
-        					c.set(arg[1].equals("on") || arg[1].equals("true"));
+        					c.set(arg[2].equals("on") || arg[2].equals("true"));
         				}else if(c.isNum()){
         					try{
-        						c.set(Integer.parseInt(arg[1]));
+        						c.set(Integer.parseInt(arg[2]));
         					}catch(NumberFormatException e){
-        						player.sendMessage("[red]Not a valid number: " + arg[1]);
+        						player.sendMessage("[red]Not a valid number: " + arg[2]);
         						return;
         					}
-        				}else if(c.isString()){
-        					c.set(arg[1].replace("\\n", "\n"));
+        				}else if(c.isString()) {
+        					if(arg.length > 2) {
+        						if(arg[1].equals("add")) {
+                					c.set(c.get().toString() + arg[2].replace("\\n", "\n"));
+        						} else if(arg[1].equals("set")) {
+                					c.set(arg[2].replace("\\n", "\n"));
+        						} else {
+        	        				player.sendMessage("[red]Only [gold]add/set");
+        	        				return;
+        						}
+        					} else {
+    	        				player.sendMessage("[red]Add [gold]add/set [red]attribute");
+        					}
         				}
 
-        				player.sendMessage(c.name + " set to " + c.get());
+        				player.sendMessage("[gold]" + c.name + "[gray] set to [white]" + c.get());
         				Core.settings.forceSave();
+        			} else {
+        				player.sendMessage("[red]Need more attributes");
         			}
         		}else{
         			player.sendMessage("[red]Unknown config: '" + arg[0] + "'. Run the command with no arguments to get a list of valid configs.");
@@ -967,19 +1198,43 @@ public class ExamplePlugin extends Plugin{
         	}
         });
         
-
-        handler.<Player>register("sandbox", "[on/off]", "Бесконечные ресурсы", (arg, player) -> {
+        handler.<Player>register("sandbox", "[on/off] [team]", "Бесконечные ресурсы", (arg, player) -> {
         	if(player.admin()) {
         		if(arg.length == 0) {
             		player.sendMessage("[gold]infiniteResources: [gray]" + Vars.state.rules.infiniteResources);
         			
         		} else {
+        			Team team = null;
+        			if(arg.length == 2) {
+            			String targetTeam = arg[1].toLowerCase();
+            			for (int i = 0; i < Team.baseTeams.length; i++) {
+            				if(Team.baseTeams[i].name.equals(targetTeam.toLowerCase())) {
+            					team = Team.baseTeams[i];
+            				}
+            			}
+            			for (int i = 0; i < Team.all.length; i++) {
+            				if(Team.all[i].name.equals(targetTeam.toLowerCase())) {
+            					team = Team.all[i];
+            				}
+            			}
+        			}
+        			
         			if(arg[0].equals("on")) {
-                		Vars.state.rules.infiniteResources = true;
+                		if(team == null) {
+                    		Vars.state.rules.infiniteResources = true;
+                    		player.sendMessage("[green]Включено!");
+                		} else {
+                			team.rules().infiniteResources = true;
+                    		player.sendMessage("[green]Включено для команды [#" + team.color + "]" + team.name);
+                		}
         			}else if(arg[0].equals("off")) {
-                		player.sendMessage("[green]Включено!");
-                		Vars.state.rules.infiniteResources = false;
-                		player.sendMessage("[red]Выключено!");
+                		if(team == null) {
+                    		Vars.state.rules.infiniteResources = false;
+                    		player.sendMessage("[red]Выключено!");
+                		} else {
+                			team.rules().infiniteResources = false;
+                    		player.sendMessage("[red]Выключено для команды [#" + team.color + "]" + team.name);
+                		}
         			} else {
                 		player.sendMessage("[red]Только on/off");
         			}
@@ -989,12 +1244,144 @@ public class ExamplePlugin extends Plugin{
         		player.sendMessage("[red]Команда только для администраторов");
         	}
         });
+        
+        handler.<Player>register("unit", "[type] [inPlayer]", "Создает юнита, list для списка", (arg, player) -> {
+        	if(player.admin()) {
+        		String unitType = UnitTypes.gamma.name;
+    			Field[] fields = UnitTypes.class.getFields();
+        		
+        		if(arg.length > 0) {
+        			if(arg[0].equals("list")) {
+    					StringBuilder unitTypes = new StringBuilder("Типы юнитов");
+            			for (int i = 0; i < fields.length; i++) {
+            				String name = fields[i].getName();
+        					if(name.equals(UnitTypes.block.name)) continue;
+        					
+            				unitTypes.append(fields[i].getName());
+            				if(i+1 != fields.length) {
+                				unitTypes.append(", ");
+            				}
+    					}
+            			player.sendMessage(unitTypes.toString());
+            			return;
+        			}
+        			unitType = arg[0];
+        		}
+
+        		try {
+        			for (int i = 0; i < fields.length; i++) {
+        				if(fields[i].getName().equals(unitType)) {
+        					UnitType ut = (UnitType) fields[i].get(UnitTypes.class);
+        					if(ut == null) continue;
+        					if(ut.name.equals(UnitTypes.block.name)) {
+        						continue;
+        					}
+        					Unit u = ut.spawn(player.team(), player.x, player.y);
+        					ignoreUnitId = u.id;
+        					if(arg.length > 1) {
+        						if(arg[1].equals("true") || arg[1].equals("y") || arg[1].equals("t") || arg[1].equals("yes")) {
+        							player.unit(u);
+        						}
+        					}
+//        					Events.fire(new UnitCreateEvent(u, null, player.unit()));
+        					player.sendMessage("Готово!"); 
+
+        					if(!net.client()){
+        						u.add();
+        					}
+        					return;
+        				}
+        			}
+            		player.sendMessage("[red]Юнит не найден [gold]/unit list");
+        		} catch (IllegalArgumentException | IllegalAccessException e) {
+        			e.printStackTrace();
+            		player.sendMessage(e.getLocalizedMessage());
+        		}
+        	        
+        	} else {
+        		admins = new Administration();
+        		player.sendMessage("[red]Команда только для администраторов");
+        	}
+        });
+        
+//        handler.<Player>register("setblock", "[x] [y] [type]", "установить блок ресурсы", (arg, player) -> {
+//        	if(player.admin()) {
+//        		if(arg.length == 3) {
+//        			try {
+//            			int x = Integer.parseInt(arg[0]);
+//            			int y = Integer.parseInt(arg[1]);
+//					} catch (NumberFormatException e) {
+//						player.sendMessage("[red] Неверные координаты");
+//					}
+//        		} else {
+//            		player.sendMessage("[red]Команда принимает 3 аргумента");
+//        		}
+//        	} else {
+//        		admins = new Administration();
+//        		player.sendMessage("[red]Команда только для администраторов");
+//        	}
+//        });
+        
+//        Blocks.worldProcessor
+
+        handler.<Player>register("unban", "<ip/ID>", "Completely unban a person by IP or ID.", (arg, player) -> {
+        	if(player.admin()) {
+        		if(netServer.admins.unbanPlayerIP(arg[0]) || netServer.admins.unbanPlayerID(arg[0])){
+        			player.sendMessage("[gold]Unbanned player: [white]" + arg[0]);
+        		}else{
+        			player.sendMessage("[red]That IP/ID is not banned!");
+        		}
+        	} else {
+        		player.sendMessage("[red]Команда только для администраторов");
+        	}
+        });
+        
+        handler.<Player>register("bans", "List all banned IPs and IDs.", (arg, player) -> {
+        	if(player.admin()) {
+        		Seq<PlayerInfo> bans = netServer.admins.getBanned();
+
+        		if(bans.size == 0){
+        			player.sendMessage("No ID-banned players have been found.");
+        		}else{
+        			player.sendMessage("Banned players [ID]:");
+        			for(PlayerInfo info : bans){
+        				player.sendMessage(" " + info.id + " / Last known name: [gold]" + info.plainLastName());
+        			}
+        		}
+
+        		Seq<String> ipbans = netServer.admins.getBannedIPs();
+
+        		if(ipbans.size == 0){
+        			player.sendMessage("No IP-banned players have been found.");
+        		}else{
+        			player.sendMessage("Banned players [IP]:");
+        			for(String string : ipbans){
+        				PlayerInfo info = netServer.admins.findByIP(string);
+        				if(info != null){
+        					player.sendMessage(" " + string + "   / Last known name: [gold]" + info.plainLastName() +"[] / ID: " + info.id);
+        				}else{
+        					player.sendMessage(" " + string + "   (No known name or info)");
+        				}
+        			}
+        		}
+        	} else {
+        		player.sendMessage("[red]Команда только для администраторов");
+        	}
+        });
     }
+    
+    private String getColoredLocalizedItemName(Item item) {
+		return "[#" + item.color.toString() + "]" + item.localizedName;
+	}
+
+	private void fillitemsCheck() {
+
+	}
     
     class GrieferVoteSession {
     	
     	Player target;
-        float voteDuration = .5f * 60;
+        float voteDuration = 1f * 60;
         ObjectSet<String> voted = new ObjectSet<>();
         private GrieferVoteSession[] gmap;
         Timer.Task task;
@@ -1016,7 +1403,7 @@ public class ExamplePlugin extends Plugin{
         void vote(Player player, int d){
             votes += d;
             voted.addAll(player.uuid(), admins.getInfo(player.uuid()).lastIP);
-            Call.sendMessage(Strings.format("[" + colorToHex(player.color) + "]@[lightgray] проголосовал " + (d > 0 ? "[green]за" : "[red]против") + "[white] наказания для @ [accent] (@/@)\n[lightgray]Напишите[orange] /smvote <y/n>[color], чтобы проголосовать [green]за[color]/[red]против",
+            Call.sendMessage(Strings.format("[" + colorToHex(player.color) + "]@[lightgray] проголосовал " + (d > 0 ? "[green]за" : "[red]против") + "[white] наказания для @ [accent] (@/@)\n[lightgray]Напишите[orange] /gvote <y/n>[white], чтобы проголосовать [green]за[white]/[red]против",
                 player.name, ("[" + colorToHex(target.color) + "]" + target.name()), votes, votesRequired()));
             checkPass();
         }
