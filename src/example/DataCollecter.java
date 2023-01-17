@@ -20,6 +20,7 @@ import mindustry.game.Waves;
 import mindustry.gen.Groups;
 import mindustry.gen.Player;
 import mindustry.io.JsonIO;
+import mindustry.net.Administration.Config;
 
 public class DataCollecter {
 
@@ -32,8 +33,9 @@ public class DataCollecter {
 	private String mapName = "Loading...";
 	private int waveNumber = 0;
 	private int messagesCount = 0;
-	
+
 	private String[][] locations = new String[24][];
+	private String[][] playerData = new String[30][5];
 	
 	public void init() {
 		
@@ -74,6 +76,19 @@ public class DataCollecter {
 			dayMaxOnlineCount = 0;
 		}
 		
+		
+		for (int i = 0; i < Math.min(Groups.player.size(), playerData.length); i++) {
+			Player player = Groups.player.index(i);
+//			playerData
+
+			playerData[i][0] = player.coloredName();
+			playerData[i][1] = player.usid();
+			playerData[i][2] = player.uuid();
+			playerData[i][3] = player.ip();
+			
+		}
+		//		
+		
 		try {
 			int hours = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
 			if(lastHours != hours) {
@@ -100,6 +115,8 @@ public class DataCollecter {
 		createJsonValue(json, "messagesCount", messagesCount);
 		createJsonValue(json, "mapName", mapName);
 		createJsonValue(json, "locations", locations);
+//		createJsonValue(json, "playerData", playerData);
+		
 		json.append('}');
 		
 		Fi fi = new Fi(getPathToFile());

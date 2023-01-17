@@ -43,7 +43,6 @@ import java.util.Iterator;
 
 import arc.Events;
 import arc.math.geom.Point2;
-import arc.util.Log;
 
 public class SpaceDangerEvent extends ServerEvent {
 
@@ -94,7 +93,9 @@ public class SpaceDangerEvent extends ServerEvent {
 						
 						for (int yy = 0; yy <= 5; yy++) {
 							for (int xx = 0; xx <= 5; xx++) {
-								world.tile(x-xx, y-yy).setFloorNet(world.tile(x-xx, y-yy).floor(), Blocks.oreScrap);
+								Tile tile = world.tile(x-xx, y-yy);
+								if(tile == null) continue;
+								tile.setFloorNet(tile.floor(), Blocks.oreScrap);
 							}
 						}
 //						Call.label("Постойте [gold]электоромагнитную катапульту[]\n Окружите ее четырмя [gold]цунами[white] запитанными шлаком", Float.MAX_VALUE, core.x(), core.y());
@@ -121,6 +122,7 @@ public class SpaceDangerEvent extends ServerEvent {
 
 	@Override
 	public void generateWorld() {
+		meteorits = 0;
 		targets.clear();
 		dormantCystDropUnits.clear();
 		Call.sendMessage("[magenta]Постойте [gold]электоромагнитную катапульту[magenta]\nОкружите ее четырмя [gold]цунами[magenta] запитанными шлаком");
@@ -190,7 +192,6 @@ public class SpaceDangerEvent extends ServerEvent {
 	
 	private boolean hasTarget(int xx, int yy) {
 		if(isOut(xx, yy)) return false;
-		Log.info("hasTarget: ");
 		if(world.tile(xx, yy).block().name.equals(Blocks.massDriver.name)) {
 			int x = world.tile(xx, yy).build.tile.centerX();
 			int y = world.tile(xx, yy).build.tile.centerY();
@@ -202,7 +203,6 @@ public class SpaceDangerEvent extends ServerEvent {
 	
 	private boolean hasTsunami(int x, int y) {
 		if(isOut(x, y)) return false;
-		Log.info(world.tile(x, y).block().name);
 		if(world.tile(x, y).block().name.equals(Blocks.tsunami.name)) {
 			return true;
 		}
@@ -270,7 +270,6 @@ public class SpaceDangerEvent extends ServerEvent {
 			if(isActivated) {
 				fallTime--;
 				if(fallTime < 0) {
-					Log.info(meteorits);
 					int radius = 15 + ((meteorits%5 == 0 && meteorits > 0) ? 15 : 0);
 					for (int dy = -radius; dy <= radius; dy++) {
 						for (int dx = -radius; dx <= radius; dx++) {
@@ -308,7 +307,7 @@ public class SpaceDangerEvent extends ServerEvent {
 							if(Math.random() < .15) {
 								ferricBoulder = true;
 							}
-							if(Math.random() < .05) {
+							if(Math.random() < .025) {
 								ferricWall = true;
 								ferricStone = true;
 							}
@@ -353,65 +352,47 @@ public class SpaceDangerEvent extends ServerEvent {
 							}
 						}
 					}
-					Call.logicExplosion(Team.neoplastic, x, y, 30, 25_000, true, true, false);
-					Call.logicExplosion(Team.neoplastic, x, y, 50, 10_000, true, true, true);
-					Call.logicExplosion(Team.neoplastic, x, y, 1000, 100, true, true, true);
+					Call.logicExplosion(Team.neoplastic, x*tilesize, y*tilesize, radius*2, 25_000, true, true, false);
+					Call.logicExplosion(Team.neoplastic, x*tilesize, y*tilesize, radius*2 + 10, 10_000, true, true, true);
 					Call.sendMessage("[red]Метерорит упал!");
 					
-					for (int i = 0; i < 5; i++) {
+					for (int i = 0; i < 5 + meteorits; i++) {
 						if(Groups.player.size() == 0) break;
 						if(Groups.player.index(0).unit() == null) break;
-						float health = UnitTypes.renale.health;
 
-						UnitTypes.renale.health = health * (meteorits+1);
-						
-						UnitTypes.renale.setStats();
 						Unit u = UnitTypes.renale.create(Team.crux);
 						u.set(x*tilesize, y*tilesize);
-//						u.rotation = 0;
 						dormantCystDropUnits.add(u);
-
-						UnitTypes.renale.health = health;
-						UnitTypes.renale.setStats();
-						
-//						Events.fire(new UnitCreateEvent(u, null, Groups.player.index(0).unit()));
 						if(!net.client()){
 							u.add();
 						}
 					}
 					
 					if(meteorits%5 == 0 && meteorits > 0) {
-						float health = UnitTypes.latum.health;
-
-						UnitTypes.latum.health = health * (meteorits/5+1);
-						
-						UnitTypes.latum.setStats();
-
 						for (int j = 0; j < meteorits; j+=5) {
 							Unit u = UnitTypes.latum.create(Team.crux);
 							u.set(x*tilesize, y*tilesize);
 							dormantCystDropUnits.add(u);
 							u.add();
 						}
-						UnitTypes.latum.health = health;
-						UnitTypes.latum.setStats();
 					}
 					
 					meteorits++;
 					isEnded = true;
 				}
 			} else {
-				Log.info("update: " + hasTarget(x, y));
 				if(hasTarget(x, y)) {
 					if(getTsunamiPower(x+3, y) > .5 && getTsunamiPower(x-3, y) > .5
 					&& getTsunamiPower(x, y+3) > .5 && getTsunamiPower(x, y-3) > .5) {
 						if(shootTime%60 == 0) {
 				            Fx.spawnShockwave.at(x, y, World.conv(15));
 						}
-						shootTime++;
-						if(shootTime > 360) {
+						if(shootTime == 0) {
 							Call.sendMessage("[red]Метерорит приближается!");
-							fallTime = (int) (600 + Math.random() * 60*60);
+						}
+						shootTime++;
+						if(shootTime > 60*30) {
+							fallTime = (int) (Math.random() * 60*60);
 							isActivated = true;
 						}
 					} else {
@@ -419,6 +400,7 @@ public class SpaceDangerEvent extends ServerEvent {
 					}
 							
 				} else {
+					Call.sendMessage("[red]Метерорит пролетел мимо!");
 					needRemove = true;
 				}
 			}
@@ -438,7 +420,6 @@ public class SpaceDangerEvent extends ServerEvent {
 				if(build == null) return 0;
 				LiquidModule liquids = build.liquids();
 				if(liquids == null) return 0;
-				Log.info("slag: " + liquids.get(Liquids.slag));
 				return liquids.get(Liquids.slag);
 			}
 			return 0;

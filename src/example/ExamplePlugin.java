@@ -116,12 +116,15 @@ public class ExamplePlugin extends Plugin{
     SkipmapVoteSession[] currentlyMapSkipping = {null};
 //    
     
+    
+    MyMenu menu;
     // TODO: bans command
     
     //called when game initializes
     @Override
     public void init() {
     	
+    	menu = new MyMenu();
     	eventsManager = new ServerEventsManager();
     	eventsManager.init();
     	
@@ -151,8 +154,10 @@ public class ExamplePlugin extends Plugin{
     	adminCommands.add("unit");
     	adminCommands.add("bans");
     	adminCommands.add("unban");
+    	adminCommands.add("m");
     	
     	Events.run(Trigger.update, () -> {
+    		menu.update();
     		eventsManager.update();
     	});
     	
@@ -434,7 +439,9 @@ public class ExamplePlugin extends Plugin{
             }
             player.sendMessage(result.toString());
         });
-
+    	
+    	menu.registerCommand(handler);
+    	
     	/**
     	 * List of server maps
     	 */
@@ -736,7 +743,7 @@ public class ExamplePlugin extends Plugin{
         
         handler.<Player>register("plugininfo", "info about pluging", (arg, player) -> {
         	player.sendMessage(""
-        			+ "[green] Agzam's plugin v1.7\n"
+        			+ "[green] Agzam's plugin v1.7.4\n"
         			+  "[gray]========================================================\n"
         			+ "[white] Added [royal]skip map[white] commands\n"
         			+ "[white] Added protection from [violet]thorium reactors[white]\n"
@@ -1283,7 +1290,6 @@ public class ExamplePlugin extends Plugin{
         							player.unit(u);
         						}
         					}
-//        					Events.fire(new UnitCreateEvent(u, null, player.unit()));
         					player.sendMessage("Готово!"); 
 
         					if(!net.client()){
