@@ -28,7 +28,8 @@ public class ServerEventsManager {
 	
 	public static enum ServerEvents {
 		newYear(new NewYearEvent()),
-		spaceDanger(new SpaceDangerEvent());
+		spaceDanger(new SpaceDangerEvent()),
+		livingWorld(new LivingWorldEvent());
 		
 		ServerEvent event;
 		private ServerEvents(ServerEvent event) {

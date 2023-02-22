@@ -6,6 +6,8 @@ import mindustry.content.Items;
 import mindustry.content.Liquids;
 import mindustry.content.UnitTypes;
 import mindustry.core.World;
+import mindustry.entities.abilities.Ability;
+import mindustry.entities.abilities.RegenAbility;
 import mindustry.game.EventType.BlockBuildEndEvent;
 import mindustry.game.EventType.DepositEvent;
 import mindustry.game.EventType.PlayerJoin;
@@ -370,10 +372,25 @@ public class SpaceDangerEvent extends ServerEvent {
 					
 					if(meteorits%5 == 0 && meteorits > 0) {
 						for (int j = 0; j < meteorits; j+=5) {
+							boolean canHeal = UnitTypes.latum.canHeal;
+							
+							Ability regen = null;
+							for (int i = 0; i < UnitTypes.latum.abilities.size; i++) {
+								if(UnitTypes.latum.abilities.get(i).getClass().getName().equals(RegenAbility.class.getName())) {
+									regen = UnitTypes.latum.abilities.get(i);
+									UnitTypes.latum.abilities.remove(i);
+									break;
+								}
+							}
+							
+							UnitTypes.latum.setStats();
 							Unit u = UnitTypes.latum.create(Team.crux);
 							u.set(x*tilesize, y*tilesize);
 							dormantCystDropUnits.add(u);
 							u.add();
+							if(regen != null)
+							UnitTypes.latum.abilities.add(regen);
+							UnitTypes.latum.setStats();
 						}
 					}
 					

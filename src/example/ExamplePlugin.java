@@ -172,6 +172,8 @@ public class ExamplePlugin extends Plugin{
     		}
     		Call.sendMessage(result.toString());
     		currentlyMapSkipping[0] = null;
+    		
+    		state.map.setHighScore(state.wave);
     	});
     	
     	Events.on(WorldLoadEndEvent.class, e -> {
@@ -743,7 +745,7 @@ public class ExamplePlugin extends Plugin{
         
         handler.<Player>register("plugininfo", "info about pluging", (arg, player) -> {
         	player.sendMessage(""
-        			+ "[green] Agzam's plugin v1.7.4\n"
+        			+ "[green] Agzam's plugin v1.8.0\n"
         			+  "[gray]========================================================\n"
         			+ "[white] Added [royal]skip map[white] commands\n"
         			+ "[white] Added protection from [violet]thorium reactors[white]\n"
