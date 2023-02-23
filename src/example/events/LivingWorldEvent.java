@@ -2,6 +2,7 @@ package example.events;
 
 import mindustry.content.Blocks;
 import mindustry.game.EventType.PlayerJoin;
+import mindustry.game.EventType.TapEvent;
 import mindustry.gen.Building;
 import mindustry.gen.Call;
 import mindustry.world.Block;
@@ -10,6 +11,8 @@ import mindustry.world.Tile;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Random;
+
+import arc.util.Log;
 
 import static mindustry.Vars.*;
 
@@ -37,6 +40,23 @@ public class LivingWorldEvent extends ServerEvent {
 		e.player.sendMessage("[lime]Руда теперь убегает, окружайте ее блоками, чтобы не дать уйти");
 	}
 	
+	@Override
+	public void tap(TapEvent e) {
+		Log.info(e.tile);
+		if(e.tile == null) return;
+		if(e.tile.overlay() == null) return;
+		if(e.tile.overlay() == Blocks.air) return;
+		Log.info(e.tile.overlay());
+		
+		for (int i = 0; i < oreTiles.size(); i++) {
+			Point p = oreTiles.get(i);
+			if(p.x == e.tile.centerX() && p.y == e.tile.centerY()) {
+				moveOre(i);
+				break;
+			}
+		}
+	}
+	
 	int updates = 0;
 	
 	@Override
@@ -45,55 +65,7 @@ public class LivingWorldEvent extends ServerEvent {
 		updates++;
 		
 		if(updates % 6 == 0 && oreTiles.size() > 0) {
-			int randomIndex = random.nextInt(oreTiles.size());
-			
-			Point oreTile = oreTiles.get(randomIndex);
-			
-			ArrayList<Point> canmove = new ArrayList<>();
-			
-			for (int i = 0; i < nearTiles.length; i++) {
-				int x = oreTile.x + nearTiles[i].x;
-				int y = oreTile.y + nearTiles[i].y;
-				if(!isInArray(x, y)) continue;
-				Tile tile = world.tile(x, y);
-				if(tile == null) continue;
-				Building building = tile.build;
-				if(building != null) continue;
-				
-				boolean checkBlock = false;
-				if(tile.block() == null) {
-					checkBlock = true;
-				} else {
-					if(tile.block() == Blocks.air) {
-						checkBlock = true;
-					}
-				}
-				boolean checkOverlay = false;
-				if(tile.overlay() == null) {
-					checkOverlay = true;
-				} else {
-					if(tile.overlay() == Blocks.air) {
-						checkOverlay = true;
-					}
-				}
-				
-				if(!checkBlock) continue;
-				if(!checkOverlay) continue;
-				
-				canmove.add(new Point(x, y));
-			}
-			
-			if(canmove.size() > 0) {
-				int randomMove = random.nextInt(canmove.size());
-				Point move = canmove.get(randomMove);
-				
-				Tile current = world.tile(oreTile.x, oreTile.y);
-				Tile changed = world.tile(move.x, move.y);
-				oreTile = move;
-
-				changed.setFloorNet(changed.floor(), current.overlay());
-				current.setFloorNet(current.floor(), Blocks.air);
-			}
+			moveOre(random.nextInt(oreTiles.size()));
 		}
 		
 //		if(lastWaveId != state.wave) {
@@ -155,17 +127,62 @@ public class LivingWorldEvent extends ServerEvent {
 //		}
 	}
 	
+	private void moveOre(int index) {
+		Point oreTile = oreTiles.get(index);
+		
+		ArrayList<Point> canmove = new ArrayList<>();
+		Log.info("Move");
+		
+		for (int i = 0; i < nearTiles.length; i++) {
+			int x = oreTile.x + nearTiles[i].x;
+			int y = oreTile.y + nearTiles[i].y;
+			if(!isInArray(x, y)) continue;
+			Tile tile = world.tile(x, y);
+			if(tile == null) continue;
+			Building building = tile.build;
+			if(building != null) continue;
+
+			boolean checkBlock = false;
+			if(tile.block() == null) {
+				checkBlock = true;
+			} else {
+				if(tile.block() == Blocks.air) {
+					checkBlock = true;
+				}
+			}
+
+			if(!checkBlock) continue;
+			if(tile.overlay() != Blocks.air) continue;
+			
+			canmove.add(new Point(x, y));
+		}
+		
+		if(canmove.size() > 0) {
+			int randomMove = random.nextInt(canmove.size());
+			Point move = canmove.get(randomMove);
+			
+			Tile current = world.tile(oreTile.x, oreTile.y);
+			Tile changed = world.tile(move.x, move.y);
+			
+			oreTiles.remove(index);
+			oreTiles.add(move);
+
+			changed.setFloorNet(changed.floor(), current.overlay());
+			current.setFloorNet(current.floor(), Blocks.air);
+		}
+	}
+	
 	private static final Point[] nearTiles = {
-			new Point(+1, +1),
+//			new Point(+1, +1),
 			new Point( 0, +1),
-			new Point(-1, +1),
+//			new Point(-1, +1),
 			
 			new Point(+1,  0),
 			new Point(-1,  0),
 			
-			new Point(+1, -1),
-			new Point( 0, -1),
-			new Point(-1, -1)
+//			new Point(+1, -1),
+			new Point( 0, -1)
+//			new Point(-1, -1)
 	};
 	
 	private static final Block[] ores = {

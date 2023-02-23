@@ -745,7 +745,7 @@ public class ExamplePlugin extends Plugin{
         
         handler.<Player>register("plugininfo", "info about pluging", (arg, player) -> {
         	player.sendMessage(""
-        			+ "[green] Agzam's plugin v1.8.0\n"
+        			+ "[green] Agzam's plugin v1.8.1\n"
         			+  "[gray]========================================================\n"
         			+ "[white] Added [royal]skip map[white] commands\n"
         			+ "[white] Added protection from [violet]thorium reactors[white]\n"
@@ -817,7 +817,7 @@ public class ExamplePlugin extends Plugin{
     					return;
             		}
             		
-            		Item item = Items.copper;
+            		Item item = null;
             		
             		String itemname = arg[0].toLowerCase();
 
