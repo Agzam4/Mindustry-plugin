@@ -155,6 +155,8 @@ public class ExamplePlugin extends Plugin{
     	adminCommands.add("bans");
     	adminCommands.add("unban");
     	adminCommands.add("m");
+    	adminCommands.add("js");
+    	adminCommands.add("link");
     	
     	Events.run(Trigger.update, () -> {
     		menu.update();
@@ -177,32 +179,12 @@ public class ExamplePlugin extends Plugin{
     	});
     	
     	Events.on(WorldLoadEndEvent.class, e -> {
-    		StringBuilder result = new StringBuilder(state.map.name());
-    		result.append("\nРекорд на карте: [lightgray]");
-    		result.append(state.wave);
-    		Call.sendMessage(result.toString());
     		currentlyMapSkipping[0] = null;
     		eventsManager.worldLoadEnd(e);
     	});
     	
     	Events.on(PlayerJoin.class, e -> {
     		eventsManager.playerJoin(e);
-//    		int id = Groups.player.size();
-//    		boolean[] isUsed = new boolean[id];
-//    		
-//    		for (int i = 0; i < Groups.player.size(); i++) {
-//				Player player = Groups.player.index(i);
-//				if(player.name().startsWith("[" + (i+1))) {
-//					isUsed[i] = true;
-//				}
-//			}
-//    		
-//    		for (int i = 0; i < isUsed.length; i++) {
-//				if(!isUsed[i]) {
-//		    		e.player.name("[" + (i+1) + "] " + e.player.name());
-//		    		break;
-//				}
-//			}
     		e.player.name(e.player.name().replaceAll(" ", "_"));
     		
 			float rate = 1f - (e.player.getInfo().timesKicked * 5 / (float) e.player.getInfo().timesJoined);
@@ -323,6 +305,43 @@ public class ExamplePlugin extends Plugin{
         
         // add a chat filter that changes the contents of all messages
         Vars.netServer.admins.addChatFilter((player, text) -> {
+
+//    		char[] msg = text.toCharArray();
+//    		
+//    		String searchName = "";
+//    		int searchNameStart = -1;
+//    		boolean needSearchName = false;
+//    		
+//        	for (int i = 0; i < msg.length; i++) {
+//        		if(msg[i] == '@') {
+//        			searchName = "";
+//        			searchNameStart = i;
+//        			needSearchName = true;
+//        		}
+//        		
+//        		if(needSearchName) {
+//            		if(msg[i] == ' ') {
+//                        ObjectSet<PlayerInfo> infos = netServer.admins.searchNames(arg[0]);
+//
+//                        if(infos.size > 0) {
+//                            info("Players found: @", infos.size);
+//
+//                            int i = 0;
+//                            for(PlayerInfo info : infos){
+//                                info("- [@] '@' / @", i++, info.plainLastName(), info.id);
+//                            }
+//                        }
+//                        
+//            			searchName = "";
+//            			needSearchName = false;
+//            			searchNameStart = -1;
+//            			
+//            		} else {
+//            			searchName += msg[i];
+//            		}
+//        		}
+//			}
+        	
         	if(chatFilter) {
         		text = "[white]" + text + "[white]";
         		char[] msg = text.toCharArray();
@@ -364,11 +383,6 @@ public class ExamplePlugin extends Plugin{
 					}
 					result.append(msg[i]);
 				}
-        		
-//            	text = text.replace("нуб", "про");
-//            	text = text.replace("Нуб", "Про");
-//            	text = text.replace("НУБ", "ПРО");
-        		
         		text = result.toString();
         	}
         	dataCollect.messageEvent(player, text);
@@ -436,8 +450,9 @@ public class ExamplePlugin extends Plugin{
             
             for(int i = commandsPerPage * page; i < Math.min(commandsPerPage * (page + 1), handler.getCommandList().size); i++){
                 Command command = handler.getCommandList().get(i);
-                if(adminCommands.indexOf(command.text) != -1 && !isAdmin) continue;
-                result.append("[orange] /").append(command.text).append("[white] ").append(command.paramText).append("[lightgray] - ").append(command.description).append("\n");
+                boolean isAdminCommand = adminCommands.indexOf(command.text) != -1;
+                if(isAdminCommand && !isAdmin) continue;
+                result.append("[orange] /").append(command.text).append("[white] ").append(command.paramText).append("[lightgray] - ").append(command.description + (isAdminCommand ? " [red] Только для администраторов" : "")).append("\n");
             }
             player.sendMessage(result.toString());
         });
@@ -472,6 +487,18 @@ public class ExamplePlugin extends Plugin{
             }else{
             	player.sendMessage("Карты не найдены");
             }
+        });
+
+        handler.<Player>register("discord", "", "\ue80d Сервера", (arg, player) -> {
+        	if(discordLink == null) {
+        		player.sendMessage("[red]\ue80d Ссылка отсутствует");
+        	} else {
+        		if(discordLink.isEmpty()) {
+        			player.sendMessage("[red]\ue80d Ссылка отсутствует");
+        		} else {
+        			Call.openURI(player.con, discordLink);
+        		}
+        	}
         });
         
         /**
@@ -555,6 +582,7 @@ public class ExamplePlugin extends Plugin{
 
 			worldInfo.append("Информация о карте:\n");
 			worldInfo.append("Название: " + Vars.state.map.name() + "\n");
+			worldInfo.append("Рекорд: " + Vars.state.map.getHightScore());
 			worldInfo.append("Ресурсы:\n");
     		for (int i = 0; i < counter.length; i++) {
     			float cv = ((float)counter[i])*typesCounter/summaryCounter/3f;
@@ -577,14 +605,19 @@ public class ExamplePlugin extends Plugin{
 			}
 
 			worldInfo.append("Жидкости:");
+			boolean isLFound = false;
     		for (int i = 0; i < lcounter.length; i++) {
     			if(lcounter[i] > 0) {
         			worldInfo.append("\n[white]");
         			worldInfo.append(liquidsemoji[i]);
         			worldInfo.append("[lightgray]: ");
         			worldInfo.append(counter[i]);
+        			isLFound = true;
     			}
 			}
+    		if(!isLFound) {
+    			worldInfo.append(" [red]нет");
+    		}
     		worldinfo = worldInfo.toString();
             player.sendMessage(worldinfo);
         });
@@ -745,7 +778,7 @@ public class ExamplePlugin extends Plugin{
         
         handler.<Player>register("plugininfo", "info about pluging", (arg, player) -> {
         	player.sendMessage(""
-        			+ "[green] Agzam's plugin v1.8.1\n"
+        			+ "[green] Agzam's plugin v1.8.2\n"
         			+  "[gray]========================================================\n"
         			+ "[white] Added [royal]skip map[white] commands\n"
         			+ "[white] Added protection from [violet]thorium reactors[white]\n"
@@ -757,7 +790,7 @@ public class ExamplePlugin extends Plugin{
         			
         });
         
-        handler.<Player>register("fillitems", "[item] [count]", "Заполните ядро предметами [red]Только для администраторов", (arg, player) -> {
+        handler.<Player>register("fillitems", "[item] [count]", "Заполните ядро предметами", (arg, player) -> {
         	if(player.admin()) {
         		try {
         			
@@ -882,7 +915,7 @@ public class ExamplePlugin extends Plugin{
         	}
         });
         
-        handler.<Player>register("admin", "[add/remove] [name]", "Добавить/удалить админа [red]Только для администраторов", (arg, player) -> {
+        handler.<Player>register("admin", "[add/remove] [name]", "Добавить/удалить админа", (arg, player) -> {
         	if(player.admin()) {
         		if(arg.length != 2 || !(arg[0].equals("add") || arg[0].equals("remove"))){
         			player.sendMessage("[red]Second parameter must be either 'add' or 'remove'.");
@@ -923,7 +956,7 @@ public class ExamplePlugin extends Plugin{
         	}
         });
 
-        handler.<Player>register("chatfilter", "[on/off]", "Включить/выключить фильтр чата [red] Только для администраторов", (arg, player) -> {
+        handler.<Player>register("chatfilter", "[on/off]", "Включить/выключить фильтр чата", (arg, player) -> {
         	if(player.admin()) {
         		if(arg.length == 0) {
     				player.sendMessage("Недостаточно аргументов");
@@ -945,7 +978,7 @@ public class ExamplePlugin extends Plugin{
         	}
         });
         
-        handler.<Player>register("dct", "[time]", "Установить интервал (секунд/10) обновлений данных [red] Только для администраторов", (arg, player) -> {
+        handler.<Player>register("dct", "[time]", "Установить интервал (секунд/10) обновлений данных", (arg, player) -> {
         	if(player.admin()) {
         		if(arg.length == 0) {
         			player.sendMessage("Интервал обновлений: " + dataCollect.getSleepTime() + " секунд/10");
@@ -973,7 +1006,7 @@ public class ExamplePlugin extends Plugin{
         	}
         });
         
-        handler.<Player>register("event", "[id] [on/off/faston]", "Включить/выключить событие [red] Только для администраторов", (arg, player) -> {
+        handler.<Player>register("event", "[id] [on/off/faston]", "Включить/выключить событие", (arg, player) -> {
         	if(player.admin()) {
         		if(arg.length == 0) {
         			StringBuilder msg = new StringBuilder("[red]Недостаточно аргументов.[white]\nID событий:");
@@ -1070,7 +1103,7 @@ public class ExamplePlugin extends Plugin{
         	}
         });
 
-        handler.<Player>register("team", "[player] [team]", "Установить команду для игрока [red] Только для администраторов", (arg, player) -> {
+        handler.<Player>register("team", "[player] [team]", "Установить команду для игрока", (arg, player) -> {
         	if(player.admin()) {
         		if(arg.length < 1) {
         			StringBuilder teams = new StringBuilder();
@@ -1151,7 +1184,7 @@ public class ExamplePlugin extends Plugin{
         	}
         });
 
-        handler.<Player>register("config", "[name] [set/add] [value...]", "Конфикурация сервера [red] Только для администраторов", (arg, player) -> {
+        handler.<Player>register("config", "[name] [set/add] [value...]", "Конфикурация сервера", (arg, player) -> {
         	if(player.admin()) {
         		if(arg.length == 0){
         			player.sendMessage("All config values:");
@@ -1312,32 +1345,25 @@ public class ExamplePlugin extends Plugin{
         	}
         });
         
-//        handler.<Player>register("setblock", "[x] [y] [type]", "установить блок ресурсы", (arg, player) -> {
-//        	if(player.admin()) {
-//        		if(arg.length == 3) {
-//        			try {
-//            			int x = Integer.parseInt(arg[0]);
-//            			int y = Integer.parseInt(arg[1]);
-//					} catch (NumberFormatException e) {
-//						player.sendMessage("[red] Неверные координаты");
-//					}
-//        		} else {
-//            		player.sendMessage("[red]Команда принимает 3 аргумента");
-//        		}
-//        	} else {
-//        		admins = new Administration();
-//        		player.sendMessage("[red]Команда только для администраторов");
-//        	}
-//        });
-        
-//        Blocks.worldProcessor
-
-        handler.<Player>register("unban", "<ip/ID>", "Completely unban a person by IP or ID.", (arg, player) -> {
+        handler.<Player>register("unban", "<ip/ID/all>", "Completely unban a person by IP or ID.", (arg, player) -> {
         	if(player.admin()) {
-        		if(netServer.admins.unbanPlayerIP(arg[0]) || netServer.admins.unbanPlayerID(arg[0])){
-        			player.sendMessage("[gold]Unbanned player: [white]" + arg[0]);
-        		}else{
-        			player.sendMessage("[red]That IP/ID is not banned!");
+        		if(arg[0].equals("all")) {
+        			int count = 0;
+        			while (true) {
+						if(netServer.admins.bannedIPs.size > 0) {
+	        				netServer.admins.unbanPlayerIP(netServer.admins.bannedIPs.get(0));
+	        				count++;
+						} else {
+							break;
+						}
+					}
+            		player.sendMessage("[gold]Снято банов: [lightgray]" + count);
+        		} else {
+            		if(netServer.admins.unbanPlayerIP(arg[0]) || netServer.admins.unbanPlayerID(arg[0])){
+            			player.sendMessage("[gold]Unbanned player: [white]" + arg[0]);
+            		}else{
+            			player.sendMessage("[red]That IP/ID is not banned!");
+            		}
         		}
         	} else {
         		player.sendMessage("[red]Команда только для администраторов");
@@ -1376,7 +1402,63 @@ public class ExamplePlugin extends Plugin{
         		player.sendMessage("[red]Команда только для администраторов");
         	}
         });
+        
+
+        handler.<Player>register("reloadmaps", "Перезагрузить карты", (arg, player) -> {
+        	if(player.admin()) {
+        		int beforeMaps = maps.all().size;
+        		maps.reload();
+        		if(maps.all().size > beforeMaps) {
+        			player.sendMessage("[gold]" + (maps.all().size - beforeMaps) + " новых карт было найдено");
+        		}else if(maps.all().size < beforeMaps) {
+        			player.sendMessage("[gold]" + (beforeMaps - maps.all().size) + " карт было удалено");
+        		}else{
+        			player.sendMessage("[gold]Карты перезагружены");
+        		}
+        	} else {
+        		player.sendMessage("[red]Команда только для администраторов");
+        	}
+        });
+
+        handler.<Player>register("js", "<script...>", "Запустить JS", (arg, player) -> {
+        	if(player.admin()) {
+        		player.sendMessage("[gold]" + mods.getScripts().runConsole(arg[0]));
+        	} else {
+        		player.sendMessage("[red]Команда только для администраторов");
+        	}
+        });
+
+        handler.<Player>register("link", "<link> [player]", "Отправить ссылку всем/игроку", (arg, player) -> {
+        	if(player.admin()) {
+        		if(arg.length == 1) {
+            		Call.openURI(arg[0]);
+        		} else if(arg.length == 2) {
+                    Player targetPlayer = Groups.player.find(p -> Strings.stripColors(p.name()).equalsIgnoreCase(Strings.stripColors(arg[1])));
+            		if(targetPlayer != null) {
+            			Call.openURI(targetPlayer.con, arg[0]);
+                		player.sendMessage("[gold]Готово!");
+            		} else {
+                		player.sendMessage("[red]Игрок не найден");
+            		}
+        		}
+        	} else {
+        		player.sendMessage("[red]Команда только для администраторов");
+        	}
+        });
+
+        handler.<Player>register("setdiscord", "[link]", "\ue80d Сервера", (arg, player) -> {
+        	if(player.admin()) {
+        		if(arg.length == 1) {
+        			discordLink = arg[0];
+            		player.sendMessage("[gold]\ue80d Готово!");
+        		}
+        	} else {
+        		player.sendMessage("[red]Команда только для администраторов");
+        	}
+        });
     }
+    
+    String discordLink = "";
     
     private String getColoredLocalizedItemName(Item item) {
 		return "[#" + item.color.toString() + "]" + item.localizedName;

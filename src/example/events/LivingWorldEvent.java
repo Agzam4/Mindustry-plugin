@@ -131,7 +131,6 @@ public class LivingWorldEvent extends ServerEvent {
 		Point oreTile = oreTiles.get(index);
 		
 		ArrayList<Point> canmove = new ArrayList<>();
-		Log.info("Move");
 		
 		for (int i = 0; i < nearTiles.length; i++) {
 			int x = oreTile.x + nearTiles[i].x;

@@ -52,9 +52,6 @@ public class SpaceDangerEvent extends ServerEvent {
 	public SpaceDangerEvent() {
 		super("Space danger");
 		color = "magenta";
-		
-//		dormantCystOre = Blocks.oreScrap;
-//		dormantCystOre.itemDrop = Items.dormantCyst;
 	}
 
 	@Override
@@ -77,9 +74,11 @@ public class SpaceDangerEvent extends ServerEvent {
 	@Override
 	public void playerJoin(PlayerJoin e) {
 		if(e.player == null) return;
-		e.player.sendMessage("[magenta]Постойте [gold]электоромагнитную катапульту[magenta]\nОкружите ее четырмя [gold]цунами[magenta] запитанными шлаком");
+		e.player.sendMessage(info);
 		
 	}
+	
+	private static final String info = "[magenta]Постойте [gold]электоромагнитную катапульту[magenta]\\nОкружите ее четырмя [gold]цунами[magenta] запитанными шлаком (Не забудьте подготовить защиту)";
 	
 	@Override
 	public void update() {
@@ -100,7 +99,6 @@ public class SpaceDangerEvent extends ServerEvent {
 								tile.setFloorNet(tile.floor(), Blocks.oreScrap);
 							}
 						}
-//						Call.label("Постойте [gold]электоромагнитную катапульту[]\n Окружите ее четырмя [gold]цунами[white] запитанными шлаком", Float.MAX_VALUE, core.x(), core.y());
 						isLablePlaced = true;
 						return;
 					}
@@ -127,7 +125,7 @@ public class SpaceDangerEvent extends ServerEvent {
 		meteorits = 0;
 		targets.clear();
 		dormantCystDropUnits.clear();
-		Call.sendMessage("[magenta]Постойте [gold]электоромагнитную катапульту[magenta]\nОкружите ее четырмя [gold]цунами[magenta] запитанными шлаком");
+		Call.sendMessage(info);
 	}
 
 	@Override
@@ -249,19 +247,6 @@ public class SpaceDangerEvent extends ServerEvent {
 			this.x = x;
 			this.y = y;
 			
-			LiquidTurret[] turrets = {
-					getTsunami(x-3, y),
-					getTsunami(x+3, y),
-					getTsunami(x, y-3),
-					getTsunami(x, y+3)
-			};
-			for (int i = 0; i < turrets.length; i++) {
-//				turrets[i].shootX = x;
-//				turrets[i].shootY = y;
-				turrets[i].sync = true;
-//				turrets[i].
-			}
-
 			if(world.tile(x, y).block().name.equals(Blocks.massDriver.name)) {
 				world.tile(x, y).setTeam(Team.crux);
 			}
