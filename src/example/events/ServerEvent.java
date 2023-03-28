@@ -6,6 +6,7 @@ import mindustry.game.EventType.PlayerJoin;
 import mindustry.game.EventType.TapEvent;
 import mindustry.game.EventType.UnitDestroyEvent;
 import mindustry.game.EventType.WithdrawEvent;
+import mindustry.gen.Player;
 import mindustry.game.GameStats;
 
 public abstract class ServerEvent {
@@ -90,6 +91,10 @@ public abstract class ServerEvent {
 
 
 	public void playerJoin(PlayerJoin e) {
+		// for @Override
+	}
+	
+	public void trigger(Player player, String... args) {
 		// for @Override
 	}
 }

@@ -1,5 +1,6 @@
 package example;
 
+import java.io.File;
 import java.io.Writer;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -8,7 +9,12 @@ import java.util.Calendar;
 
 import arc.Core;
 import arc.Files;
+import arc.Files.FileType;
 import arc.files.Fi;
+import arc.func.Intc2;
+import arc.math.geom.Geometry;
+import arc.math.geom.Vec2;
+import arc.struct.Seq;
 import arc.util.Log;
 import arc.util.serialization.Json;
 import arc.util.serialization.JsonWriter;
@@ -21,10 +27,12 @@ import mindustry.gen.Groups;
 import mindustry.gen.Player;
 import mindustry.io.JsonIO;
 import mindustry.net.Administration.Config;
+import mindustry.net.Administration.PlayerInfo;
 
 public class DataCollecter {
 
 	public static final String FILENAME = "agzam_s_plugin_statistics.json";
+	public static final String FILENAME_ADMINS = "agzam_s_plugin_admins.json";
 
 	private transient long sleepTime = 5 * 60_000 / 60 / 5; // FIXME: 5 minutes
 
@@ -119,9 +127,26 @@ public class DataCollecter {
 		
 		json.append('}');
 		
-		Fi fi = new Fi(getPathToFile());
+		Fi fi = new Fi(getPathToFile(FILENAME));
 		fi.writeString(json.toString());
-//		Files.writeString(json);//(Vars.saveDirectory, json);
+		
+
+		StringBuilder adminsList = new StringBuilder("Admins list (IP/ID/NAME):");
+		
+		if(Vars.netServer != null) {
+	        Seq<PlayerInfo> admins = Vars.netServer.admins.getAdmins();
+	        if(admins != null) {
+	        	if(admins.size == 0){
+	        	}else{
+	        		for (int i = 0; i < admins.size; i++) {
+	        			PlayerInfo info = admins.get(i);
+	        			adminsList.append("\n" + info.lastIP + " " + info.id + " " + info.plainLastName());
+					}
+	        	}
+	        }
+		}
+		Fi fia = new Fi(getPathToFile(FILENAME_ADMINS));
+		fia.writeString(adminsList.toString());
 	}
 
 	private void createJsonValue(StringBuilder json, String name, String[][] values) {
@@ -171,8 +196,8 @@ public class DataCollecter {
 		json.append(",\n");
 	}
 	
-	public static String getPathToFile() {
-		return Vars.saveDirectory + "/" + FILENAME;
+	public static String getPathToFile(String name) {
+		return Vars.saveDirectory + "/" + name;
 	}
 	
 	public long getSleepTime() {

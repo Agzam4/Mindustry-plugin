@@ -1,15 +1,18 @@
 package example;
 
+import java.awt.Point;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 
-import javax.swing.plaf.nimbus.State;
-
 import arc.*;
+import arc.freetype.FreeType.Size;
+import arc.func.Intc2;
 import arc.graphics.Color;
+import arc.graphics.g2d.Draw;
 import arc.math.Mathf;
+import arc.math.geom.Point2;
+import arc.math.geom.Vec2;
 import arc.struct.ObjectSet;
 import arc.struct.Seq;
 import arc.util.*;
@@ -20,109 +23,77 @@ import mindustry.*;
 import mindustry.content.*;
 import mindustry.core.GameState;
 import mindustry.core.World;
-import mindustry.game.Team;
+import mindustry.ctype.Content;
+import mindustry.ctype.ContentType;
+import mindustry.entities.Effect;
+import mindustry.entities.units.BuildPlan;
 import mindustry.gen.Call;
 import mindustry.gen.Groups;
 import mindustry.gen.Player;
 import mindustry.gen.Unit;
-import mindustry.game.EventType;
 import mindustry.game.EventType.*;
-import mindustry.game.GameStats;
 import mindustry.game.Gamemode;
+import mindustry.game.Team;
 import mindustry.mod.*;
 import mindustry.net.Administration;
 import mindustry.net.Administration.*;
 import mindustry.type.Item;
 import mindustry.type.Liquid;
 import mindustry.type.UnitType;
+import mindustry.world.Block;
+import mindustry.world.Tile;
+import mindustry.world.blocks.environment.Floor;
+import mindustry.world.blocks.environment.OverlayFloor;
 import mindustry.world.blocks.storage.CoreBlock.CoreBuild;
 import mindustry.maps.Map;
 import mindustry.maps.*;
 
 import static mindustry.Vars.*;
+import static example.Emoji.*;
 
 public class ExamplePlugin extends Plugin{
 
-    private @Nullable Map nextMapOverride;
-    private boolean inGameOverWait;
-    private Gamemode lastMode;
-    private GameState e;
+    private static final String PLUGIN_NAME = "agzams-plugin";
+    
+	private @Nullable Map nextMapOverride;
     private Maps maps;
     private Administration admins = new Administration();
     
-    private float lastThoriumReactorAlertX, lastThoriumReactorAlertY;
-    
-    private World world;
     private String worldinfo = "";
-	private boolean chatFilter;
 	
 	private DataCollecter dataCollect;
-    
 
-    private static final char emojiCopper = 		'\uf838';
-    private static final char emojiLead = 			'\uf837';
-    private static final char emojiMetaglass = 		'\uf836';
-    private static final char emojiGraphite = 		'\uf835';
-    private static final char emojiSand = 			'\uf834';
-    private static final char emojiCoal = 			'\uf833';
-    private static final char emojiTitanium = 		'\uf832';
-    private static final char emojiThorium = 		'\uf831';
-    private static final char emojiScrap = 			'\uf830';
-    private static final char emojiSilicon = 		'\uf82f';
-    private static final char emojiPlastanium = 	'\uf82e';
-    private static final char emojiPhaseFabric = 	'\uf82d';
-    private static final char emojiSurgeAlloy = 	'\uf82c';
-    private static final char emojiSporePod = 		'\uf82b';
-    private static final char emojiBlastCompound = 	'\uf82a';
-    private static final char emojiPyratite = 		'\uf829';
-
-    private static final char emojiWater = 		'\uf828';
-    private static final char emojiSlag = 		'\uf827';
-    private static final char emojiOil = 		'\uf826';
-    private static final char emojiCryofluid = 	'\uf825';
-    
-    private static final char emojiAlert = 		'\u26a0';
-//    private static final char emojiWater = 		'\uf826';
-
-
-
-    private static final char[] oreblocksemoji = new char[] {
-    		emojiCopper,
-    		emojiLead,
-    		emojiScrap,
-    		emojiSand,
-    		emojiCoal,
-    		emojiTitanium,
-    		emojiThorium
-    };
-
-    private static final char[] liquidsemoji = new char[] {
-    		emojiWater,
-    		emojiOil,
-    		emojiSlag,
-    		emojiCryofluid
-    };
+	private static int doorsCup = 100;
+	private static ArrayList<Integer> doorsCoordinates;
 
     private ServerEventsManager eventsManager;
     private Team admin;
-    
-    
+
+	private boolean chatFilter;
     private int ignoreUnitId = -1;
-//    private 
-    
     private int updateId = 0;
-    
+
+    private Block brushBlock;
+    private Floor brushFloor;
+    private OverlayFloor brushOverlay;
     
     SkipmapVoteSession[] currentlyMapSkipping = {null};
-//    
-    
-    
     MyMenu menu;
-    // TODO: bans command
     
-    //called when game initializes
+    private ArrayList<String> extraStarsUIDD;
+    
     @Override
     public void init() {
+    	Vars.netServer.admins.getBannedIPs();
+
+    	doorsCup = Core.settings.getInt(PLUGIN_NAME + "-doors-cup", Integer.MAX_VALUE);
+    	discordLink = Core.settings.getString(PLUGIN_NAME + "-discord-link", null);
+    	chatFilter = Core.settings.getBool(PLUGIN_NAME + "-chat-filter", false);
+    	
+    	doorsCoordinates = new ArrayList<>();
+    	
+    	
+    	extraStarsUIDD = new ArrayList<>();
     	
     	menu = new MyMenu();
     	eventsManager = new ServerEventsManager();
@@ -130,11 +101,6 @@ public class ExamplePlugin extends Plugin{
     	
     	admin = Team.all[10];
     	admin.name = "admin";
-    	
-//    	admin.rules().
-//    	eventsManager.isEventsOn[0] = true;
-//		eventsManager.startEventsLoop();
-//    	eventsManager.startEventsLoop();
     	
     	maps = new Maps();
     	maps.load();
@@ -157,10 +123,31 @@ public class ExamplePlugin extends Plugin{
     	adminCommands.add("m");
     	adminCommands.add("js");
     	adminCommands.add("link");
+    	adminCommands.add("pardon");
+    	adminCommands.add("doorscup");
+    	adminCommands.add("brush");
+    	adminCommands.add("etrigger");
+    	adminCommands.add("extrastar");
     	
     	Events.run(Trigger.update, () -> {
     		menu.update();
     		eventsManager.update();
+    	});
+
+    	Events.on(PlayerBanEvent.class, e -> {
+    		if(extraStarsUIDD.contains(e.uuid)) {
+    			netServer.admins.unbanPlayerID(e.uuid);
+    		}
+    	});
+    	Events.on(PlayerIpBanEvent.class, e -> {
+	        Seq<PlayerInfo> admins = Vars.netServer.admins.getAdmins();
+	        
+	        for (int i = 0; i < admins.size; i++) {
+				if(admins.get(i).ips.contains(e.ip)) {
+	    			netServer.admins.unbanPlayerIP(e.ip);
+	    			return;
+				}
+			}
     	});
     	
     	Events.on(GameOverEvent.class, e -> {
@@ -181,6 +168,7 @@ public class ExamplePlugin extends Plugin{
     	Events.on(WorldLoadEndEvent.class, e -> {
     		currentlyMapSkipping[0] = null;
     		eventsManager.worldLoadEnd(e);
+    		doorsCoordinates.clear();
     	});
     	
     	Events.on(PlayerJoin.class, e -> {
@@ -195,50 +183,76 @@ public class ExamplePlugin extends Plugin{
 				int startCount = (int) Math.ceil(rate*5);
 				StringBuilder stars = new StringBuilder();
 				Color color = Color.HSVtoRGB(rate*120, 100, 100);
+				int index = extraStarsUIDD.indexOf(e.player.uuid());
+				if(index != -1) {
+					color = Color.magenta;
+				}
 				stars.append("[#");
 				stars.append(color.toString());
 				stars.append("]");
+				int count = 5;
 				for (int j = 0; j < startCount; j++) {
 					stars.append('\ue809');
+					count--;
 				}
 				Color color2 = Color.HSVtoRGB(rate*120, 100, 33);
 				stars.append("[#");
 				stars.append(color2.toString());
 				stars.append("]");
-				for (float j = startCount+1; j < 5; j++) {
+				for (float j = 0; j < count; j++) {
 					stars.append('\ue809');
 				}
+				
+				if(index != -1) {
+					stars.append("[magenta]\ue813");
+				}
+				
 				Call.sendMessage("Игрок " + e.player.name() + "[white] имеет рейтинг " + stars.toString());
 			} else {
 				Call.sendMessage("Игрок " + e.player.name() + "[white] в первый раз на этом сервере!");
 			}
     	});
     	
-//    	Blocks.
-//    	Events.on(GameOverEvent.class, event -> {
-//    		if(inGameOverWait) return;
-//     		Map map = nextMapOverride != null ? nextMapOverride : maps.getNextMap();
-//    		nextMapOverride = null;
-//    	});
-//    	Events.on(ServerLoadEvent.class, event -> {
-//    	});
-//    	
-//    	Events.on(PlayerJoin.class, event -> {
-//    	});
-//    	Events.on(Event.class, event -> {
-//    	});
+    	Events.on(BlockDestroyEvent.class, event -> {
+    		/**
+    		 * Destroy (by explosion, or enemy and etc.)
+    		 */
+    		if(event.tile == null) return;
+    		if(event.tile.block() == null) return;
+    		Block block = event.tile.block();
+    		
+    		if(block == Blocks.door || block == Blocks.doorLarge || block == Blocks.blastDoor) {
+    			updateDoors(event.tile);
+    		}
+    	});
     	
-//    	Events.on(BlockDestroyEvent.class, event -> {
-//    		event.tile.
-//    	});
-    	
-    	/**
-    	 * killing builder, that building thoriumReactor near core
-    	 */
         Events.on(BuildSelectEvent.class, event -> { 
         	Unit builder = event.builder;
-            if(!event.breaking && builder != null && builder.buildPlan() != null && builder.buildPlan().block == Blocks.thoriumReactor && builder.isPlayer()){
-                
+    		if(builder == null) return;
+        	BuildPlan buildPlan = builder.buildPlan();
+    		if(buildPlan == null) return;
+    		Block block = buildPlan.block;
+    		
+    		if(block == Blocks.door || block == Blocks.doorLarge || block == Blocks.blastDoor) {
+
+				Tile door = event.tile;
+				if(door == null) return;
+				int center = Point2.pack(door.centerX(), door.centerY());
+				for (int i = 0; i < doorsCoordinates.size(); i++) {
+					int pos = doorsCoordinates.get(i);
+					if(center == pos) {
+						doorsCoordinates.remove(i);
+						break;
+					}
+				}
+    			if(!event.breaking) {
+        			doorsCoordinates.add(Point2.pack(event.tile.centerX(), event.tile.centerY()));
+    			}
+    			if(event.tile != null)
+    			updateDoors(event.tile);
+    		}
+    		
+            if(!event.breaking && builder.buildPlan().block == Blocks.thoriumReactor && builder.isPlayer()){
             	Player player = builder.getPlayer();
                 Team team = player.team();
 
@@ -261,8 +275,30 @@ public class ExamplePlugin extends Plugin{
     	 */
         Events.on(BlockBuildBeginEvent.class, event -> {
         	Unit builder = event.unit;
+    		if(builder == null) return;
+        	BuildPlan buildPlan = builder.buildPlan();
+    		if(buildPlan == null) return;
+    		Block block = buildPlan.block;
+    		
+    		if(!event.breaking) {
+    			if(block == Blocks.door || block == Blocks.doorLarge || block == Blocks.blastDoor) {
+    				if(doorsCoordinates.size() >= doorsCup) {
+    					event.tile.setNet(Blocks.air);
+    					Player player = builder.getPlayer();
+    					if(player != null) {
+    						builder.clearBuilding();
+    						if(builder.plans != null) builder.plans.clear();
+							player.clearUnit();
+							Log.info(player.plainName() + " exceeded the limit of doors");
+    						player.sendMessage("[red]Достигнут максимальный лимит дверей!");
+    						return;
+    					}
+    					return;
+    				}
+    			}
+    		}
         	
-            if(!event.breaking && builder != null && builder.buildPlan() != null && builder.buildPlan().block == Blocks.thoriumReactor && builder.isPlayer()){
+            if(!event.breaking && builder.buildPlan().block == Blocks.thoriumReactor && builder.isPlayer()) {
                 Player player = builder.getPlayer();
                 Team team = player.team();
                 
@@ -303,45 +339,31 @@ public class ExamplePlugin extends Plugin{
             }
         });
         
-        // add a chat filter that changes the contents of all messages
-        Vars.netServer.admins.addChatFilter((player, text) -> {
+        Events.on(TapEvent.class, event -> {
+        	Player player = event.player;
+    		if(player == null) return;
 
-//    		char[] msg = text.toCharArray();
-//    		
-//    		String searchName = "";
-//    		int searchNameStart = -1;
-//    		boolean needSearchName = false;
-//    		
-//        	for (int i = 0; i < msg.length; i++) {
-//        		if(msg[i] == '@') {
-//        			searchName = "";
-//        			searchNameStart = i;
-//        			needSearchName = true;
-//        		}
-//        		
-//        		if(needSearchName) {
-//            		if(msg[i] == ' ') {
-//                        ObjectSet<PlayerInfo> infos = netServer.admins.searchNames(arg[0]);
-//
-//                        if(infos.size > 0) {
-//                            info("Players found: @", infos.size);
-//
-//                            int i = 0;
-//                            for(PlayerInfo info : infos){
-//                                info("- [@] '@' / @", i++, info.plainLastName(), info.id);
-//                            }
-//                        }
-//                        
-//            			searchName = "";
-//            			needSearchName = false;
-//            			searchNameStart = -1;
-//            			
-//            		} else {
-//            			searchName += msg[i];
-//            		}
-//        		}
-//			}
-        	
+    		if(player.admin()) {
+    			if(event.tile == null) return;
+    			if(brushBlock != null || brushFloor != null || brushOverlay != null) {
+    				Tile tile = event.tile;
+    				if(brushBlock != null) {
+    					tile.setNet(brushBlock, player.team(), 0);
+    				}
+    				if(brushFloor != null) {
+    					if(brushOverlay != null) {
+        					tile.setFloorNet(brushFloor, brushOverlay);
+    					} else {
+        					tile.setFloorNet(brushFloor);
+    					}
+    				}
+    			}
+    		}
+        });
+        
+
+        // add a chat filter that changes the contents
+        Vars.netServer.admins.addChatFilter((player, text) -> {
         	if(chatFilter) {
         		text = "[white]" + text + "[white]";
         		char[] msg = text.toCharArray();
@@ -400,7 +422,30 @@ public class ExamplePlugin extends Plugin{
 //        });
     }
 
-    @Override
+    private void updateDoors(Tile tile) {
+		for (int i = 0; i < doorsCoordinates.size(); i++) {
+			int pos = doorsCoordinates.get(i);
+			Tile door = world.tile(pos);
+			if(door == tile) continue;
+			if((door.block() != Blocks.door && door.block() != Blocks.doorLarge && door.block() != Blocks.blastDoor) || door == null) {
+				Log.info("Not door");
+				doorsCoordinates.remove(i);
+				i--;
+				if(i < 0) i = 0;
+			} else {
+				int center = Point2.pack(door.centerX(), door.centerY());
+				if(center != pos) {
+					Log.info("Not center");
+					doorsCoordinates.remove(i);
+					i--;
+					if(i < 0) i = 0;
+				}
+			}
+		}		
+		Log.info("Doors count: " + doorsCoordinates.size() + "/" + doorsCup);
+	}
+
+	@Override
     public void registerServerCommands(CommandHandler handler){
         handler.register("reactors", "List all thorium reactors in the map.", args -> {
             for(int x = 0; x < Vars.world.width(); x++){
@@ -413,7 +458,7 @@ public class ExamplePlugin extends Plugin{
         });
         
         handler.register("cdata", "cdata", args -> {
-        	Log.info("Statistics file: " + DataCollecter.getPathToFile());
+        	Log.info("Statistics files dir: " + DataCollecter.getPathToFile(""));
         	Log.info("User dir: " + System.getProperty("user.dir"));
         	Log.info("Sleep time: " + dataCollect.getSleepTime());
         });
@@ -501,6 +546,7 @@ public class ExamplePlugin extends Plugin{
         	}
         });
         
+        
         /**
          * Plugin developer command (to find) emoji codes
          */
@@ -526,7 +572,6 @@ public class ExamplePlugin extends Plugin{
          * Map recourses statistic
          */
         handler.<Player>register("mapinfo", "", "Показывает статистику ресурсов карты", (arg, player) -> {
-    		world = Vars.world;
 
 			final Item itemDrops[] = new Item[] {
 					Items.copper,
@@ -581,15 +626,15 @@ public class ExamplePlugin extends Plugin{
     		if(summaryCounter == 0) return;
 
 			worldInfo.append("Информация о карте:\n");
-			worldInfo.append("Название: " + Vars.state.map.name() + "\n");
-			worldInfo.append("Рекорд: " + Vars.state.map.getHightScore());
+			worldInfo.append("[gold]Название: [lightgray]" + Vars.state.map.name() + "\n");
+			worldInfo.append("[gold]Рекорд: [lightgray]" + Vars.state.map.getHightScore() + "\n");
 			worldInfo.append("Ресурсы:\n");
     		for (int i = 0; i < counter.length; i++) {
     			float cv = ((float)counter[i])*typesCounter/summaryCounter/3f;
     			if(cv > 1/3f) cv = 1/3f;
     			int percent = (int) Math.ceil(counter[i]*100d/summaryCounter);
     			java.awt.Color c = new java.awt.Color(java.awt.Color.HSBtoRGB(cv, 1, 1));
-    			worldInfo.append(oreblocksemoji[i]);
+    			worldInfo.append(oreBlocksEmoji[i]);
     			worldInfo.append('[');
     			worldInfo.append(String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue()));
     			worldInfo.append("]: ");
@@ -609,7 +654,7 @@ public class ExamplePlugin extends Plugin{
     		for (int i = 0; i < lcounter.length; i++) {
     			if(lcounter[i] > 0) {
         			worldInfo.append("\n[white]");
-        			worldInfo.append(liquidsemoji[i]);
+        			worldInfo.append(liquidsEmoji[i]);
         			worldInfo.append("[lightgray]: ");
         			worldInfo.append(counter[i]);
         			isLFound = true;
@@ -778,7 +823,7 @@ public class ExamplePlugin extends Plugin{
         
         handler.<Player>register("plugininfo", "info about pluging", (arg, player) -> {
         	player.sendMessage(""
-        			+ "[green] Agzam's plugin v1.8.2\n"
+        			+ "[green] Agzam's plugin v1.8.3\n"
         			+  "[gray]========================================================\n"
         			+ "[white] Added [royal]skip map[white] commands\n"
         			+ "[white] Added protection from [violet]thorium reactors[white]\n"
@@ -786,15 +831,13 @@ public class ExamplePlugin extends Plugin{
         			+ "[white] Added fill items by type to core command\n"
         			+ "[white] Added Map recourses statistic command\n"
         			+ "[white] and more other\n"
-        			+  "[gray] Download: github.com/Agzam4/Mindustry-plugin");
+        			+ "[gray] Download: github.com/Agzam4/Mindustry-plugin");
         			
         });
         
         handler.<Player>register("fillitems", "[item] [count]", "Заполните ядро предметами", (arg, player) -> {
         	if(player.admin()) {
         		try {
-        			
-
         			final Item serpuloItems[] = {
         					Items.scrap, Items.copper, Items.lead, Items.graphite, Items.coal, Items.titanium, Items.thorium, Items.silicon, Items.plastanium,
         					Items.phaseFabric, Items.surgeAlloy, Items.sporePod, Items.sand, Items.blastCompound, Items.pyratite, Items.metaglass
@@ -904,7 +947,9 @@ public class ExamplePlugin extends Plugin{
             			for(CoreBuild core : team.cores()){
             				core.items.add(item, count);
             			}
-            			player.sendMessage("Added " + "[gold]x" + count + " [orange]" + item.name);
+            			player.sendMessage("Добавлено " + "[gold]x" + count + " [orange]" + item.name);
+            		} else {
+            			player.sendMessage("Предмет не найден");
             		}
 				} catch (Exception e) {
 					player.sendMessage(e.getMessage());
@@ -964,9 +1009,11 @@ public class ExamplePlugin extends Plugin{
         		}
         		if(arg[0].equals("on")) {
     				chatFilter = true;
+    				Core.settings.put(PLUGIN_NAME + "-chat-filter", chatFilter);
     				player.sendMessage("[green]Чат фильтр включен");
         		}else if(arg[0].equals("off")) {
         			chatFilter = false;
+    				Core.settings.put(PLUGIN_NAME + "-chat-filter", chatFilter);
     				player.sendMessage("[red]Чат фильтр выключен");
         		}else {
     				player.sendMessage("Неверный аргумент, используйте [gold]on/off");
@@ -1077,23 +1124,6 @@ public class ExamplePlugin extends Plugin{
         				}
 					}
             		
-//        			for (int i = 0; i < ServerEventsManager.EVENTS_ID.length; i++) {
-//        				if(arg[0].equals(ServerEventsManager.EVENTS_ID[i])) {
-//        					eventsManager.isEventsOn[i] = isOn;
-//        					
-//        					if(isOn) {
-//        						eventsManager.startEventsLoop();
-//            					player.sendMessage("Событие [gold]" + ServerEventsManager.EVENTS_ID[i] + " [green]запущено!");
-//            					if(isFast) {
-//            						eventsManager.fastStart();
-//            					}
-//        					}else {
-//            					player.sendMessage("Событие [gold]" + ServerEventsManager.EVENTS_ID[i] + " [red]выключено!");
-//        					}
-//        					
-//            				return;
-//        				}
-//					}
         			player.sendMessage("[red]Событие не найдено, [gold]/event [red] для списка событий");
     				return;
         		}
@@ -1450,7 +1480,187 @@ public class ExamplePlugin extends Plugin{
         	if(player.admin()) {
         		if(arg.length == 1) {
         			discordLink = arg[0];
+        			Core.settings.put(PLUGIN_NAME + "-discord-link", discordLink);
             		player.sendMessage("[gold]\ue80d Готово!");
+        		}
+        	} else {
+        		player.sendMessage("[red]Команда только для администраторов");
+        	}
+        });
+        
+        handler.<Player>register("pardon", "<ID>", "Прощает выбор игрока по ID и позволяет ему присоединиться снова.", (arg, player) -> {
+        	if(player.admin()) {
+                PlayerInfo info = netServer.admins.getInfoOptional(arg[0]);
+
+                if(info != null){
+                    info.lastKicked = 0;
+                    netServer.admins.kickedIPs.remove(info.lastIP);
+                    player.sendMessage("Pardoned player: " + info.plainLastName());
+                }else{
+                    player.sendMessage("[red]That ID can't be found");
+                }
+        	} else {
+        		player.sendMessage("[red]Команда только для администраторов");
+        	}
+        });
+
+        handler.<Player>register("doorscup", "[count]", "Устанавливает лимит дверей", (arg, player) -> {
+        	if(player.admin()) {
+        		if(arg.length == 1) {
+        			try {
+        				int lastDoorsCup = doorsCup;
+                		doorsCup = Integer.parseInt(arg[0]);
+                		Core.settings.put(PLUGIN_NAME + "-doors-cup", doorsCup);
+						player.sendMessage("[gold]Лимит дверей изменен с " + lastDoorsCup + " на " + doorsCup);
+					} catch (Exception e) {
+						player.sendMessage(e.getMessage());
+					}
+        		} else if(arg.length == 0) {
+					player.sendMessage("[gold]Сейчас дверей: " + doorsCoordinates.size() + "/" + doorsCup);
+        		}
+        	} else {
+        		player.sendMessage("[red]Команда только для администраторов");
+        	}
+        });
+        
+        handler.<Player>register("brush", "[none/block/floor/overlay] [block/none]", "Устанваливает кисточку", (arg, player) -> {
+        	if(player.admin()) {
+        		if(arg.length == 1) {
+        			if(arg[0].equalsIgnoreCase("none")) {
+        				brushBlock = null;
+        				brushFloor = null;
+        				brushOverlay = null;
+        				player.sendMessage("[gold]Кисть отчищена");
+        			} else if(arg[0].equalsIgnoreCase("block")) {
+        				if(brushBlock == null) player.sendMessage("[gold]К кисти не привязан блок");
+        				else player.sendMessage("[gold]К кисти привязан блок: [lightgray]" + brushBlock.name);
+        			} else if(arg[0].equalsIgnoreCase("floor")) {
+        				if(brushBlock == null) player.sendMessage("[gold]К кисти не привязана поверхность");
+        				else player.sendMessage("[gold]К кисти привязана поверхность: [lightgray]" + brushFloor.name);
+        			} else if(arg[0].equalsIgnoreCase("overlay")) {
+        				if(brushBlock == null) player.sendMessage("[gold]К кисти не привязано покрытие");
+        				else player.sendMessage("[gold]К кисти привязан блок: [lightgray]" + brushOverlay.name);
+        			} else {
+        				player.sendMessage("[red]На первом месте только аргумены [lightgray]none/block/floor/overlay");
+        			}
+        		} else if(arg.length == 2) {
+    				String blockname = arg[1];
+        			if(arg[0].equalsIgnoreCase("block")) {
+        				if(arg[1].equals("none")) {
+        					brushBlock = null;
+							player.sendMessage("[gold]Блок отвязан");
+							return;
+        				}
+        				try {
+							Field field = Blocks.class.getField(blockname);
+							Block block = (Block) field.get(null);
+							brushBlock = block;
+							player.sendMessage("[gold]Блок привязан!");
+						} catch (NoSuchFieldException | SecurityException e) {
+							player.sendMessage("[red]Блок не найден");
+						} catch (ClassCastException e2) {
+							player.sendMessage("[red]Это не блок");
+						} catch (IllegalArgumentException | IllegalAccessException e) {
+							player.sendMessage("[red]Доступ к блоку заблокирован");
+						}
+        			} else if(arg[0].equalsIgnoreCase("floor")) {
+        				if(arg[1].equals("none")) {
+        					brushFloor = null;
+							player.sendMessage("[gold]Поверхность отвязана");
+							return;
+        				}
+        				try {
+							Field field = Blocks.class.getField(blockname);
+							Floor floor = (Floor) field.get(null);
+							brushFloor = floor;
+							player.sendMessage("[gold]Поверхность привязана!");
+						} catch (NoSuchFieldException | SecurityException e) {
+							player.sendMessage("[red]Поверхность не найдена");
+						} catch (ClassCastException e2) {
+							player.sendMessage("[red]Это не поверхность");
+						} catch (IllegalArgumentException | IllegalAccessException e) {
+							player.sendMessage("[red]Доступ к поверхности заблокирован");
+						}
+        			} else if(arg[0].equalsIgnoreCase("overlay")) {
+        				if(arg[1].equals("none")) {
+        					brushOverlay = null;
+							player.sendMessage("[gold]Покрытие отвязано");
+							return;
+        				}
+        				try {
+							Field field = Blocks.class.getField(blockname);
+							OverlayFloor overlay = (OverlayFloor) field.get(null);
+							brushOverlay = overlay;
+							player.sendMessage("[gold]Покрытие привязано!");
+						} catch (NoSuchFieldException | SecurityException e) {
+							player.sendMessage("[red]Покрытие не найдено");
+						} catch (ClassCastException e2) {
+							player.sendMessage("[red]Это не покрытие");
+						} catch (IllegalArgumentException | IllegalAccessException e) {
+							player.sendMessage("[red]Доступ к покрытию заблокирован");
+						}
+        			}
+        		}
+        	} else {
+        		player.sendMessage("[red]Команда только для администраторов");
+        	}
+        });
+
+        handler.<Player>register("etrigger", "[trigger] [args...]", "Устанваливает кисточку", (args, player) -> {
+        	if(player.admin()) {
+        		eventsManager.trigger(player, args);
+        	} else {
+        		player.sendMessage("[red]Команда только для администраторов");
+        	}
+        });
+        
+        handler.<Player>register("extrastar", "[add/remove] [uidd/name]", "", (args, player) -> {
+        	if(player.admin()) {
+        		if(args.length == 0) {
+        			if(extraStarsUIDD.isEmpty()) {
+            			player.sendMessage("[gold]Нет игроков");
+        			} else {
+            			StringBuilder sb = new StringBuilder("[gold]Игроки с дополнительными звездами:[white]");
+            			for (int i = 0; i < extraStarsUIDD.size(); i++) {
+    						String uidd = extraStarsUIDD.get(i);
+    	        			String name = netServer.admins.getInfo(uidd).lastName;
+    	        			sb.append("\n" + uidd + " (" + name + ")");
+    					}
+            			player.sendMessage(sb.toString());
+        			}
+        		} else if(args.length == 2) {
+                    Player playert = Groups.player.find(p -> Strings.stripColors(p.name()).equalsIgnoreCase(Strings.stripColors(args[1])));
+                    if(playert != null) args[1] = playert.uuid();
+                    
+        			if(args[0].equalsIgnoreCase("add")) {
+        				if(!extraStarsUIDD.contains(args[1])) {
+        					PlayerInfo info = netServer.admins.getInfo(args[1]);
+        					if(info == null) {
+        						player.sendMessage("[red]Игрок не найден");
+        					} else {
+        						extraStarsUIDD.add(args[1]);
+        						player.sendMessage("[gold]Игрок []" + info.lastName + " [gold]добавлен");
+        					}
+        				} else {
+    						player.sendMessage("[red]Игрок уже есть");
+        				}
+        			} else if(args[0].equalsIgnoreCase("remove")) {
+        				if(extraStarsUIDD.contains(args[1])) {
+        					PlayerInfo info = netServer.admins.getInfo(args[1]);
+        					if(info == null) {
+        						player.sendMessage("[red]Игрок не найден");
+        					} else {
+        						extraStarsUIDD.remove(args[1]);
+        						player.sendMessage("[gold]Игрок []" + info.lastName + " [gold]убран");
+        					}
+        				} else {
+    						player.sendMessage("[red]UIDD не найден");
+        				}
+        			} else {
+        				player.sendMessage("[red]Только add/remove");
+        			}
+        		} else {
+    				player.sendMessage("[red]Неверные аргументы");
         		}
         	} else {
         		player.sendMessage("[red]Команда только для администраторов");
@@ -1467,6 +1677,10 @@ public class ExamplePlugin extends Plugin{
 	private void fillitemsCheck() {
 
 	}
+	
+	
+	
+	
     
     class GrieferVoteSession {
     	
@@ -1565,6 +1779,5 @@ public class ExamplePlugin extends Plugin{
     public int votesRequiredSkipmap(){
         return (int) Math.ceil(Groups.player.size()*2d/3d);
     }
-    
     
 }

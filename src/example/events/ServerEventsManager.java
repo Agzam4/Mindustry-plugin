@@ -509,5 +509,9 @@ public class ServerEventsManager {
 		return null;
 	}
 
-
+	public void trigger(Player player, String... args) {
+		for (int i = 0; i < activeEvents.size(); i++) {
+			activeEvents.get(i).trigger(player, args);
+		}
+	}
 }

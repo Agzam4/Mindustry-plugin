@@ -105,7 +105,7 @@ public class MyMenu {
 			if(playerName == null) return;
 			
 			String[] teams = new String[Team.baseTeams.length];
-			MenuOption[] menuOptions = new MenuOption[Team.baseTeams.length+2];
+			MenuOption[] menuOptions = new MenuOption[Team.baseTeams.length+5];
 			for (int i = 0; i < teams.length; i++) {
 				
 				char ch = ' ';
@@ -125,12 +125,10 @@ public class MyMenu {
 			for (int i = 0; i < menuOptions.length; i++) {
 				menuOptions[i] = MenuOption.AdminPlayerConfigAction;
 			}
-			
-			
-			menu(menu.player, "Управление игроком", playerName, new String[][] {teams, {"[green]\ue80f Вылечить", "[royal]\ue86b Неуязвимость"}}, menuOptions).payload = playerName;
+			menu(menu.player, "Управление игроком", playerName, new String[][] {teams, {"[green]\ue80f Вылечить", "[royal]\ue86b Неуязвимость"}, {"[gold]\ue86d Сброс юнита", "[red]\uue815 Уничтожить"}, {"[lightgray]\ue88e Режим наблюдателя"}}, menuOptions).payload = playerName;
 		}
 		if(optionID == MenuOption.AdminPlayerConfigAction.ordinal()) {
-			Log.info(menu.payload);
+			Log.info(menu.payload + " " + clickedId);
 			if(menu.payload == null) return;
 			Player targetPlayer = Groups.player.find(p -> Strings.stripColors(p.name()).equalsIgnoreCase(Strings.stripColors(menu.payload)));
 			if(targetPlayer == null) return;
@@ -147,9 +145,26 @@ public class MyMenu {
 			if(clickedId == teamsCount+1) {
 				targetPlayer.unit().apply(StatusEffects.invincible, Float.MAX_VALUE);
 			}
+			if(clickedId == teamsCount+2) {
+				targetPlayer.clearUnit();
+			}
+			if(clickedId == teamsCount+3) {
+				targetPlayer.unit().kill();
+			}
+			if(clickedId == teamsCount+4) {
+				targetPlayer.team(Team.derelict);
+				targetPlayer.unit().kill();
+			}
+			
+//			if(clickedId != -1) {
+//				adminPlayerConfig(menu, MenuOption.AdminPlayerConfig.ordinal(), clickedId);
+//			}
 		}
 	}
 	
+	
+	
+
 	public void registerCommand(CommandHandler handler) {
     	handler.<Player>register("m", "", "Открыть меню", (args, player) -> {
     		if(player.admin()) {
