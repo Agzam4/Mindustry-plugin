@@ -4,6 +4,7 @@ import java.awt.Point;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Random;
 
 import arc.*;
 import arc.freetype.FreeType.Size;
@@ -13,6 +14,9 @@ import arc.graphics.g2d.Draw;
 import arc.math.Mathf;
 import arc.math.geom.Point2;
 import arc.math.geom.Vec2;
+import arc.scene.event.EventListener;
+import arc.scene.event.SceneEvent;
+import arc.struct.ObjectMap;
 import arc.struct.ObjectSet;
 import arc.struct.Seq;
 import arc.util.*;
@@ -22,6 +26,8 @@ import example.events.ServerEventsManager;
 import mindustry.*;
 import mindustry.content.*;
 import mindustry.core.GameState;
+import mindustry.core.GameState.State;
+import mindustry.core.UI;
 import mindustry.core.World;
 import mindustry.ctype.Content;
 import mindustry.ctype.ContentType;
@@ -31,15 +37,18 @@ import mindustry.gen.Call;
 import mindustry.gen.Groups;
 import mindustry.gen.Player;
 import mindustry.gen.Unit;
+import mindustry.logic.LExecutor.Var;
 import mindustry.game.EventType.*;
 import mindustry.game.Gamemode;
 import mindustry.game.Team;
 import mindustry.mod.*;
 import mindustry.net.Administration;
 import mindustry.net.Administration.*;
+import mindustry.net.Packets.KickReason;
 import mindustry.type.Item;
 import mindustry.type.Liquid;
 import mindustry.type.UnitType;
+import mindustry.ui.Styles;
 import mindustry.world.Block;
 import mindustry.world.Tile;
 import mindustry.world.blocks.environment.Floor;
@@ -57,10 +66,7 @@ public class ExamplePlugin extends Plugin{
     
 	private @Nullable Map nextMapOverride;
     private Maps maps;
-    private Administration admins = new Administration();
-    
     private String worldinfo = "";
-	
 	private DataCollecter dataCollect;
 
 	private static int doorsCup = 100;
@@ -68,11 +74,7 @@ public class ExamplePlugin extends Plugin{
 
     private ServerEventsManager eventsManager;
     private Team admin;
-
 	private boolean chatFilter;
-    private int ignoreUnitId = -1;
-    private int updateId = 0;
-
     private Block brushBlock;
     private Floor brushFloor;
     private OverlayFloor brushOverlay;
@@ -84,15 +86,12 @@ public class ExamplePlugin extends Plugin{
     
     @Override
     public void init() {
-    	Vars.netServer.admins.getBannedIPs();
-
+    	//    	Vars.content.getBy(ContentType.unit).forEach(e -> e.spawn(97*8, 111*8));
     	doorsCup = Core.settings.getInt(PLUGIN_NAME + "-doors-cup", Integer.MAX_VALUE);
     	discordLink = Core.settings.getString(PLUGIN_NAME + "-discord-link", null);
     	chatFilter = Core.settings.getBool(PLUGIN_NAME + "-chat-filter", false);
     	
     	doorsCoordinates = new ArrayList<>();
-    	
-    	
     	extraStarsUIDD = new ArrayList<>();
     	
     	menu = new MyMenu();
@@ -141,7 +140,6 @@ public class ExamplePlugin extends Plugin{
     	});
     	Events.on(PlayerIpBanEvent.class, e -> {
 	        Seq<PlayerInfo> admins = Vars.netServer.admins.getAdmins();
-	        
 	        for (int i = 0; i < admins.size; i++) {
 				if(admins.get(i).ips.contains(e.ip)) {
 	    			netServer.admins.unbanPlayerIP(e.ip);
@@ -158,11 +156,11 @@ public class ExamplePlugin extends Plugin{
     		result.append(state.map.getHightScore());
     		if(state.wave > state.map.getHightScore()) {
         		result.append("[gold] (Новый рекорд!)");
+        		state.map.setHighScore(state.wave);
     		}
     		Call.sendMessage(result.toString());
     		currentlyMapSkipping[0] = null;
     		
-    		state.map.setHighScore(state.wave);
     	});
     	
     	Events.on(WorldLoadEndEvent.class, e -> {
@@ -469,6 +467,121 @@ public class ExamplePlugin extends Plugin{
     @Override
     public void registerClientCommands(CommandHandler handler){
     	handler.removeCommand("help");
+//    	handler.removeCommand("votekick");
+//    	handler.removeCommand("kick");
+
+    	ObjectMap<String, Timekeeper> cooldowns = new ObjectMap<>();
+    	 VoteSession[] currentlyKicking = {null};
+
+//         int voteCooldown = 60 * 2; // 5
+//    	 handler.<Player>register("votekick", "[player...]", "Проголосуйте за то, чтобы выгнать игрока.", (args, player) -> {
+//             if(!Config.enableVotekick.bool()){
+//                 player.sendMessage("[scarlet]Vote-kick is disabled on this server.");
+//                 return;
+//             }
+//
+//             if(Groups.player.size() < 3){
+//                 player.sendMessage("[scarlet]Для начала голосования необходимо, по крайней мере, 3 игрока.");
+//                 return;
+//             }
+//
+//             if(player.isLocal()){
+//                 player.sendMessage("[scarlet]Просто кикни их сам, если ты хозяин.");
+//                 return;
+//             }
+//
+//             if(currentlyKicking[0] != null){
+//                 player.sendMessage("[scarlet]Голосование уже идет.");
+//                 return;
+//             }
+//
+//             if(args.length == 0){
+//                 StringBuilder builder = new StringBuilder();
+//                 builder.append("[orange]Игроки, которых нужно ударить: \n");
+//
+//                 Groups.player.each(p -> !p.admin && p.con != null && p != player, p -> {
+//                     builder.append("[lightgray] ").append(p.name).append("[accent] (#").append(p.id()).append(")\n");
+//                 });
+//                 player.sendMessage(builder.toString());
+//             }else{
+//                 Player found;
+//                 if(args[0].length() > 1 && args[0].startsWith("#") && Strings.canParseInt(args[0].substring(1))){
+//                     int id = Strings.parseInt(args[0].substring(1));
+//                     found = Groups.player.find(p -> p.id() == id);
+//                 }else{
+//                     found = Groups.player.find(p -> p.name.equalsIgnoreCase(args[0]));
+//                 }
+//
+//                 if(found != null){
+//                     if(found == player){
+//                         player.sendMessage("[scarlet]Ты не можешь голосовать за то, чтобы пнуть самого себя.");
+//                     }else if(found.admin){
+//                         player.sendMessage("[scarlet]Вы действительно ожидали, что сможете выгнать администратора?");
+//                     }else if(found.isLocal()){
+//                         player.sendMessage("[scarlet]Локальных игроков нельзя выгнать.");
+//                     }else if(found.team() != player.team()){
+//                         player.sendMessage("[scarlet]Только игроки вашей команды могут быть выгнаны.");
+//                     }else{
+//                         Timekeeper vtime = cooldowns.get(player.uuid(), () -> new Timekeeper(voteCooldown));
+//
+//                         if(!vtime.get()){
+//                             player.sendMessage("[scarlet]You must wait " + voteCooldown/60 + " minutes between votekicks.");
+//                             return;
+//                         }
+//
+//                         VoteSession session = new VoteSession(currentlyKicking, found);
+//                         session.vote(player, 1);
+//                         vtime.reset();
+//                         currentlyKicking[0] = session;
+//                     }
+//                 }else{
+//                     player.sendMessage("[scarlet]No player [orange]'" + args[0] + "'[scarlet] found.");
+//                 }
+//             }
+//         });
+//         
+//        handler.<Player>register("vote", "<y/n>", "Проголосуйте за то, чтобы выгнать текущего игрока.", (arg, player) -> {
+//            if(currentlyKicking[0] == null){
+//                player.sendMessage("[scarlet]Ни за кого не голосуют.");
+//            }else{
+//                if(player.isLocal()){
+//                    player.sendMessage("[scarlet]Local players can't vote. Kick the player yourself instead.");
+//                    return;
+//                }
+//
+//                //hosts can vote all they want
+//                if((currentlyKicking[0].voted.contains(player.uuid()))) { //  || currentlyKicking[0].voted.contains(admins.getInfo(player.uuid()).lastIP)
+//                    player.sendMessage("[scarlet]Вы уже проголосовали.");
+//                    return;
+//                }
+//
+//                if(currentlyKicking[0].target == player){
+//                    player.sendMessage("[scarlet]Вы не можете голосовать за себя");
+//                    return;
+//                }
+//
+//                if(currentlyKicking[0].target.team() != player.team()){
+//                    player.sendMessage("[scarlet]Вы не можете голосовать за другие команды.");
+//                    return;
+//                }
+//
+//                String arg0 = arg[0].toLowerCase();
+//                int sign = 0;
+//                if(arg0.equals("y") || arg0.equals("yes") || arg0.equals("у")) {
+//                	sign = 1;
+//                }
+//                if(arg0.equals("n") || arg0.equals("no")) {
+//                	sign = -1;
+//                }
+//
+//                if(sign == 0){
+//                    player.sendMessage("[scarlet]Голосуйте либо \"y\" (да), либо \"n\" (нет).");
+//                    return;
+//                }
+//
+//                currentlyKicking[0].vote(player, sign);
+//            }        
+//        });
     	
     	handler.<Player>register("help", "[страница]", "Список всех команд", (args, player) -> {
     		boolean isAdmin = player.admin();
@@ -801,7 +914,7 @@ public class ExamplePlugin extends Plugin{
                     return;
                 }
                 
-                if((currentlyMapSkipping[0].voted.contains(player.uuid()) || currentlyMapSkipping[0].voted.contains(admins.getInfo(player.uuid()).lastIP))){
+                if((currentlyMapSkipping[0].voted.contains(player.uuid()) || currentlyMapSkipping[0].voted.contains(Vars.netServer.admins.getInfo(player.uuid()).lastIP))){
                     player.sendMessage("[scarlet]Ты уже проголосовал. Молчи!");
                     return;
                 }
@@ -823,7 +936,7 @@ public class ExamplePlugin extends Plugin{
         
         handler.<Player>register("plugininfo", "info about pluging", (arg, player) -> {
         	player.sendMessage(""
-        			+ "[green] Agzam's plugin v1.8.3\n"
+        			+ "[green] Agzam's plugin v1.8.5\n"
         			+  "[gray]========================================================\n"
         			+ "[white] Added [royal]skip map[white] commands\n"
         			+ "[white] Added protection from [violet]thorium reactors[white]\n"
@@ -955,7 +1068,6 @@ public class ExamplePlugin extends Plugin{
 					player.sendMessage(e.getMessage());
 				}
         	} else {
-        		admins = new Administration();
 				player.sendMessage("[red]Команда только для администраторов");
         	}
         });
@@ -996,7 +1108,6 @@ public class ExamplePlugin extends Plugin{
                 }
             	Vars.netServer.admins.save();
         	} else {
-        		admins = new Administration();
 				player.sendMessage("[red]Команда только для администраторов");
         	}
         });
@@ -1020,7 +1131,6 @@ public class ExamplePlugin extends Plugin{
     				return;
         		}
         	} else {
-        		admins = new Administration();
 				player.sendMessage("[red]Команда только для администраторов");
         	}
         });
@@ -1048,7 +1158,6 @@ public class ExamplePlugin extends Plugin{
     				return;
         		}
         	} else {
-        		admins = new Administration();
 				player.sendMessage("[red]Команда только для администраторов");
         	}
         });
@@ -1128,7 +1237,6 @@ public class ExamplePlugin extends Plugin{
     				return;
         		}
         	} else {
-        		admins = new Administration();
 				player.sendMessage("[red]Команда только для администраторов");
         	}
         });
@@ -1209,7 +1317,6 @@ public class ExamplePlugin extends Plugin{
     				return;
         		}
         	} else {
-        		admins = new Administration();
 				player.sendMessage("[red]Команда только для администраторов");
         	}
         });
@@ -1265,7 +1372,6 @@ public class ExamplePlugin extends Plugin{
         			player.sendMessage("[red]Unknown config: '" + arg[0] + "'. Run the command with no arguments to get a list of valid configs.");
         		}
         	} else {
-        		admins = new Administration();
         		player.sendMessage("[red]Команда только для администраторов");
         	}
         });
@@ -1312,7 +1418,6 @@ public class ExamplePlugin extends Plugin{
         			}
         		}
         	} else {
-        		admins = new Administration();
         		player.sendMessage("[red]Команда только для администраторов");
         	}
         });
@@ -1339,7 +1444,6 @@ public class ExamplePlugin extends Plugin{
         			}
         			unitType = arg[0];
         		}
-
         		try {
         			for (int i = 0; i < fields.length; i++) {
         				if(fields[i].getName().equals(unitType)) {
@@ -1349,7 +1453,6 @@ public class ExamplePlugin extends Plugin{
         						continue;
         					}
         					Unit u = ut.spawn(player.team(), player.x, player.y);
-        					ignoreUnitId = u.id;
         					if(arg.length > 1) {
         						if(arg[1].equals("true") || arg[1].equals("y") || arg[1].equals("t") || arg[1].equals("yes")) {
         							player.unit(u);
@@ -1370,7 +1473,6 @@ public class ExamplePlugin extends Plugin{
         		}
         	        
         	} else {
-        		admins = new Administration();
         		player.sendMessage("[red]Команда только для администраторов");
         	}
         });
@@ -1488,14 +1590,27 @@ public class ExamplePlugin extends Plugin{
         	}
         });
         
-        handler.<Player>register("pardon", "<ID>", "Прощает выбор игрока по ID и позволяет ему присоединиться снова.", (arg, player) -> {
+        handler.<Player>register("pardon", "<ID> [index]", "Прощает выбор игрока по ID и позволяет ему присоединиться снова.", (arg, player) -> {
         	if(player.admin()) {
-                PlayerInfo info = netServer.admins.getInfoOptional(arg[0]);
+        		
+        		int index = 0;
+        		if(arg.length >= 2) {
+        			try {
+                		index = Integer.parseInt(arg[1]);
+					} catch (Exception e) {
+	                    player.sendMessage("[red]" + e.getMessage());
+	                    return;
+					}
+        		}
+                Seq<PlayerInfo> infos = netServer.admins.findByName(arg[0]).toSeq();
+                if(index < 0) index = 0;
+                if(index >= infos.size) index = infos.size-1;
+                PlayerInfo info = infos.get(index);
 
                 if(info != null){
                     info.lastKicked = 0;
                     netServer.admins.kickedIPs.remove(info.lastIP);
-                    player.sendMessage("Pardoned player: " + info.plainLastName());
+                    player.sendMessage("Pardoned player: " + info.plainLastName() + " [lightfray](of " + infos.size + " find)");
                 }else{
                     player.sendMessage("[red]That ID can't be found");
                 }
@@ -1706,7 +1821,7 @@ public class ExamplePlugin extends Plugin{
 
         void vote(Player player, int d){
             votes += d;
-            voted.addAll(player.uuid(), admins.getInfo(player.uuid()).lastIP);
+            voted.addAll(player.uuid(), Vars.netServer.admins.getInfo(player.uuid()).lastIP);
             Call.sendMessage(Strings.format("[" + colorToHex(player.color) + "]@[lightgray] проголосовал " + (d > 0 ? "[green]за" : "[red]против") + "[white] наказания для @ [accent] (@/@)\n[lightgray]Напишите[orange] /gvote <y/n>[white], чтобы проголосовать [green]за[white]/[red]против",
                 player.name, ("[" + colorToHex(target.color) + "]" + target.name()), votes, votesRequired()));
             checkPass();
@@ -1749,7 +1864,7 @@ public class ExamplePlugin extends Plugin{
 
         void vote(Player player, int d){
             votes += d;
-            voted.addAll(player.uuid(), admins.getInfo(player.uuid()).lastIP);
+            voted.addAll(player.uuid()); // FIXME: , Vars.netServer.admins.getInfo(player.uuid()).lastIP
             Call.sendMessage(Strings.format("[" + colorToHex(player.color) + "]@[lightgray] проголосовал " + (d > 0 ? "[green]за" : "[red]против") + "[] пропуска карты[accent] (@/@)\n[lightgray]Напишите[orange] /smvote <y/n>[], чтобы проголосовать [green]за[]/[red]против",
                 player.name, votes, votesRequiredSkipmap()));
             checkPass();
@@ -1780,4 +1895,51 @@ public class ExamplePlugin extends Plugin{
         return (int) Math.ceil(Groups.player.size()*2d/3d);
     }
     
+    class VoteSession {
+    	
+        float voteDuration = 1f * 60; // .5f
+        int kickDuration = 60 * 60;
+        
+        Player target;
+        ObjectSet<String> voted = new ObjectSet<>();
+        VoteSession[] map;
+        Timer.Task task;
+        int votes;
+
+        public VoteSession(VoteSession[] map, Player target){
+            this.target = target;
+            this.map = map;
+            this.task = Timer.schedule(() -> {
+                if(!checkPass()){
+                    Call.sendMessage(Strings.format("[lightgray]Vote failed. Not enough votes to kick[orange] @[lightgray].", target.name));
+                    map[0] = null;
+                    task.cancel();
+                }
+            }, voteDuration);
+        }
+
+        void vote(Player player, int d){
+        	
+        	
+            votes += d;
+            voted.addAll(player.uuid()); // FIXME: , admins.getInfo(player.uuid()).lastIP
+
+            Call.sendMessage(Strings.format("[lightgray]@[lightgray] has voted on kicking[orange] @[lightgray].[accent] (@/@)\n[lightgray]Type[orange] /vote <y/n>[] to agree.",
+                player.name, target.name, votes, votesRequired()));
+
+            checkPass();
+        }
+
+        boolean checkPass(){
+            if(votes >= votesRequired()){
+                Call.sendMessage(Strings.format("[orange]Vote passed.[scarlet] @[orange] will be banned from the server for @ minutes.", target.name, (kickDuration / 60)));
+                Groups.player.each(p -> p.uuid().equals(target.uuid()), p -> p.kick(KickReason.vote, kickDuration * 1000));
+                map[0] = null;
+                task.cancel();
+                return true;
+            }
+            return false;
+        }
+    }
+
 }

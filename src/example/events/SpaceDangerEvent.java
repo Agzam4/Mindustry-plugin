@@ -75,8 +75,7 @@ public class SpaceDangerEvent extends ServerEvent {
 
 	@Override
 	public void init() {
-
-	}///event space_danger faston
+	}
 
 	@Override
 	public void announce() {
@@ -94,10 +93,9 @@ public class SpaceDangerEvent extends ServerEvent {
 	public void playerJoin(PlayerJoin e) {
 		if(e.player == null) return;
 		e.player.sendMessage(info);
-
 	}
 
-	private static final String info = "[magenta]Постойте [gold]электоромагнитную катапульту[magenta]\\nОкружите ее четырмя [gold]цунами[magenta] запитанными шлаком (Не забудьте подготовить защиту)";
+	private static final String info = "[magenta]Постойте [gold]электоромагнитную катапульту[magenta]\nОкружите ее четырмя [gold]цунами[magenta] запитанными шлаком (Не забудьте подготовить защиту)";
 
 	private int updates = 0;
 
@@ -117,11 +115,6 @@ public class SpaceDangerEvent extends ServerEvent {
 				fissileMatterCounter+=d;
 				dFissileMatterTimer = 61;
 				hudLerpT = 0;
-
-				// /event space_danger faston
-				// /sandbox on
-				// /sync
-				// /etrigger fall
 			}
 
 			for (int i = 0; i < targets.size(); i++) {
@@ -133,7 +126,7 @@ public class SpaceDangerEvent extends ServerEvent {
 			if(hudLerpT > 20) hudLerpT = 20;
 			Call.setHudText("Получено [#" +  new Color(0xffd700ff).lerp(Color.lightGray, hudLerpT/20f).toString() + "] x" + fissileMatterCounter + " [#5e988dff]нестабильная материя [white](\uf747)");
 		}
-		// Получено [lightgray]x1\uf747 [#5e988dff]нестабильная материя
+		
 		if(dFissileMatterTimer > 0) {
 			dFissileMatterTimer--;
 			if(dFissileMatterTimer == 0) {
@@ -166,6 +159,7 @@ public class SpaceDangerEvent extends ServerEvent {
 					}
 				}
 			}
+			Call.hideHudText();
 		}
 
 		for (int i = 0; i < targets.size(); i++) {
@@ -180,8 +174,6 @@ public class SpaceDangerEvent extends ServerEvent {
 		}
 	}
 
-	// /event space_danger faston
-
 	@Override
 	public void generateWorld() {
 		meteorits = 0;
@@ -189,11 +181,11 @@ public class SpaceDangerEvent extends ServerEvent {
 		dormantCystDropUnits.clear();
 		Call.sendMessage(info);
 
-
 		dFissileMatterTimer = 0;
 		fissileMatterCounter = 0;
 		targetFissileMatterCounter = 0;
 		hudLerpT = 0;
+		isLablePlaced = false;
 	}
 
 	@Override
@@ -334,7 +326,7 @@ public class SpaceDangerEvent extends ServerEvent {
 		private boolean needRemove = false;
 
 		private boolean isEnded = false;
-		private int fallTime;
+		private int fallTime, startFallTime;
 
 		public Target(int x, int y) {
 			for (int i = 0; i < targets.size(); i++) {
@@ -355,7 +347,7 @@ public class SpaceDangerEvent extends ServerEvent {
 				y = world.tile(x, y).centerY();
 			}
 			
-			fallTime = (int) (Math.random()*60+60)*60;
+			startFallTime = fallTime = (int) (Math.random()*60+60)*60;
 		}
 
 		public void effect(int i) {
@@ -381,13 +373,14 @@ public class SpaceDangerEvent extends ServerEvent {
 				return;
 			}
 			
-			if(hasTarget(x, y) 
-					&& getTsunamiPower(x+3, y) > .5 && getTsunamiPower(x-3, y) > .5
-					&& getTsunamiPower(x, y+3) > .5 && getTsunamiPower(x, y-3) > .5) {
-				if(fallTime == 0) {
-					Call.warningToast(0, "[red]Метеорит приближается!");
+			if(hasTarget(x, y)) {
+				if(getTsunamiPower(x+3, y) > .5 && getTsunamiPower(x-3, y) > .5
+						&& getTsunamiPower(x, y+3) > .5 && getTsunamiPower(x, y-3) > .5) {
+					if(fallTime == startFallTime-1) {
+						Call.warningToast(0, "[red]Метеорит приближается!");
+					}
+					fallTime--;
 				}
-				fallTime--;
 			} else if(!isEnded) {
 				Call.warningToast(0, "[red]Метеорит пролетел мимо!");
 				needRemove = true;

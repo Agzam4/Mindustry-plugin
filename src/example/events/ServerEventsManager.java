@@ -72,7 +72,6 @@ public class ServerEventsManager {
 	}
 
 	public static long eventsTPS = 1_000 / 60;
-	public static final String[] EVENTS_ID = {"new_year"};
 	public boolean[] isEventsOn;
 
 	private ArrayList<ServerEvent> activeEvents;
