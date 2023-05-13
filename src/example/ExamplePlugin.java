@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.Random;
 
 import arc.*;
+import arc.files.Fi;
 import arc.freetype.FreeType.Size;
 import arc.func.Intc2;
 import arc.graphics.Color;
@@ -21,6 +22,7 @@ import arc.struct.ObjectSet;
 import arc.struct.Seq;
 import arc.util.*;
 import arc.util.CommandHandler.Command;
+import example.achievements.AchievementsManager;
 import example.events.ServerEvent;
 import example.events.ServerEventsManager;
 import mindustry.*;
@@ -31,6 +33,7 @@ import mindustry.core.UI;
 import mindustry.core.World;
 import mindustry.ctype.Content;
 import mindustry.ctype.ContentType;
+import mindustry.entities.Damage;
 import mindustry.entities.Effect;
 import mindustry.entities.units.BuildPlan;
 import mindustry.gen.Call;
@@ -83,16 +86,20 @@ public class ExamplePlugin extends Plugin{
     MyMenu menu;
     
     private ArrayList<String> extraStarsUIDD;
+    private AchievementsManager achievementsManager;
     
     @Override
     public void init() {
+    	achievementsManager = new AchievementsManager();
+//    	Blocks.logicProcessor
+//    	Vars.state.rules.reactorExplosions;
     	//    	Vars.content.getBy(ContentType.unit).forEach(e -> e.spawn(97*8, 111*8));
     	doorsCup = Core.settings.getInt(PLUGIN_NAME + "-doors-cup", Integer.MAX_VALUE);
     	discordLink = Core.settings.getString(PLUGIN_NAME + "-discord-link", null);
     	chatFilter = Core.settings.getBool(PLUGIN_NAME + "-chat-filter", false);
+    	extraStarsUIDD = new ArrayList<>();
     	
     	doorsCoordinates = new ArrayList<>();
-    	extraStarsUIDD = new ArrayList<>();
     	
     	menu = new MyMenu();
     	eventsManager = new ServerEventsManager();
@@ -127,8 +134,12 @@ public class ExamplePlugin extends Plugin{
     	adminCommands.add("brush");
     	adminCommands.add("etrigger");
     	adminCommands.add("extrastar");
+    	adminCommands.add("achievements");
+    	adminCommands.add("whitelist");
+    	adminCommands.add("wlsize");
     	
     	Events.run(Trigger.update, () -> {
+    		achievementsManager.update();
     		menu.update();
     		eventsManager.update();
     	});
@@ -353,6 +364,10 @@ public class ExamplePlugin extends Plugin{
         					tile.setFloorNet(brushFloor, brushOverlay);
     					} else {
         					tile.setFloorNet(brushFloor);
+    					}
+    				} else {
+    					if(brushOverlay != null) {
+        					tile.setFloorNet(tile.floor(), brushOverlay);
     					}
     				}
     			}
@@ -710,7 +725,8 @@ public class ExamplePlugin extends Plugin{
     		int typesCounter = 0;
     		
     		for(int x = 0; x < world.width(); x++){
-                for(int y = 0; y < world.height(); y++){
+                for(int y = 0; y < world.height(); y++) {
+                	if(world.tile(x, y).block() != Blocks.air) continue;
                 	Item floor = world.tile(x, y).floor().itemDrop;
                 	Item overlay = world.tile(x, y).overlay().itemDrop;
                 	Liquid lfloor = world.tile(x, y).floor().liquidDrop;
@@ -936,7 +952,7 @@ public class ExamplePlugin extends Plugin{
         
         handler.<Player>register("plugininfo", "info about pluging", (arg, player) -> {
         	player.sendMessage(""
-        			+ "[green] Agzam's plugin v1.8.5\n"
+        			+ "[green] Agzam's plugin v1.9.0\n"
         			+  "[gray]========================================================\n"
         			+ "[white] Added [royal]skip map[white] commands\n"
         			+ "[white] Added protection from [violet]thorium reactors[white]\n"
@@ -1057,9 +1073,12 @@ public class ExamplePlugin extends Plugin{
             			Team team = player.team();
 
             			int count = arg.length > 1 ? Integer.parseInt(arg[1]) : 0;
-            			for(CoreBuild core : team.cores()){
-            				core.items.add(item, count);
+            			
+            			if(team.cores().size == 0) {
+                			player.sendMessage("[red]У Вашей команды игроков нет ядер");
+                			return;
             			}
+            			team.cores().get(0).items.add(item, count);
             			player.sendMessage("Добавлено " + "[gold]x" + count + " [orange]" + item.name);
             		} else {
             			player.sendMessage("Предмет не найден");
@@ -1181,7 +1200,7 @@ public class ExamplePlugin extends Plugin{
         			for (int i = 0; i < ServerEventsManager.getServerEventsCount(); i++) {
         				ServerEvent event = ServerEventsManager.getServerEvent(i);
         				if(arg[0].equals(event.getCommandName())) {
-        					player.sendMessage("Событие [" + event.getColor() + "]" + event.getName() + " [white] имеет значение: " + event.isRunning());
+        					player.sendMessage("Событие [" + event.getColor() + "]" + event.getName() + "[white] имеет значение: " + event.isRunning());
             				return;
         				}
 					}
@@ -1660,7 +1679,11 @@ public class ExamplePlugin extends Plugin{
         			}
         		} else if(arg.length == 2) {
     				String blockname = arg[1];
-        			if(arg[0].equalsIgnoreCase("block")) {
+    				if(blockname.equals("core1")) blockname = "coreShard";
+    				if(blockname.equals("core2")) blockname = "coreFoundation";
+    				if(blockname.equals("core3")) blockname = "coreNucleus";
+    				
+        			if(arg[0].equalsIgnoreCase("block") || arg[0].equalsIgnoreCase("b")) {
         				if(arg[1].equals("none")) {
         					brushBlock = null;
 							player.sendMessage("[gold]Блок отвязан");
@@ -1678,7 +1701,7 @@ public class ExamplePlugin extends Plugin{
 						} catch (IllegalArgumentException | IllegalAccessException e) {
 							player.sendMessage("[red]Доступ к блоку заблокирован");
 						}
-        			} else if(arg[0].equalsIgnoreCase("floor")) {
+        			} else if(arg[0].equalsIgnoreCase("floor") || arg[0].equalsIgnoreCase("f")) {
         				if(arg[1].equals("none")) {
         					brushFloor = null;
 							player.sendMessage("[gold]Поверхность отвязана");
@@ -1696,7 +1719,7 @@ public class ExamplePlugin extends Plugin{
 						} catch (IllegalArgumentException | IllegalAccessException e) {
 							player.sendMessage("[red]Доступ к поверхности заблокирован");
 						}
-        			} else if(arg[0].equalsIgnoreCase("overlay")) {
+        			} else if(arg[0].equalsIgnoreCase("overlay") || arg[0].equalsIgnoreCase("o")) {
         				if(arg[1].equals("none")) {
         					brushOverlay = null;
 							player.sendMessage("[gold]Покрытие отвязано");
@@ -1721,7 +1744,7 @@ public class ExamplePlugin extends Plugin{
         	}
         });
 
-        handler.<Player>register("etrigger", "[trigger] [args...]", "Устанваливает кисточку", (args, player) -> {
+        handler.<Player>register("etrigger", "<trigger> [args...]", "Устанваливает кисточку", (args, player) -> {
         	if(player.admin()) {
         		eventsManager.trigger(player, args);
         	} else {
@@ -1781,6 +1804,54 @@ public class ExamplePlugin extends Plugin{
         		player.sendMessage("[red]Команда только для администраторов");
         	}
         });
+        
+
+        handler.<Player>register("achievements", "<load/save/path> [args...]", "Управление достижениями", (args, player) -> {
+        	if(player.admin()) {
+        		if(args.length > 0) {
+        			if(args[0].equalsIgnoreCase("load")) {
+        				if(achievementsManager.load()) {
+            				player.sendMessage("[gold]\ue81b Загружено!");
+        				} else {
+            				player.sendMessage("[red]\ue81b Файл не найден!");
+        				}
+        				return;
+        			}
+        			if(args[0].equalsIgnoreCase("save")) {
+        				achievementsManager.save();
+        				player.sendMessage("[gold]\ue81b Сохранено!");
+        				return;
+        			}
+        			if(args[0].equalsIgnoreCase("path")) {
+        				if(args.length == 1) {
+            				player.sendMessage("[gold]\ue81b Место хранения: [lightgray]" + achievementsManager.savePath.absolutePath());
+            				return;
+        				} else if(args.length == 2) {
+        					String path = args[1] + ".json";
+        					
+        					Fi fi = null;
+        					if(path.startsWith("#")) {
+        						fi = Core.files.absolute(path.substring(1));
+        					} else {
+        						fi = Core.files.local(path);
+        					}
+        					if(fi == null) {
+        						return;
+        					}
+        					achievementsManager.savePath = fi;
+//        					Fi fi = Core.files.absolute(PLUGIN_NAME)
+            				player.sendMessage("[gold]\ue81b Установлено место хранения: [lightgray]" + achievementsManager.savePath.absolutePath());
+        				} else {
+            				player.sendMessage("[red]Используйте: /achievements <path> [new path] (# вначале для полного пути)");
+        				}
+        			}
+        			
+        		}
+        	} else {
+        		player.sendMessage("[red]Команда только для администраторов");
+        	}
+        });
+        
     }
     
     String discordLink = "";
@@ -1850,9 +1921,12 @@ public class ExamplePlugin extends Plugin{
         SkipmapVoteSession[] map;
         Timer.Task task;
         int votes;
+        
+        int votesRequiredSkipmap;
 
         public SkipmapVoteSession(SkipmapVoteSession[] map){
             this.map = map;
+            votesRequiredSkipmap = votesRequiredSkipmap();
             this.task = Timer.schedule(() -> {
                 if(!checkPass()){
                     Call.sendMessage("[lightgray]Голосование закончилось. Недостаточно голосов, чтобы пропустить карту");
@@ -1866,12 +1940,12 @@ public class ExamplePlugin extends Plugin{
             votes += d;
             voted.addAll(player.uuid()); // FIXME: , Vars.netServer.admins.getInfo(player.uuid()).lastIP
             Call.sendMessage(Strings.format("[" + colorToHex(player.color) + "]@[lightgray] проголосовал " + (d > 0 ? "[green]за" : "[red]против") + "[] пропуска карты[accent] (@/@)\n[lightgray]Напишите[orange] /smvote <y/n>[], чтобы проголосовать [green]за[]/[red]против",
-                player.name, votes, votesRequiredSkipmap()));
+                player.name, votes, votesRequiredSkipmap));
             checkPass();
         }
 
         boolean checkPass(){
-            if(votes >= votesRequiredSkipmap()){
+            if(votes >= votesRequiredSkipmap) {
             	Call.sendMessage("[gold]Голосование закончилось. Карта успешно пропущена!");
             	Events.fire(new GameOverEvent(Team.derelict));
             	map[0] = null;
@@ -1879,6 +1953,10 @@ public class ExamplePlugin extends Plugin{
                 return true;
             }
             return false;
+        }
+        
+        void update() {
+        	votesRequiredSkipmap = votesRequiredSkipmap();
         }
     }
     

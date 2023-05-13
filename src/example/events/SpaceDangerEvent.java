@@ -366,7 +366,7 @@ public class SpaceDangerEvent extends ServerEvent {
 				int sec = fallTime/60;
 				int min = sec/60;
 				sec -= min*60;
-				Call.warningToast(0, "Метероит упадет через " + (min > 0 ? "[gold]" + min + ":" : "[red]") + (sec == 0 ? "00" : sec));
+				Call.warningToast(0, "Метеорит упадет через " + (min > 0 ? "[gold]" + min + ":" : "[red]") + (sec == 0 ? "00" : sec));
 			}
 			if(fallTime < 0) {
 				fall();
@@ -624,7 +624,7 @@ public class SpaceDangerEvent extends ServerEvent {
 						unit.kill();
 						addDormantCystToCore(e.amount-cost1);
 						unit.clearItem();
-						Call.sendMessage("[gold]Игрок " + e.player.coloredName() + " [gold]потратил [lightgray]" + cost1 + " [gold]дремлющих оболочек");
+						Call.sendMessage("[gold]Игрок " + e.player.coloredName() + " [gold]потратил [lightgray]" + cost1 + " [gold]нестабильной материи");
 					} else {
 						e.player.sendMessage("[gold]Недостаточно предметов, требуется " + cost1);
 						addDormantCystToCore(e.amount);
