@@ -1,32 +1,13 @@
 package example;
 
-import java.io.File;
-import java.io.Writer;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 
-import arc.Core;
-import arc.Files;
-import arc.Files.FileType;
 import arc.files.Fi;
-import arc.func.Intc2;
-import arc.math.geom.Geometry;
-import arc.math.geom.Vec2;
 import arc.struct.Seq;
 import arc.util.Log;
-import arc.util.serialization.Json;
-import arc.util.serialization.JsonWriter;
 import mindustry.Vars;
-import mindustry.core.GameState.State;
-import mindustry.core.Logic;
-import mindustry.game.SectorInfo;
-import mindustry.game.Waves;
 import mindustry.gen.Groups;
 import mindustry.gen.Player;
-import mindustry.io.JsonIO;
-import mindustry.net.Administration.Config;
 import mindustry.net.Administration.PlayerInfo;
 
 public class DataCollecter {
@@ -34,7 +15,7 @@ public class DataCollecter {
 	public static final String FILENAME = "agzam_s_plugin_statistics.json";
 	public static final String FILENAME_ADMINS = "agzam_s_plugin_admins.json";
 
-	private transient long sleepTime = 5 * 60_000 / 60 / 5; // FIXME: 5 minutes
+	private transient long sleepTime = 60*60*5; // 5 min
 
 	private int dayMaxOnlineCount = 0;
 	private int onlineCount = 0;
@@ -58,17 +39,21 @@ public class DataCollecter {
 	
 	public void collect() {
 		isCollecting = true;
-		new Thread(() -> {
-			while (isCollecting) {
-				try {
-					Thread.sleep(sleepTime);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
+		updates = 0;
+	}
+	
+	int updates = 0;
+	
+	public void update() {
+		if(isCollecting) {
+			updates++;
+			
+			if(updates > sleepTime) {
+				updates = 0;
 				collecData();
 				save();
 			}
-		}).start();
+		}
 	}
 	
 	private transient int lastHours = -1;

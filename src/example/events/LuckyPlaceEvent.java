@@ -12,11 +12,14 @@ import arc.math.geom.Rect;
 import arc.math.geom.Vec2;
 import arc.struct.Seq;
 import arc.util.Log;
+import example.Emoji;
+import example.GameWork;
 import example.Work;
 import mindustry.Vars;
 import mindustry.content.Blocks;
 import mindustry.content.Fx;
 import mindustry.content.Items;
+import mindustry.content.Planets;
 import mindustry.content.StatusEffects;
 import mindustry.content.UnitTypes;
 import mindustry.entities.Damage;
@@ -63,6 +66,7 @@ public class LuckyPlaceEvent extends ServerEvent {
 
 	@Override
 	public void announce() {
+		Call.announce("[yellow]Удачное событие начнется на следующей карте!");
 		Call.sendMessage("[yellow]Удачное событие начнется на следующей карте!");
 	}
 	
@@ -255,6 +259,7 @@ public class LuckyPlaceEvent extends ServerEvent {
 				luckySource = points.random();
 				Log.info("luckySource: " + luckySource.x + ";" + luckySource.y);
 				
+				createAirAround();
 				for (int i = 0; i < freeSpace.length; i++) {
 					int xx = luckySource.x + freeSpace[i].x;
 					int yy = luckySource.y + freeSpace[i].y;
@@ -319,18 +324,32 @@ public class LuckyPlaceEvent extends ServerEvent {
 						isLuckActivated = true;
 						Call.warningToast(0, "[gold]Алтарь удачи активирован!");
 						
-						for (int i = 0; i < freeSpace.length; i++) {
-							int xx = x + freeSpace[i].x;
-							int yy = y + freeSpace[i].y;
-							world.tile(xx, yy).setFloorNet(Blocks.space);
-							world.tile(xx+1, yy).setFloorNet(Blocks.space);
-							world.tile(xx, yy+1).setFloorNet(Blocks.space);
-							world.tile(xx+1, yy+1).setFloorNet(Blocks.space);
-						}
+						createSpaceAround();
 					}
 				}
 			}
 		}
+	}
+	private void createAirAround() {
+		for (int i = 0; i < freeSpace.length; i++) {
+			int xx = luckySource.x + freeSpace[i].x;
+			int yy = luckySource.y + freeSpace[i].y;
+			world.tile(xx, yy).setNet(Blocks.air);
+			world.tile(xx+1, yy).setNet(Blocks.air);
+			world.tile(xx, yy+1).setNet(Blocks.air);
+			world.tile(xx+1, yy+1).setNet(Blocks.air);
+		}		
+	}
+
+	private void createSpaceAround() {
+		for (int i = 0; i < freeSpace.length; i++) {
+			int xx = luckySource.x + freeSpace[i].x;
+			int yy = luckySource.y + freeSpace[i].y;
+			world.tile(xx, yy).setFloorNet(Blocks.space);
+			world.tile(xx+1, yy).setFloorNet(Blocks.space);
+			world.tile(xx, yy+1).setFloorNet(Blocks.space);
+			world.tile(xx+1, yy+1).setFloorNet(Blocks.space);
+		}		
 	}
 
 	@Override
@@ -369,13 +388,14 @@ public class LuckyPlaceEvent extends ServerEvent {
 			new MiniEvent("dropZoneRadiusDown", "Уменьшение радиуса зоны высадки в [green]1.21[] раз"),
 			new MiniEvent("buildSpeedMultiplierUp", "Увеличение скорости строительства в [green]1.21[] раз"),
 			new MiniEvent("unitBuildSpeedMultiplierUp", "Увеличение скорости производства юнитов в [green]1.21[] раз"),
-			new MiniEvent("netCharging", "Увеличение скорости производства юнитов в [green]1.21[] раз"),
 			new MiniEvent("core", "Ядро вместо хранилища (если есть)"),
 			new MiniEvent("spawnCoreUnit", "Призывает \"юнита из ядра\""),
 			new MiniEvent("positiveEffects", "Накладывает вечные [green]положительные[] эффекты на случайных юнитов (включая игроков)"),
 			new MiniEvent("biomeMoss", "Создает островок из мха вокруг игроков"),
 			new MiniEvent("biomeSnow", "Создает островок из снега и льда вокруг игроков"),
 			new MiniEvent("moreitems", "<custom info> Увеличивает количество определенных предметов в [green]2[] раза"),
+			new MiniEvent("updateBlocks", "<custom info> Улучшает блоки"),
+			new MiniEvent("superMine", Emoji.shockMine + " постепенно взрываются, ломая рельеф (минимум 100 мин)"),
 	};
 	private final MiniEvent[] negative = new MiniEvent[] {
 			new MiniEvent("solarMultiplierDown", "Cолнечная энергия понижена на [red]0.25"),
@@ -387,6 +407,9 @@ public class LuckyPlaceEvent extends ServerEvent {
 			new MiniEvent("teamUnitDestroyed", "Случайный союзный юнит уничтожен (включая игроков)"),
 			new MiniEvent("itemsNegativeEffectsFromItems", "Накладывает вечные [red]негативные[] эффекты на юнитов в зависимости от переносимых предметов"),
 			new MiniEvent("lessitems", "<custom info> Уменьшает количество определенных предметов в [red]1.5[] раз"),
+			new MiniEvent("imposterTurrets", "[red]0-5%[] турелей становится вражескими"),
+			new MiniEvent("runwave", "Запускает [red]5[] волн разом"),
+//			new MiniEvent("imposterUnits", "[red]0-5%[] турелей становится вражескими"),
 	};
 	
 	private void randomMiniEvent() {
@@ -404,7 +427,7 @@ public class LuckyPlaceEvent extends ServerEvent {
 			info.append(" [white]");
 			info.append(events[i].info);
 		}
-		
+		createSpaceAround();
 //		state.rules.syn
 		Call.setRules(state.rules);
 		
@@ -430,6 +453,9 @@ public class LuckyPlaceEvent extends ServerEvent {
 		}
 		
 		/**
+		 * TODO
+		 * /event lucky_place faston
+		 * /etrigger event updateBlocks
 		 * 
 		 * Высадка контейнеров с ресурсами
 		 * Emanate
@@ -437,6 +463,11 @@ public class LuckyPlaceEvent extends ServerEvent {
 		
 		public void run() {
 			Team defaultTeam = state.rules.defaultTeam;
+			
+			if(luckySource == null) {
+				info = "Источник удачи не найден :(";
+				return;
+			}
 			
 			switch (name) {
 			case "solarMultiplierUp": 				state.rules.solarMultiplier+=.50f; 				break;
@@ -447,6 +478,52 @@ public class LuckyPlaceEvent extends ServerEvent {
 			case "buildSpeedMultiplierDown":		state.rules.buildSpeedMultiplier /= 1.1f; 		break;
 			case "unitBuildSpeedMultiplierUp": 		state.rules.unitBuildSpeedMultiplier *= 1.21f; 	break;
 			case "unitBuildSpeedMultiplierDown":	state.rules.unitBuildSpeedMultiplier /= 1.1; 	break;
+			case "superMine":
+				superMines.add(new SuperMine());
+				break;
+			case "updateBlocks":
+				int randomReplacer = Mathf.random(2);
+				info = "Заменяет # на @";
+				if(randomReplacer == 0) {
+					info = info.replace('#', Emoji.conveyor);
+					info = info.replace('@', Emoji.titaniumConveyor);
+					replacers.add(new Replacer(Blocks.conveyor, Blocks.titaniumConveyor));
+				} else if(randomReplacer == 1) {
+					info = info.replace('#', Emoji.titaniumConveyor);
+					info = info.replace('@', Emoji.duct);
+					replacers.add(new Replacer(Blocks.titaniumConveyor, Blocks.duct));
+					replacers.add(new Replacer(Blocks.armoredConveyor, Blocks.armoredDuct));
+				} else if(randomReplacer == 2) {
+					info = info.replace('#', Emoji.plastaniumConveyor);
+					info = info.replace('@', Emoji.surgeConveyor);
+					replacers.add(new Replacer(Blocks.plastaniumConveyor, Blocks.surgeConveyor));
+				} else if(randomReplacer == 3) {
+					info = info.replace('#', Emoji.phaseWallLarge);
+					info = info.replace('@', Emoji.shieldedWall);
+					replacers.add(new Replacer(Blocks.phaseWallLarge, Blocks.shieldedWall));
+				}
+				break;
+			case "runwave":
+				for (int i = 0; i < 5; i++) {
+					logic.runWave();
+				}
+				break;
+			case "imposterTurrets": // /etrigger event imposterTurrets
+				Seq<Building> turrets = new Seq<>();
+				for (int i = 0; i < GameWork.turrets.length; i++) {
+					turrets.add(defaultTeam.data().getBuildings(GameWork.turrets[i]));	
+				}
+				if(turrets.size == 0) break;
+				int replaceCount = Mathf.ceil(turrets.size*5/100f);
+				
+				for (int i = 0; i < replaceCount; i++) {
+					Building building = turrets.random();
+					GameWork.changeBuildingTeam(building, Team.crux);
+				}
+				
+				Team.crux.rules().cheat = true;
+				Call.setRules(state.rules);
+				break;
 			case "moreitems":
 				if(defaultTeam.core() == null) break;
 				Item randomItem = Items.serpuloItems.random();
@@ -577,14 +654,16 @@ public class LuckyPlaceEvent extends ServerEvent {
 				break;
 			case "core": 
 				Building vault = state.rules.defaultTeam.data().getBuildings(Blocks.vault).random();
-				if(vault != null) vault.tile.setNet(Blocks.coreShard, defaultTeam, 0);
-				state.rules.unitCap -= 24;
+				if(vault != null) {
+					vault.tile.setNet(Blocks.coreShard, defaultTeam, 0);
+					state.rules.unitCap -= 24;
+					Call.setRules(state.rules);
+				}
 //				Team.crux.rules().buildSpeedMultiplier
 //				Team.crux.rules().blockDamageMultiplier
 //				Team.crux.rules().hea
 //				Team.crux.rules().buildSpeedMultiplier
 //				Vars.state.rules.dropZoneRadius 	d
-				Call.setRules(state.rules);
 				break;
 			case "teamUnitDestroyed":
 				Unit unit = state.rules.defaultTeam.data().units.random();
@@ -664,6 +743,7 @@ public class LuckyPlaceEvent extends ServerEvent {
 				}
 				break;
 			default:
+//				info = "[red]event not found";
 				return;
 			}
 			
@@ -685,6 +765,9 @@ public class LuckyPlaceEvent extends ServerEvent {
 	}
 	
 	private Seq<AngrySpark> angrySparks = new Seq<AngrySpark>();
+	private Seq<Replacer> replacers = new Seq<>();
+	private Seq<SuperMine> superMines = new Seq<>();
+	
 	
 	// /event lp faston
 	// /etrigger activate
@@ -713,6 +796,7 @@ public class LuckyPlaceEvent extends ServerEvent {
 				Call.effect(Fx.lancerLaserShoot, target.x, target.y, 60, Color.red, null);
 				Call.effect(Fx.lancerLaserShoot, target.x, target.y, 120, Color.red, null);
 				Call.effect(Fx.lancerLaserShoot, target.x, target.y, 180, Color.red, null);
+				
 				target.damagePierce((float) damage);
 				target = newTarget;
 				updates = 0;
@@ -724,6 +808,66 @@ public class LuckyPlaceEvent extends ServerEvent {
 				Call.effect(Fx.thoriumShoot, target.x, target.y, 240, Color.red, null);
 			}
 			target.damagePierce((float) damage);
+		}
+	}
+	
+	private class SuperMine {
+		
+		protected boolean needRemove = false;
+		int updates = 0;
+		
+		int mines = 0;
+		
+		private void update() {
+			if(needRemove) return;
+			updates++;
+			if(updates%10 == 0) {
+				Seq<Building> targets = GameWork.defaultTeam().data().getBuildings(Blocks.shockMine);
+				if((targets.size == 0 && mines >= 100) || mines > 1000) {
+					needRemove = true;
+					return;
+				}
+				
+				Building target = targets.random();
+				if(target != null) {
+					Call.logicExplosion(Team.crux, target.x, target.y, tilesize*3, 250, true, true, false);
+					GameWork.removeEnvBlock(target.tileX()+1, target.tileY());
+					GameWork.removeEnvBlock(target.tileX()-1, target.tileY());
+					GameWork.removeEnvBlock(target.tileX(), target.tileY()+1);
+					GameWork.removeEnvBlock(target.tileX(), target.tileY()-1);
+				}
+				
+				mines++;
+//				GameWork.replaceBuilding(target, newBlock);
+//				Call.effect(Fx., target.x, target.y, target.block.size, Color.white, null);
+			}
+		}
+	}
+	
+	private class Replacer {
+		
+		Block oldBlock, newBlock;
+		public Replacer(Block oldBlock, Block newBlock) {
+			this.oldBlock = oldBlock;
+			this.newBlock = newBlock;
+		}
+		
+		protected boolean needRemove = false;
+		int updates = 0;
+		
+		private void update() {
+			if(needRemove) return;
+			updates++;
+			if(updates%10 == 0) {
+				Seq<Building> targets = GameWork.defaultTeam().data().getBuildings(oldBlock);
+				if(targets.size == 0) {
+					needRemove = true;
+					return;
+				}
+				Building target = targets.random();
+				GameWork.replaceBuilding(target, newBlock);
+				Call.effect(Fx.rotateBlock, target.x, target.y, target.block.size, Color.white, null);
+			}
 		}
 	}
 	
@@ -739,17 +883,25 @@ public class LuckyPlaceEvent extends ServerEvent {
 			if(needRemove) return;
 			float damage = updates/60f;
 			updates++;
+			if(target == null) {
+				needRemove = true;
+				return;
+			}
+			if(target.tile().build == null) {
+				needRemove = true;
+				return;
+			}
 			if(target.health - damage <= 0) {
 				Building newTarget = target.getPowerConnections(new Seq<Building>()).random();
 				if(newTarget == null) {
 					needRemove = true;
-					target.damagePierce((float) damage);
+					Call.logicExplosion(Team.crux, target.x, target.y, tilesize, damage, true, true, false);
 					return;
 				}
 				Call.effect(Fx.lancerLaserShoot, target.x, target.y, 60, Color.red, null);
 				Call.effect(Fx.lancerLaserShoot, target.x, target.y, 120, Color.red, null);
 				Call.effect(Fx.lancerLaserShoot, target.x, target.y, 180, Color.red, null);
-				target.damagePierce((float) damage);
+				Call.logicExplosion(Team.crux, target.x, target.y, tilesize, damage, true, true, false);
 				target = newTarget;
 				updates = 0;
 				return;
@@ -759,16 +911,34 @@ public class LuckyPlaceEvent extends ServerEvent {
 				Call.effect(Fx.thoriumShoot, target.x, target.y, 120, Color.red, null);
 				Call.effect(Fx.thoriumShoot, target.x, target.y, 240, Color.red, null);
 			}
-			target.damagePierce((float) damage);
+
+			Call.logicExplosion(Team.crux, target.x, target.y, tilesize, damage, true, true, false);
 		}
 	}
 	
 	private void updateMiniEvent() {
-		if(angrySparks == null) angrySparks = new Seq<AngrySpark>();
+		if(angrySparks == null) angrySparks = new Seq<>();
 		for (int i = 0; i < angrySparks.size; i++) {
 			angrySparks.get(i).update();
 			if(angrySparks.get(i).needRemove) {
 				angrySparks.remove(i);
+				break;
+			}
+		}
+		if(replacers == null) replacers = new Seq<>();
+		for (int i = 0; i < replacers.size; i++) {
+			replacers.get(i).update();
+			if(replacers.get(i).needRemove) {
+				replacers.remove(i);
+				break;
+			}
+		}
+
+		if(superMines == null) superMines = new Seq<>();
+		for (int i = 0; i < superMines.size; i++) {
+			superMines.get(i).update();
+			if(superMines.get(i).needRemove) {
+				superMines.remove(i);
 				break;
 			}
 		}
@@ -797,7 +967,7 @@ public class LuckyPlaceEvent extends ServerEvent {
 			if(name.equalsIgnoreCase("event")) {
 				MiniEvent event = new MiniEvent(args[1], "debug");
 				event.run();
-				player.sendMessage("[gold]Событие запущено!");
+				player.sendMessage("[gold]Событие запущено:[] " + event.info);
 			}
 			return;
 		}

@@ -64,6 +64,7 @@ import arc.math.geom.Vec2;
 import arc.util.Log;
 import arc.util.io.Reads;
 import arc.util.io.Writes;
+import example.GameWork;
 
 public class SpaceDangerEvent extends ServerEvent {
 
@@ -366,7 +367,7 @@ public class SpaceDangerEvent extends ServerEvent {
 				int sec = fallTime/60;
 				int min = sec/60;
 				sec -= min*60;
-				Call.warningToast(0, "Метеорит упадет через " + (min > 0 ? "[gold]" + min + ":" : "[red]") + (sec == 0 ? "00" : sec));
+				GameWork.warningToast("Метеорит упадет через " + (min > 0 ? "[gold]" + min + ":" : "[red]") + (sec == 0 ? "00" : sec));
 			}
 			if(fallTime < 0) {
 				fall();
@@ -377,12 +378,12 @@ public class SpaceDangerEvent extends ServerEvent {
 				if(getTsunamiPower(x+3, y) > .5 && getTsunamiPower(x-3, y) > .5
 						&& getTsunamiPower(x, y+3) > .5 && getTsunamiPower(x, y-3) > .5) {
 					if(fallTime == startFallTime-1) {
-						Call.warningToast(0, "[red]Метеорит приближается!");
+						GameWork.warningToast("[red]Метеорит приближается!");
 					}
 					fallTime--;
 				}
 			} else if(!isEnded) {
-				Call.warningToast(0, "[red]Метеорит пролетел мимо!");
+				GameWork.warningToast("[red]Метеорит пролетел мимо!");
 				needRemove = true;
 			}
 		}
