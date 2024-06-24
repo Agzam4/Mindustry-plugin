@@ -1,13 +1,13 @@
 package example.events;
 
 import mindustry.game.EventType.BlockBuildEndEvent;
+import mindustry.game.EventType.ConfigEvent;
 import mindustry.game.EventType.DepositEvent;
 import mindustry.game.EventType.PlayerJoin;
 import mindustry.game.EventType.TapEvent;
 import mindustry.game.EventType.UnitDestroyEvent;
 import mindustry.game.EventType.WithdrawEvent;
 import mindustry.gen.Player;
-import mindustry.game.GameStats;
 
 public abstract class ServerEvent {
 
@@ -97,4 +97,9 @@ public abstract class ServerEvent {
 	public void trigger(Player player, String... args) {
 		// for @Override
 	}
+
+	public void config(ConfigEvent event) {
+		// for @Override
+	}
+	
 }

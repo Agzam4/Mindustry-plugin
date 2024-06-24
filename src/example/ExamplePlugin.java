@@ -1,30 +1,38 @@
 package example;
 
 import arc.*;
+import arc.files.Fi;
 import arc.graphics.Color;
+import arc.graphics.Pixmap;
+import arc.graphics.Texture;
+import arc.graphics.g2d.TextureRegion;
+import arc.math.geom.Point2;
 import arc.util.*;
 import mindustry.*;
 import mindustry.content.Blocks;
-import mindustry.content.Liquids;
+import mindustry.content.UnitTypes;
+import mindustry.entities.abilities.Ability;
 import mindustry.entities.units.BuildPlan;
 import mindustry.game.EventType.*;
 import mindustry.game.Team;
 import mindustry.gen.*;
 import mindustry.maps.*;
 import mindustry.mod.Plugin;
-import mindustry.type.Liquid;
-import mindustry.world.Block;
 import mindustry.world.blocks.storage.CoreBlock.CoreBuild;
 import example.achievements.*;
+import example.bot.TelegramBot;
 import example.events.*;
 
 import static mindustry.Vars.*;
+
+import java.io.IOException;
+
 import static example.Emoji.*;
 
 public class ExamplePlugin extends Plugin{
 
 	public static final String PLUGIN_NAME = "agzams-plugin";
-	public static final String VERSION = "v1.9.6";
+	public static final String VERSION = "v1.12.0";
     
 	public static DataCollecter dataCollect;
 	public static ServerEventsManager eventsManager;
@@ -34,16 +42,23 @@ public class ExamplePlugin extends Plugin{
     
     @Override
     public void init() {
+    	TelegramBot.init();
+    	Admins.init();
+    	
     	achievementsManager = new AchievementsManager();
     	commandsManager = new CommandsManager();
     	commandsManager.init();
     	
     	menu = new MyMenu();
+    	menu.registerCommand();
+    	
     	eventsManager = new ServerEventsManager();
     	eventsManager.init();
     	
     	maps = new Maps();
+    	
     	maps.load();
+    	
     	
     	dataCollect = new DataCollecter();
     	dataCollect.init();
@@ -54,6 +69,26 @@ public class ExamplePlugin extends Plugin{
     		menu.update();
     		eventsManager.update();
     		dataCollect.update();
+
+//    		Vars.state.rules.defaultTeam.rules().unitBuildSpeedMultiplier *= 2;
+//    		Vars.state.rules.defaultTeam.rules().unitCostMultiplier *= 2;
+//    		Vars.state.rules.defaultTeam.rules().unitCrashDamageMultiplier *= 2;
+//    		Vars.state.rules.defaultTeam.rules().unitDamageMultiplier *= 2;
+//    		Vars.state.rules.defaultTeam.rules().unitHealthMultiplier *= 2;
+//    		Vars.content.units().each(u -> {var us = Team.sharded.data().getUnits(u); for(var i = 0; i < us.size; i+=2) us.get(i).kill();});
+//    		Vars.state.rules.unitCap
+    	});
+
+		Events.on(UnitDestroyEvent.class, e -> {
+			Log.info(e.unit);
+			for (var eff : Vars.content.statusEffects()) {
+				if(!e.unit.hasEffect(eff)) continue;
+				Log.info(eff.name);
+			}
+		});
+		
+    	Events.on(ServerLoadEvent.class, e -> {
+        	initColors();
     	});
     	
     	Events.on(GameOverEvent.class, e -> {
@@ -68,15 +103,19 @@ public class ExamplePlugin extends Plugin{
     		}
     		Call.sendMessage(result.toString());
     		commandsManager.stopSkipmapVoteSession();
+			TelegramBot.sendToAll("<b>Game over</b>: " + state.wave + "/" + state.map.getHightScore());
     	});
     	
     	Events.on(WorldLoadEndEvent.class, e -> {
     		commandsManager.stopSkipmapVoteSession();
     		eventsManager.worldLoadEnd(e);
     		commandsManager.clearDoors();
+            Map map = maps.getNextMap(state.rules.mode(), state.map);
+			TelegramBot.sendToAll("<b>Next map is:</b> " + map.plainName());
     	});
     	
     	Events.on(PlayerJoin.class, e -> {
+			if(e.player != null) TelegramBot.sendToAll("<b>" + e.player.plainName() + "</b> has joined <i>(" + Groups.player.size() + " players)</i>");
     		eventsManager.playerJoin(e);
     		e.player.name(e.player.name().replaceAll(" ", "_"));
     		
@@ -118,30 +157,28 @@ public class ExamplePlugin extends Plugin{
 			}
     	});
     	
-        Events.on(BuildSelectEvent.class, event -> { 
-        	Unit builder = event.builder;
-    		if(builder == null) return;
-        	BuildPlan buildPlan = builder.buildPlan();
-    		if(buildPlan == null) return;
-    		Block block = buildPlan.block;
-    		
-            if(!event.breaking && builder.buildPlan().block == Blocks.thoriumReactor && builder.isPlayer()){
-            	Player player = builder.getPlayer();
-                Team team = player.team();
-
-                float thoriumReactorX = event.tile.getX();
-                float thoriumReactorY = event.tile.getY();
-
-                for (CoreBuild core : team.cores()) {
-                	int hypot = (int) Math.ceil(Math.hypot(thoriumReactorX - core.getX(), thoriumReactorY - core.getY())/10);
-                	if(hypot <= 20) {
-                		builder.clearBuilding();
-                		builder.kill();
-                		return;
-                	}
-                }
-            }
-        });
+//        Events.on(BuildSelectEvent.class, event -> { 
+//        	Unit builder = event.builder;
+//    		if(builder == null) return;
+//        	BuildPlan buildPlan = builder.buildPlan();
+//    		if(buildPlan == null) return;
+//            if(!event.breaking && builder.buildPlan().block == Blocks.thoriumReactor && builder.isPlayer()){
+//            	Player player = builder.getPlayer();
+//                Team team = player.team();
+//
+//                float thoriumReactorX = event.tile.getX();
+//                float thoriumReactorY = event.tile.getY();
+//
+//                for (CoreBuild core : team.cores()) {
+//                	int hypot = (int) Math.ceil(Math.hypot(thoriumReactorX - core.getX(), thoriumReactorY - core.getY())/10);
+//                	if(hypot <= 20) {
+//                		builder.clearBuilding();
+//                		builder.kill();
+//                		return;
+//                	}
+//                }
+//            }
+//        });
 
     	/**
     	 * Info message about builder, that building thoriumReactor
@@ -151,8 +188,6 @@ public class ExamplePlugin extends Plugin{
     		if(builder == null) return;
         	BuildPlan buildPlan = builder.buildPlan();
     		if(buildPlan == null) return;
-    		Block block = buildPlan.block;
-    		
             if(!event.breaking && builder.buildPlan().block == Blocks.thoriumReactor && builder.isPlayer()) {
                 Player player = builder.getPlayer();
                 Team team = player.team();
@@ -183,22 +218,63 @@ public class ExamplePlugin extends Plugin{
                 }
                 if(bx == 0 && by == 0) position = "центр карты";
                 
-                for (CoreBuild core : team.cores()) {
-                	int hypot = (int) Math.ceil(Math.hypot(thoriumReactorX - core.getX(), thoriumReactorY - core.getY())/10);
-                	if(hypot <= 20) {
-                		Call.sendMessage("[scarlet]" + emojiAlert + " Внимание " + emojiAlert + " []Игрок [" + GameWork.colorToHex(player.color()) + "]" + player.name + " []строит реактор рядом с ядром (" + hypot + " блоках от ядра)");
-                		return;
-                	}
-                }
+//                for (CoreBuild core : team.cores()) {
+//                	int hypot = (int) Math.ceil(Math.hypot(thoriumReactorX - core.getX(), thoriumReactorY - core.getY())/10);
+//                	if(hypot <= 20) {
+//                		Call.sendMessage("[scarlet]" + emojiAlert + " Внимание " + emojiAlert + " []Игрок [" + GameWork.colorToHex(player.color()) + "]" + player.name + " []строит реактор рядом с ядром (" + hypot + " блоках от ядра)");
+//                		return;
+//                	}
+//                }
         		Call.sendMessage("[gold]" + emojiAlert + " Внимание " + emojiAlert + " []Игрок [" + GameWork.colorToHex(player.color()) + "]" + player.name + " []строит реактор (" + position + ")");
             }
         });
         
     }
     
+    private int ubyte(int b) {
+    	if(b < 0) {
+    		Log.info(b);
+    		return Byte.MAX_VALUE-b;
+    	}
+    	return b;
+	}
     
-    public void test() {
-    	Groups.puddle.each(e -> {if(e.liquid == Liquids.cryofluid) e.tile.setBlock(Blocks.cryofluid);});
+	private void initColors() {
+		Log.info("init colors");
+//		Log.info("file: @", Arrays.toString( Vars.tree.get("").list()));
+		Fi colors = Vars.tree.get("assets/colors.bin");// new Fi("", FileType.classpath);
+		Log.info("file: @", colors);
+    	var is = colors.read();
+		TelegramBot.mapColors = new int[Vars.content.blocks().size][];
+		Point2 id = new Point2(0,0);
+    	Vars.content.blocks().each(b -> {
+    		try {
+    			int index = id.x++;
+    			int size = b.size*3;
+    			TelegramBot.mapColors[index] = new int[size*size];
+//    			Pixmap pixmap = new Pixmap(size, size);
+    			for (int i = 0; i < size*size; i++) {
+    				b.mapColor.r = ubyte(is.read())/255f;
+    				b.mapColor.g = ubyte(is.read())/255f;
+    				b.mapColor.b = ubyte(is.read())/255f;
+    				b.mapColor.a = ubyte(is.read())/255f;
+    				TelegramBot.mapColors[index][i] = b.mapColor.rgb888();
+				}
+//    			for (int py = 0; py < size; py++) {
+//    				for (int px = 0; px < size; px++) {
+//						pixmap.setRaw(px, py, TelegramBot.mapColors[index][px+py*size]);
+//					}
+//				}
+//    			Fi.get("C:\\Users\\Agzam\\AppData\\Roaming\\Mindustry\\sdebug\\" + b.name + ".png").writePng(pixmap);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+    	});
+    	try {
+			is.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	@Override
@@ -218,12 +294,86 @@ public class ExamplePlugin extends Plugin{
         	Log.info("User dir: " + System.getProperty("user.dir"));
         	Log.info("Sleep time: " + dataCollect.getSleepTime());
         });
+        
+        handler.register("event", "[id] [on/off/faston]", "Включить/выключить событие", arg -> {
+        	if(arg.length == 0) {
+        		StringBuilder msg = new StringBuilder("[red]Недостаточно аргументов.[white]\nID событий:");
+        		for (int i = 0; i < ServerEventsManager.getServerEventsCount(); i++) {
+        			msg.append('\n');
+        			ServerEvent event = ServerEventsManager.getServerEvent(i);
+        			msg.append('[');
+        			msg.append(event.getColor());
+        			msg.append(']');
+        			msg.append(event.getCommandName());
+        		}
+        		Log.info(msg.toString());
+        		return;
+        	}
+        	if(arg.length == 1) {
+        		for (int i = 0; i < ServerEventsManager.getServerEventsCount(); i++) {
+        			ServerEvent event = ServerEventsManager.getServerEvent(i);
+        			if(arg[0].equals(event.getCommandName())) {
+        				player.sendMessage("Событие [" + event.getColor() + "]" + event.getName() + "[white] имеет значение: " + event.isRunning());
+        				return;
+        			}
+        		}
+        		Log.info("[red]Событие не найдено, [gold]/event [red] для списка событий");
+        		return;
+        	}
+        	if(arg.length == 2) {
+        		boolean isOn = false;
+        		boolean isFast = false;
+        		if(arg[1].equals("on")) {
+        			isOn = true;
+        		}else if(arg[1].equals("off")) {
+        			isOn = false;
+        		}else if(arg[1].equals("faston")) {
+        			isOn = true;
+        			isFast = true;
+        		}else {
+        			Log.info("Неверный аргумент, используйте [gold]on/off[]");
+        			return;
+        		}
+
+        		for (int i = 0; i < ServerEventsManager.getServerEventsCount(); i++) {
+        			ServerEvent event = ServerEventsManager.getServerEvent(i);
+        			if(arg[0].equals(event.getCommandName())) {
+        				boolean isRunning = event.isRunning();
+        				if(isRunning && isOn) {
+        					Log.info("[red]Событие уже запущено");
+        					return;
+        				}
+        				if(!isRunning && !isOn) {
+        					player.sendMessage("[red]Событие итак не запущено");
+        					return;
+        				}
+
+        				if(isOn) {
+        					if(isFast) {
+        						ExamplePlugin.eventsManager.fastRunEvent(event.getCommandName());
+        						Log.info("[white]Событие резко запущено! [gold]/sync");
+        					} else {
+        						ExamplePlugin.eventsManager.runEvent(event.getCommandName());
+        						Log.info("[green]Событие запущено!");
+        					}
+        				} else {
+        					ExamplePlugin.eventsManager.stopEvent(event.getCommandName());
+        					Log.info("[red]Событие остановлено!");
+        				}
+
+        				return;
+        			}
+        		}
+
+        		Log.info("[red]Событие не найдено, [gold]/event [red] для списка событий");
+        		return;
+        	}
+		});
     }
     
     @Override
     public void registerClientCommands(CommandHandler handler){
     	commandsManager.registerClientCommands(handler);
-    	menu.registerCommand(handler);
     }
     
 }

@@ -2,7 +2,7 @@ apply plugin: "java"
 
 version '1.1'
 
-sourceCompatibility = 1.8
+sourceCompatibility = 17//1.8
 
 sourceSets.main.java.srcDirs = ["src"]
 
@@ -10,27 +10,36 @@ compileJava.options.encoding = "UTF-8"
 compileTestJava.options.encoding = "UTF-8"
 
 repositories{
+    jcenter()
     mavenCentral()
+    maven{ url "https://raw.githubusercontent.com/Zelaux/MindustryRepo/master/repository" }
     maven{ url 'https://www.jitpack.io' }
+   // maven { url 'https://repo.spongepowered.org/repository/maven-public/' }
 }
 
 ext{
     //the build number that this plugin is made for
-    mindustryVersion = 'v142' // v126.2 v140.4
+    mindustryVersion = 'v146' // v126.2 v140.4
 }
 
 dependencies{
     compileOnly "com.github.Anuken.Arc:arc-core:$mindustryVersion"
     compileOnly "com.github.Anuken.Mindustry:core:$mindustryVersion"
+    implementation 'org.telegram:telegrambots:6.8.0'
 }
 
 jar{
-    archiveFileName = "${project.archivesBaseName}.jar"
-    from{
-        configurations.runtimeClasspath.collect{it.isDirectory() ? it : zipTree(it)}
-    }
+    archiveFileName = "/config/mods/Agzam-s_plugin.jar"
 
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE 
+    
     from(rootDir){
         include "plugin.json"
+        include "assets/colors.bin"
     }
+    
+    from{
+        configurations.runtimeClasspath.collect{ it.isDirectory() ? it : zipTree(it) }
+    }
+    
 }

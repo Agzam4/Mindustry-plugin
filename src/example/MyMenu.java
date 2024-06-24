@@ -1,25 +1,18 @@
 package example;
 
-import java.awt.Menu;
 import java.util.ArrayList;
 
-import arc.Core;
 import arc.Events;
-import arc.struct.Seq;
-import arc.util.CommandHandler;
 import arc.util.Log;
 import arc.util.Strings;
+import example.bot.TelegramBot;
 import mindustry.game.Team;
 import mindustry.content.StatusEffects;
 import mindustry.game.EventType.MenuOptionChooseEvent;
 import mindustry.gen.Call;
 import mindustry.gen.Groups;
 import mindustry.gen.Player;
-import mindustry.maps.Map;
 import mindustry.net.Administration.Config;
-import mindustry.type.StatusEffect;
-
-import static mindustry.Vars.*;
 
 public class MyMenu {
 	
@@ -64,7 +57,7 @@ public class MyMenu {
 	
 	public void onButtonPressed(Menu menu, int optionID, int clickedId) {
 		
-		if(!menu.player.admin()) return;
+		if(!Admins.has(menu.player, "m")) return;
 
 		if(optionID == MenuOption.AdminPlayerManager.ordinal()) {
 			String players[][] = new String[Groups.player.size()][];
@@ -138,22 +131,28 @@ public class MyMenu {
 			if(clickedId < teamsCount) {
 				Team team = Team.baseTeams[clickedId];
 				targetPlayer.team(team);
+				TelegramBot.sendToAll("#helper <b><u>" + menu.player.plainName() + "</u></b> change team <i>" + targetPlayer.plainName() + "</i> to " + team.name);
 			}
 			if(clickedId == teamsCount) {
 				targetPlayer.unit().heal();
+				TelegramBot.sendToAll("#helper <b><u>" + menu.player.plainName() + "</u></b> healed <i>" + targetPlayer.plainName() + "</i>");
 			}
 			if(clickedId == teamsCount+1) {
 				targetPlayer.unit().apply(StatusEffects.invincible, Float.MAX_VALUE);
+				TelegramBot.sendToAll("#helper <b><u>" + menu.player.plainName() + "</u></b> apply invincible <i>" + targetPlayer.plainName() + "</i>");
 			}
 			if(clickedId == teamsCount+2) {
 				targetPlayer.clearUnit();
+				TelegramBot.sendToAll("#helper <b><u>" + menu.player.plainName() + "</u></b> cleared unit <i>" + targetPlayer.plainName() + "</i>");
 			}
 			if(clickedId == teamsCount+3) {
 				targetPlayer.unit().kill();
+				TelegramBot.sendToAll("#helper <b><u>" + menu.player.plainName() + "</u></b> killed <i>" + targetPlayer.plainName() + "</i>");
 			}
 			if(clickedId == teamsCount+4) {
 				targetPlayer.team(Team.derelict);
 				targetPlayer.unit().kill();
+				TelegramBot.sendToAll("#helper <b><u>" + menu.player.plainName() + "</u></b> turned to spectator <i>" + targetPlayer.plainName() + "</i>");
 			}
 			
 //			if(clickedId != -1) {
@@ -165,12 +164,9 @@ public class MyMenu {
 	
 	
 
-	public void registerCommand(CommandHandler handler) {
-    	handler.<Player>register("m", "", "Открыть меню", (args, player) -> {
-    		if(player.admin()) {
-        		menu(player, Config.serverName.get().toString(), "", new String[][] {{"Управление игроками"}}, new MenuOption[] {MenuOption.AdminPlayerManager});
-    		} else {
-    		}
+	public void registerCommand() {
+		ExamplePlugin.commandsManager.adminCommand("m", "", "Открыть меню", (args, player) -> {
+			menu(player, Config.serverName.get().toString(), "", new String[][] {{"Управление игроками"}}, new MenuOption[] {MenuOption.AdminPlayerManager});
     	});
 	}
 	

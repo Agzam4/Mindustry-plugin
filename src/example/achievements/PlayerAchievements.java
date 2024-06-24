@@ -3,8 +3,6 @@ package example.achievements;
 import arc.struct.ObjectMap;
 import arc.util.Log;
 import example.achievements.AchievementsManager.Achievement;
-import mindustry.content.Blocks;
-import mindustry.content.Items;
 
 public class PlayerAchievements {
 

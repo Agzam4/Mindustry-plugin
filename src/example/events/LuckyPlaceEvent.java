@@ -2,32 +2,23 @@ package example.events;
 
 import static mindustry.Vars.*;
 
-import java.util.ArrayList;
-
-import arc.Core;
+import arc.Events;
 import arc.graphics.Color;
 import arc.math.Mathf;
 import arc.math.geom.Point2;
-import arc.math.geom.Rect;
-import arc.math.geom.Vec2;
 import arc.struct.Seq;
 import arc.util.Log;
 import example.Emoji;
 import example.GameWork;
 import example.Work;
+import example.events.SpaceDangerEvent.MeteoriteFallEvent;
+import example.events.SpaceDangerEvent.WarmTileEvent;
 import mindustry.Vars;
 import mindustry.content.Blocks;
 import mindustry.content.Fx;
 import mindustry.content.Items;
-import mindustry.content.Planets;
 import mindustry.content.StatusEffects;
 import mindustry.content.UnitTypes;
-import mindustry.entities.Damage;
-import mindustry.entities.abilities.ArmorPlateAbility;
-import mindustry.entities.abilities.EnergyFieldAbility;
-import mindustry.entities.abilities.ForceFieldAbility;
-import mindustry.entities.abilities.ShieldArcAbility;
-import mindustry.entities.abilities.SpawnDeathAbility;
 import mindustry.game.Team;
 import mindustry.game.EventType.BlockBuildEndEvent;
 import mindustry.game.EventType.DepositEvent;
@@ -38,16 +29,36 @@ import mindustry.gen.Groups;
 import mindustry.gen.Player;
 import mindustry.gen.Unit;
 import mindustry.type.Item;
-import mindustry.type.StatusEffect;
 import mindustry.world.Block;
-import mindustry.world.Build;
 import mindustry.world.Tile;
-import mindustry.world.blocks.environment.Floor;
 import mindustry.world.blocks.storage.CoreBlock.CoreBuild;
 import mindustry.world.modules.ItemModule;
 
 public class LuckyPlaceEvent extends ServerEvent {
 
+	public static int any = -1; // Event type for any planet
+	public static int serpulo = 0; // Event type for SERPULO
+	public static int erekir = 1; // Event type for EREKIR
+
+	private static final Point2[] nearBlocks = new Point2[] {
+			new Point2(0, -1),new Point2(1, -1), // Bottom
+			new Point2(0, +2),new Point2(1, +2), // Top
+			new Point2(-1, 0),new Point2(-1, 1), // Left
+			new Point2(+2, 0),new Point2(+2, 1)  // Right
+	};
+	
+	private static final Point2[] freeSpace = new Point2[] {
+			new Point2(0, 0),
+			new Point2(-1, -2),new Point2(+1, -2),
+			new Point2(-1, +2),new Point2(+1, +2),
+			new Point2(+2, +1),new Point2(+2, -1),
+			new Point2(-2, +1),new Point2(-2, -1)
+	};
+
+	public Point2 luckySource = null;
+	public boolean isLuckActivated = false;
+	private WarmTileEvent warmTileEvent = new WarmTileEvent(0, 0);
+	
 	public LuckyPlaceEvent() {
 		super("lucky_place");
 		color = "yellow";
@@ -55,7 +66,33 @@ public class LuckyPlaceEvent extends ServerEvent {
 
 	@Override
 	public void init() {
-		
+		Events.on(MeteoriteFallEvent.class, e -> {
+			if(!isLuckActivated) return;
+			if(luckySource.dst(e.x, e.y) > e.radius) return;
+			if(Mathf.random(0, 100) > e.level) {
+				Call.sendMessage("[red]Метеорит принес неудачу!");
+				Call.announce("[red]Метеорит принес неудачу!");
+				int rays = Mathf.ceil(e.radius/2f)*2;
+				int dAngle = Mathf.floor(360f/rays);
+				int x = luckySource.x*tilesize;
+				int y = luckySource.y*tilesize;
+				boolean id = false;
+				for (int angle = 0; angle < 360; angle+=dAngle) {
+					id = !id;
+					if(id) Vars.content.bullet(GameWork.bulletAfflictId).createNet(Team.crux, x, y, angle, 5_000_000, e.radius/200f, 25);
+					else Vars.content.bullet(GameWork.bulletSmiteId).createNet(Team.crux, x, y, angle, 5_000_000, e.radius/75f, 25);
+				}
+			} else {
+				Call.sendMessage("[yellow]Попался удачный метеорит!");
+				Call.announce("[yellow]Попался удачный метеорит!");
+				int count = Mathf.ceil((e.radius-10)/5f);
+				boolean[] types = new boolean[count];
+				for (int i = 0; i < types.length; i++) types[i] = true;
+				randomMiniEvent(any, types);
+			}
+			createSpaceAround();
+			createAirAround(); 
+		});
 	}
 	
 	@Override
@@ -66,72 +103,26 @@ public class LuckyPlaceEvent extends ServerEvent {
 
 	@Override
 	public void announce() {
-		Call.announce("[yellow]Удачное событие начнется на следующей карте!");
 		Call.sendMessage("[yellow]Удачное событие начнется на следующей карте!");
 	}
 	
 	private String getInfo() {
 		if(isLuckActivated) return "[yellow]Заполните [lightgray]контейнер [yellow]всеми видами предметов на максимум";
+		if(Vars.state.rules != null) {
+			if(Vars.state.rules.hiddenBuildItems != null) {
+				if(Vars.state.rules.hiddenBuildItems.contains(Items.copper)) {
+					return "[yellow]Найдите место повышенной удачи, и постройте там [lightgray]холст[yellow]\nА затем окружите его 5 разными видами больших стен";
+				}
+			}
+		}
 		return "[yellow]Найдите место повышенной удачи, и постройте там [lightgray]копейщик[yellow]\nА затем окружите его 6 разными видами больших стен";
 	}
 	
-	// overdriveDome
-	Point2 luckySource = null;
-	boolean isLuckActivated = false;
-	
-	private final Point2[] nearBlocks2x2 = new Point2[] {
-			new Point2(0, -1),
-			new Point2(1, -1),
-			
-			new Point2(0, +2),
-			new Point2(1, +2),
-
-			new Point2(-1, 0),
-			new Point2(-1, 1),
-			
-			new Point2(+2, 0),
-			new Point2(+2, 1)
-	};
-	
-	private final Point2[] freeSpace = new Point2[] {
-			new Point2(0, 0),
-			new Point2(-1, -2),
-			new Point2(+1, -2),
-			
-			new Point2(-1, +2),
-			new Point2(+1, +2),
-			
-			new Point2(+2, +1),
-			new Point2(+2, -1),
-			
-			new Point2(-2, +1),
-			new Point2(-2, -1)
-
-//			new Point2(+1, 0),
-//			new Point2(-1, 0),
-//			new Point2(0, +1),
-//			new Point2(0, -1),
-//			
-//			new Point2(+1, +1),
-//			new Point2(-1, +1),
-//			new Point2(+1, -1),
-//			new Point2(-1, -1),
-//
-//			new Point2(-2, -1),
-//			new Point2(-2, 0),
-//			new Point2(-2, +1),
-//
-//			new Point2(+2, -1),
-//			new Point2(+2, 0),
-//			new Point2(+2, +1),
-	};
 	
 	
-	int updates = 0;
-	
-	int lastWave = 0;
-	
-	boolean isOrePlaced = false;
+	private int updates = 0;
+	private int lastWave = 0;
+	private boolean isOrePlaced = false;
 	
 	@Override
 	public void update() {
@@ -167,10 +158,8 @@ public class LuckyPlaceEvent extends ServerEvent {
 				for (int j = 0; j < player.team().cores().size; j++) {
 					CoreBuild core = player.team().cores().get(j);
 					if(core != null) {
-
 						int x = core.tileX();
 						int y = core.tileY();
-
 						for (int yy = 0; yy <= 5; yy++) {
 							for (int xx = 0; xx <= 5; xx++) {
 								Tile tile = world.tile(x-xx, y-yy);
@@ -184,6 +173,7 @@ public class LuckyPlaceEvent extends ServerEvent {
 			}
 		}
 		updates++;
+		
 		if(luckySource == null) {
 			Seq<Point2> points = new Seq<>();
 			Team defaultTeam = Vars.state.rules.defaultTeam;
@@ -249,25 +239,13 @@ public class LuckyPlaceEvent extends ServerEvent {
 						can = false;
 					}
 					if(!can) continue;
-
 					points.add(new Point2(x, y));
-//					world.tile(x, y).setNet(Blocks.copperWall);
 				}
 			}
-			
 			if(points.size != 0) {
 				luckySource = points.random();
 				Log.info("luckySource: " + luckySource.x + ";" + luckySource.y);
-				
 				createAirAround();
-				for (int i = 0; i < freeSpace.length; i++) {
-					int xx = luckySource.x + freeSpace[i].x;
-					int yy = luckySource.y + freeSpace[i].y;
-//					world.tile(xx, yy).setBlock(Blocks.copperWall, Team.crux);
-//					world.tile(xx, yy+1).setBlock(Blocks.copperWall, Team.crux);
-//					world.tile(xx+1, yy).setBlock(Blocks.copperWall, Team.crux);
-//					world.tile(xx+1, yy+1).setBlock(Blocks.copperWall, Team.crux);
-				}
 			}
 		} else {
 			if(isLuckActivated) {
@@ -281,7 +259,6 @@ public class LuckyPlaceEvent extends ServerEvent {
 						Call.effect(Fx.generate, 
 								(float)(x*tilesize + tilesize/2f), (float)(y*tilesize + tilesize/2), 4f * 8f,
 								Color.HSVtoRGB((updates/60*10f)%360, 25, 100));
-						
 						if(lastWave != state.wave) {
 							lastWave = state.wave;
 							world.tile(x, y).setNet(Blocks.container, Team.sharded, 0);
@@ -293,7 +270,7 @@ public class LuckyPlaceEvent extends ServerEvent {
 					int x = luckySource.x;
 					int y = luckySource.y;
 
-					if(world.tile(x, y).block() == Blocks.lancer) {
+					if(world.tile(x, y).block() == Blocks.lancer || world.tile(x, y).block() == Blocks.canvas) {
 						Call.effect(Fx.dynamicSpikes, 
 								(float)(x*tilesize + tilesize/2f), (float)(y*tilesize + tilesize/2), 4f * 8f,
 								Color.HSVtoRGB((updates/60*10f)%360, 25, 100));
@@ -306,10 +283,13 @@ public class LuckyPlaceEvent extends ServerEvent {
 
 					boolean copperWall = false, titaniumWall = false, plastaniumWall = false,
 							thoriumWall = false, phaseWall = false, surgeWall = false;
+					
+					boolean berylliumWall = false, tungstenWall = false, reinforcedSurgeWall = false,
+							carbideWall = false, shieldedWall = false;
 
-					for (int i = 0; i < nearBlocks2x2.length; i++) {
-						int xx = x + nearBlocks2x2[i].x;
-						int yy = y + nearBlocks2x2[i].y;
+					for (int i = 0; i < nearBlocks.length; i++) {
+						int xx = x + nearBlocks[i].x;
+						int yy = y + nearBlocks[i].y;
 						Block b = world.tile(xx, yy).block();
 						if(b == Blocks.copperWallLarge) copperWall = true;
 						if(b == Blocks.titaniumWallLarge) titaniumWall = true;
@@ -317,19 +297,31 @@ public class LuckyPlaceEvent extends ServerEvent {
 						if(b == Blocks.thoriumWallLarge) thoriumWall = true;
 						if(b == Blocks.phaseWallLarge) phaseWall = true;
 						if(b == Blocks.surgeWallLarge) surgeWall = true;
+
+						if(b == Blocks.berylliumWallLarge) berylliumWall = true;
+						if(b == Blocks.tungstenWallLarge) tungstenWall = true;
+						if(b == Blocks.reinforcedSurgeWallLarge) reinforcedSurgeWall = true;
+						if(b == Blocks.carbideWallLarge) carbideWall = true;
+						if(b == Blocks.shieldedWall) shieldedWall = true;
 					}
 
 					if(copperWall && titaniumWall && plastaniumWall 
 							&& thoriumWall && phaseWall && surgeWall) {
 						isLuckActivated = true;
 						Call.warningToast(0, "[gold]Алтарь удачи активирован!");
-						
 						createSpaceAround();
+					}
+
+					if(berylliumWall && tungstenWall && reinforcedSurgeWall 
+							&& carbideWall && shieldedWall) {
+						isLuckActivated = true;
+						Call.warningToast(0, "[gold]Алтарь удачи активирован!");
 					}
 				}
 			}
 		}
 	}
+	
 	private void createAirAround() {
 		for (int i = 0; i < freeSpace.length; i++) {
 			int xx = luckySource.x + freeSpace[i].x;
@@ -349,7 +341,29 @@ public class LuckyPlaceEvent extends ServerEvent {
 			world.tile(xx+1, yy).setFloorNet(Blocks.space);
 			world.tile(xx, yy+1).setFloorNet(Blocks.space);
 			world.tile(xx+1, yy+1).setFloorNet(Blocks.space);
+			warmTile(null, Blocks.space, null, xx, yy);
+			warmTile(null, Blocks.space, null, xx+1, yy);
+			warmTile(null, Blocks.space, null, xx, yy+1);
+			warmTile(null, Blocks.space, null, xx+1, yy+1);
 		}		
+	}
+	
+	private void warmTile(Block block, Block floor, Block overlay, int x, int y) {
+		if(isOut(x, y)) return;
+		warmTileEvent.block = block;
+		warmTileEvent.floor = floor;
+		warmTileEvent.overlay = overlay;
+		warmTileEvent.x = x;
+		warmTileEvent.y = y;
+		Events.fire(warmTileEvent);
+	}
+	
+	private boolean isOut(int x, int y) {
+		if(x < 0) return true;
+		if(y < 0) return true;
+		if(x >= world.width()) return true;
+		if(y >= world.height()) return true;
+		return false;
 	}
 
 	@Override
@@ -363,22 +377,38 @@ public class LuckyPlaceEvent extends ServerEvent {
 	
 	private void updateContainer() {
 		ItemModule module = world.tile(luckySource.x, luckySource.y).build.items;
-		boolean isFull = true;
+		boolean isSerpuloFull = true;
 		for (int i = 0; i < Items.serpuloItems.size; i++) {
 			Item item = Items.serpuloItems.get(i);
 			int count = module.get(item);
 			
 			if(count != Blocks.container.itemCapacity) {
-				isFull = false;
+				isSerpuloFull = false;
+				break;
+			}
+		}
+
+		boolean isErekirFull = true;
+		for (int i = 0; i < Items.erekirItems.size; i++) {
+			Item item = Items.erekirItems.get(i);
+			if(item.hidden) continue;
+			int count = module.get(item);
+			
+			if(count != Blocks.container.itemCapacity) {
+				isErekirFull = false;
 				break;
 			}
 		}
 		
-		if(isFull) {
-			randomMiniEvent();
+		if(isSerpuloFull) {
+			randomMiniEvent(serpulo);
 			world.tile(luckySource.x, luckySource.y).setNet(Blocks.air);
 		}
-//		;
+
+		if(isErekirFull) {
+			randomMiniEvent(erekir);
+			world.tile(luckySource.x, luckySource.y).setNet(Blocks.air);
+		}
 	}
 	
 	int count = 0;
@@ -412,22 +442,30 @@ public class LuckyPlaceEvent extends ServerEvent {
 //			new MiniEvent("imposterUnits", "[red]0-5%[] турелей становится вражескими"),
 	};
 	
-	private void randomMiniEvent() {
-//		Fx.lancerLaserShoot;
+	private void randomMiniEvent(int planet) {
+		randomMiniEvent(planet, new boolean[] {true, true, false});
+	}
+	
+	private void randomMiniEvent(int planet, boolean[] isPositive) {
 		count++;
 		StringBuilder info = new StringBuilder();
 		
-		MiniEvent[] events = {randomPositiveEvent(), randomPositiveEvent(), randomNegativeEvent()};
-		boolean[] isPositive = {true, true, false};
+		MiniEvent[] events = new MiniEvent[isPositive.length];//{randomPositiveEvent(), randomPositiveEvent(), randomNegativeEvent()};
+		for (int i = 0; i < isPositive.length; i++) {
+			events[i] = isPositive[i] ? randomPositiveEvent() : randomNegativeEvent();
+		}
+		
 		
 		for (int i = 0; i < events.length; i++) {
-			events[i].run();
+			events[i].run(planet);
 			if(i != 0) info.append('\n');
 			info.append(isPositive[i] ? "[green]\ue800" : "[red]\ue815");
 			info.append(" [white]");
 			info.append(events[i].info);
 		}
 		createSpaceAround();
+		createAirAround();
+		
 //		state.rules.syn
 		Call.setRules(state.rules);
 		
@@ -461,7 +499,7 @@ public class LuckyPlaceEvent extends ServerEvent {
 		 * Emanate
 		 */
 		
-		public void run() {
+		public void run(int planet) {
 			Team defaultTeam = state.rules.defaultTeam;
 			
 			if(luckySource == null) {
@@ -510,8 +548,11 @@ public class LuckyPlaceEvent extends ServerEvent {
 				break;
 			case "imposterTurrets": // /etrigger event imposterTurrets
 				Seq<Building> turrets = new Seq<>();
-				for (int i = 0; i < GameWork.turrets.length; i++) {
-					turrets.add(defaultTeam.data().getBuildings(GameWork.turrets[i]));	
+				for (int i = 0; i < GameWork.serpyloTurrets.length; i++) {
+					turrets.add(defaultTeam.data().getBuildings(GameWork.serpyloTurrets[i]));	
+				}
+				for (int i = 0; i < GameWork.erekirTurrets.length; i++) {
+					turrets.add(defaultTeam.data().getBuildings(GameWork.erekirTurrets[i]));	
 				}
 				if(turrets.size == 0) break;
 				int replaceCount = Mathf.ceil(turrets.size*5/100f);
@@ -526,7 +567,7 @@ public class LuckyPlaceEvent extends ServerEvent {
 				break;
 			case "moreitems":
 				if(defaultTeam.core() == null) break;
-				Item randomItem = Items.serpuloItems.random();
+				Item randomItem = planet == any || planet == serpulo ? Items.serpuloItems.random() : Items.erekirOnlyItems.random();
 				int randomItemCount = defaultTeam.core().items.get(randomItem);
 				defaultTeam.core().items.add(randomItem, randomItemCount);
 				Work.localisateItemsNames();
@@ -534,7 +575,7 @@ public class LuckyPlaceEvent extends ServerEvent {
 				break;
 			case "lessitems":
 				if(defaultTeam.core() == null) break;
-				randomItem = Items.serpuloItems.random();
+				randomItem = planet == any || planet == serpulo ? Items.serpuloItems.random() : Items.erekirOnlyItems.random();
 				randomItemCount = Mathf.ceil(defaultTeam.core().items.get(randomItem)/3);
 				defaultTeam.core().items.remove(randomItem, randomItemCount);
 				Work.localisateItemsNames();
@@ -556,6 +597,7 @@ public class LuckyPlaceEvent extends ServerEvent {
 							Tile tile = world.tile(x, y);
 							if(tile == null) continue;
 							Block floor = tile.floor();
+							Block block = null;
 							if(floor == null) continue;
 							boolean isCustomFloor = Mathf.random() > k;
 							if(isCustomFloor) {
@@ -581,12 +623,15 @@ public class LuckyPlaceEvent extends ServerEvent {
 									if(tile.block() != Blocks.air && tile.block() != null) {
 										if(tile.block().name.indexOf("boulder") != -1) {
 											tile.setNet(Blocks.air);
+											block = Blocks.air;
 										} else {
 											tile.setNet(Blocks.sporeWall);
+											block = Blocks.sporeWall;
 										}
 									}
 								}
 							}
+							warmTile(block, floor, tile.overlay(), x, y);
 							tile.setFloorNet(floor, tile.overlay());
 						}
 					}
@@ -659,11 +704,6 @@ public class LuckyPlaceEvent extends ServerEvent {
 					state.rules.unitCap -= 24;
 					Call.setRules(state.rules);
 				}
-//				Team.crux.rules().buildSpeedMultiplier
-//				Team.crux.rules().blockDamageMultiplier
-//				Team.crux.rules().hea
-//				Team.crux.rules().buildSpeedMultiplier
-//				Vars.state.rules.dropZoneRadius 	d
 				break;
 			case "teamUnitDestroyed":
 				Unit unit = state.rules.defaultTeam.data().units.random();
@@ -767,50 +807,43 @@ public class LuckyPlaceEvent extends ServerEvent {
 	private Seq<AngrySpark> angrySparks = new Seq<AngrySpark>();
 	private Seq<Replacer> replacers = new Seq<>();
 	private Seq<SuperMine> superMines = new Seq<>();
-	
-	
-	// /event lp faston
-	// /etrigger activate
-	// /sandbox on
-	// /etrigger event angrySpark
-	// 
 
-	private class ItemsEater {
-		Building target;
-		public ItemsEater(Building target) {
-			this.target = target;
-		}
-		protected boolean needRemove = false;
-		int updates = 0;
-		private void update() {
-			if(needRemove) return;
-			float damage = updates/60f;
-			updates++;
-			if(target.health - damage <= 0) {
-				Building newTarget = target.getPowerConnections(new Seq<Building>()).random();
-				if(newTarget == null) {
-					needRemove = true;
-					target.damagePierce((float) damage);
-					return;
-				}
-				Call.effect(Fx.lancerLaserShoot, target.x, target.y, 60, Color.red, null);
-				Call.effect(Fx.lancerLaserShoot, target.x, target.y, 120, Color.red, null);
-				Call.effect(Fx.lancerLaserShoot, target.x, target.y, 180, Color.red, null);
-				
-				target.damagePierce((float) damage);
-				target = newTarget;
-				updates = 0;
-				return;
-			}
-			if(updates%5 == 0) {
-				Call.effect(Fx.thoriumShoot, target.x, target.y, 60, Color.red, null);
-				Call.effect(Fx.thoriumShoot, target.x, target.y, 120, Color.red, null);
-				Call.effect(Fx.thoriumShoot, target.x, target.y, 240, Color.red, null);
-			}
-			target.damagePierce((float) damage);
-		}
-	}
-	
+//	private class ItemsEater {
+//		Building target;
+//		public ItemsEater(Building target) {
+//			this.target = target;
+//		}
+//		protected boolean needRemove = false;
+//		int updates = 0;
+//		private void update() {
+//			if(needRemove) return;
+//			float damage = updates/60f;
+//			updates++;
+//			if(target.health - damage <= 0) {
+//				Building newTarget = target.getPowerConnections(new Seq<Building>()).random();
+//				if(newTarget == null) {
+//					needRemove = true;
+//					target.damagePierce((float) damage);
+//					return;
+//				}
+//				Call.effect(Fx.lancerLaserShoot, target.x, target.y, 60, Color.red, null);
+//				Call.effect(Fx.lancerLaserShoot, target.x, target.y, 120, Color.red, null);
+//				Call.effect(Fx.lancerLaserShoot, target.x, target.y, 180, Color.red, null);
+//				
+//				target.damagePierce((float) damage);
+//				target = newTarget;
+//				updates = 0;
+//				return;
+//			}
+//			if(updates%5 == 0) {
+//				Call.effect(Fx.thoriumShoot, target.x, target.y, 60, Color.red, null);
+//				Call.effect(Fx.thoriumShoot, target.x, target.y, 120, Color.red, null);
+//				Call.effect(Fx.thoriumShoot, target.x, target.y, 240, Color.red, null);
+//			}
+//			target.damagePierce((float) damage);
+//		}
+//	}
+//	
 	private class SuperMine {
 		
 		protected boolean needRemove = false;
@@ -823,7 +856,7 @@ public class LuckyPlaceEvent extends ServerEvent {
 			updates++;
 			if(updates%10 == 0) {
 				Seq<Building> targets = GameWork.defaultTeam().data().getBuildings(Blocks.shockMine);
-				if((targets.size == 0 && mines >= 100) || mines > 1000) {
+				if((targets.size == 0 && mines >= 100) || mines > 100) {
 					needRemove = true;
 					return;
 				}
@@ -835,11 +868,12 @@ public class LuckyPlaceEvent extends ServerEvent {
 					GameWork.removeEnvBlock(target.tileX()-1, target.tileY());
 					GameWork.removeEnvBlock(target.tileX(), target.tileY()+1);
 					GameWork.removeEnvBlock(target.tileX(), target.tileY()-1);
+					warmTile(Blocks.air, null, null, target.tileX()+1, target.tileY());
+					warmTile(Blocks.air, null, null, target.tileX()-1, target.tileY());
+					warmTile(Blocks.air, null, null, target.tileX(), target.tileY()+1);
+					warmTile(Blocks.air, null, null, target.tileX(), target.tileY()-1);
+					mines++;
 				}
-				
-				mines++;
-//				GameWork.replaceBuilding(target, newBlock);
-//				Call.effect(Fx., target.x, target.y, target.block.size, Color.white, null);
 			}
 		}
 	}
@@ -966,7 +1000,7 @@ public class LuckyPlaceEvent extends ServerEvent {
 		if(args.length == 2) {
 			if(name.equalsIgnoreCase("event")) {
 				MiniEvent event = new MiniEvent(args[1], "debug");
-				event.run();
+				event.run(-1);
 				player.sendMessage("[gold]Событие запущено:[] " + event.info);
 			}
 			return;
@@ -990,7 +1024,7 @@ public class LuckyPlaceEvent extends ServerEvent {
 			player.sendMessage("[gold]Активирован!");
 		}
 		if(name.equalsIgnoreCase("event")) {
-			randomMiniEvent();
+			randomMiniEvent(-1);
 		}
 	}
 }

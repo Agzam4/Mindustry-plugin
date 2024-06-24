@@ -21,7 +21,7 @@ public class Work {
 	    	Items.copper.localizedName = "медь";
 	    	Items.dormantCyst.localizedName = "оболчка";
 	    	Items.fissileMatter.localizedName = "материя";
-	    	Items.graphite.localizedName = "грфит";
+	    	Items.graphite.localizedName = "графит";
 	    	Items.lead.localizedName = "свинец";
 	    	Items.metaglass.localizedName = "стекло";
 	    	Items.oxide.localizedName = "оксид";
