@@ -1,53 +1,66 @@
 apply plugin: "java"
 apply plugin: 'maven-publish'
 
-version '1.1'
-
-sourceCompatibility = JavaVersion.VERSION_17//17//1.8
-targetCompatibility = JavaVersion.VERSION_17//17//1.8
+version '1.0'
 
 sourceSets.main.java.srcDirs = ["src"]
+
+
+/*
+* For Gradle 9.0 we need use sourceCompatibility inside `java {...}`
+*/
+java {
+	sourceCompatibility = JavaVersion.VERSION_17
+}
 
 compileJava.options.encoding = "UTF-8"
 compileTestJava.options.encoding = "UTF-8"
 
 repositories{
-    jcenter()
-    mavenCentral()    
+    mavenCentral()
     maven{ url 'https://jitpack.io' }
-    maven{ url 'https://www.jitpack.io' }
-    maven{ url "https://raw.githubusercontent.com/Zelaux/MindustryRepo/master/repository" }
-    maven { url 'https://repo.spongepowered.org/repository/maven-public/' }
 }
 
-ext{
-    //the build number that this plugin is made for
-    mindustryVersion = 'v146' // v126.2 v140.4
-}
+//java 8 backwards compatibility flag
+//allprojects{
+//    tasks.withType(JavaCompile){
+//        options.compilerArgs.addAll(['--release', '8'])
+//    }
+//}
 
-dependencies{
-    compileOnly 'com.github.Anuken.Arc:arc-core:v149'
-    compileOnly 'com.github.anuken.mindustryjitpack:core:v149'
+dependencies {
+	compileOnly 'com.github.Anuken.Arc:arc-core:v149'
+	//compileOnly 'com.github.Anuken.Arc:core:v147'
+	compileOnly 'com.github.anuken.mindustryjitpack:core:v149'
 	
     implementation "org.telegram:telegrambots:6.9.7.1"
     implementation 'org.xerial:sqlite-jdbc:3.49.1.0'
 }
 
-jar{
-    archiveFileName = "/config/mods/Agzam-s_plugin.jar"
 
+base {
+    archivesName = "Agzam-s_plugin.jar"
+    distsDirectory = layout.buildDirectory.dir('custom-dist')
+    libsDirectory = layout.buildDirectory.dir('libs')
+}
+
+
+jar{
+    baseName "/config/mods/${project.name}"
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE 
     
+    from{
+        configurations.runtimeClasspath.collect{it.isDirectory() ? it : zipTree(it)}
+    }
+
     from(rootDir){
         include "plugin.json"
-        include "assets/colors.bin"
+        include "assets/colors.png"
+        include "assets/bundles/bundle.properties"
     }
-    
-    from{
-        configurations.runtimeClasspath.collect{ it.isDirectory() ? it : zipTree(it) }
-    }
-    
 }
+
+
 
 afterEvaluate {
     publishing {
