@@ -30,7 +30,7 @@ repositories{
 
 dependencies {
     compileOnly 'com.github.Anuken.Arc:arc-core:23264f9'
-    compileOnly 'com.github.anuken.mindustryjitpack:core:23264f9'
+    compileOnly 'com.github.anuken.mindustryjitpack:core:99e32d0'
     
     implementation "org.telegram:telegrambots:6.9.7.1"
     implementation 'org.xerial:sqlite-jdbc:3.49.1.0'
