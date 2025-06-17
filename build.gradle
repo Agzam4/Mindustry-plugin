@@ -50,7 +50,7 @@ base {
 
 
 jar{
-    baseName "/config/mods/${project.name}"
+    baseName "${project.name}"
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE 
     
     from{
