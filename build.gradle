@@ -5,17 +5,13 @@ version '1.0'
 
 sourceSets.main.java.srcDirs = ["src"]
 
+group = 'com.github.Agzam4'
 
 /*
 * For Gradle 9.0 we need use sourceCompatibility inside java {...}
 */
 java {
     sourceCompatibility = JavaVersion.VERSION_17
-}
-
-ext{
-    mindustryVersion = 'v149'
-    jabelVersion = "23264f9"
 }
 
 compileJava.options.encoding = "UTF-8"
@@ -26,21 +22,23 @@ repositories{
     maven{ url 'https://jitpack.io' }
 }
 
-//java 8 backwards compatibility flag
-//allprojects{
-//    tasks.withType(JavaCompile){
-//        options.compilerArgs.addAll(['--release', '8'])
-//    }
-//}
+ext{
+    mindustryVersion = 'v149'
+}
 
-dependencies {
+dependencies{
     compileOnly "com.github.Anuken.Arc:arc-core:$mindustryVersion"
-    compileOnly "com.github.Anuken.Mindustry:core:$mindustryVersion"
+    compileOnly "com.github.Anuken.mindustryjitpack:core:$mindustryVersion"
+    compileOnly "org.telegram:telegrambots:6.9.7.1"
+    compileOnly 'org.xerial:sqlite-jdbc:3.49.1.0'
+}
 
-    annotationProcessor "com.github.Anuken:jabel:$jabelVersion"
-    
-    implementation "org.telegram:telegrambots:6.9.7.1"
-    implementation 'org.xerial:sqlite-jdbc:3.49.1.0'
+configurations.all{
+    resolutionStrategy.eachDependency { details ->
+        if(details.requested.group == 'com.github.Anuken.Arc'){
+            details.useVersion "$mindustryVersion"
+        }
+    }
 }
 
 
@@ -71,9 +69,6 @@ afterEvaluate {
         publications {
             release(MavenPublication) {
                 from components.java
-                groupId = 'com.github.Agzam4'
-                artifactId = 'Mindustry-plugin'
-                //version = '0.0.4'
             }
         }
     }
