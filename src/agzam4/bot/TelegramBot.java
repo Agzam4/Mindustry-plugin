@@ -21,11 +21,13 @@ import org.telegram.telegrambots.meta.generics.BotSession;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 
 import agzam4.Game;
+import arc.Core;
 import arc.files.Fi;
 import arc.func.Boolf;
 import arc.struct.Seq;
 import arc.util.CommandHandler;
 import arc.util.Log;
+import arc.util.Reflect;
 import arc.util.Strings;
 import mindustry.Vars;
 import mindustry.content.Blocks;
@@ -103,7 +105,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 		bot = new TelegramBot(token);
 		try {
 			if(!isRunning) {
-				TelegramBotsApi botsApi = new TelegramBotsApi(DefaultBotSession.class);
+				TelegramBotsApi botsApi = new TelegramBotsApi(DaemonBotSession.class);
 				session = botsApi.registerBot(bot);
 				botTokenPath.writeString(n + " " + t, false);
 			}
