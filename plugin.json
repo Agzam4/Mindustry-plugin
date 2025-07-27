@@ -1,7 +1,7 @@
 {
-  "name": "Agzam's plugin v1.12.0",
+  "name": "agzam4plugin",
   "author": "Agzam4",
-  "main": "example.ExamplePlugin",
+  "main": "agzam4.AgzamPlugin",
   "description": "New command, events, core protection from thorium reactors and more",
-  "version": 1.12
+  "version": 1.13
 }
