@@ -10,8 +10,13 @@ import java.nio.file.Files;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Scanner;
 
+import arc.files.Fi;
 import arc.graphics.Color;
 import arc.math.geom.Point2;
+import arc.struct.ObjectMap;
+import arc.struct.Seq;
+import arc.util.Threads;
+import arc.util.io.PropertiesUtils;
 import mindustry.Vars;
 import mindustry.content.Fx;
 import mindustry.gen.Call;
@@ -35,49 +40,57 @@ public class Debug {
 	
 	static Scanner scanner = new Scanner(System.in);
 	static File cd = new File(System.getProperty("user.dir") + "/build/libs/");
+	static ObjectMap<String, String> env = new ObjectMap<>();
 	
 	public static void main(String[] args) throws IOException {
+		
+		PropertiesUtils.load(env, Fi.get(".env").reader());
+		
+		String type = env.get("event.name");
+		
 		System.out.println(cd.getPath());
 
 		new Thread(() -> {
 			try {
-				File modFile = null;
+				Seq<FileTimeContoller> controllers = Seq.with();
+				
+				Fi user = Fi.get(System.getProperty("user.dir"));
 				for (var f : new File(System.getProperty("user.dir") + "/build/libs/config/mods").listFiles()) {
 					if(!f.getName().endsWith(".jar")) continue;
-					modFile = f;
+					controllers.add(new FileTimeContoller(f));
 					break;
 				}
-				long lastTime = Files.readAttributes(modFile.toPath(), BasicFileAttributes.class).lastModifiedTime().toMillis();
+				Fi eventsFileSrc = user.parent().child(type).child("build").child("libs").child(type + ".jar");
+				Fi eventsFileDst = user.child("build").child("libs").child("config").child("events").child(type + ".jar");
 				while (true) {
-					// TODO: check file data for auto restart
-					long time = Files.readAttributes(modFile.toPath(), BasicFileAttributes.class).lastModifiedTime().toMillis();
-
-					//System.out.println(time + "/" + lastTime);
-					if(lastTime != time) {
+					for (int i = 0; i < controllers.size; i++) {
+						if(controllers.get(i).changed()) {
+							runid++;
+							System.out.println("Other time");
+						}
+					}
+					if(eventsFileSrc.exists()) {
+						eventsFileDst.delete();
+						eventsFileSrc.moveTo(eventsFileDst);
 						runid++;
-						lastTime = time;
-						System.out.println("Other time");
+						System.out.println("Events update");
 					}
-					try {
-						Thread.sleep(1000);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
+					Threads.sleep(1000);
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-		}).start();
+		}, "updater").start();
 
 		new Thread(() -> {
 			final int id = runid;
 			while (id == runid) {
 				String line = scanner.nextLine();
-				if(line.equals("a")) line = "admin add Agzam";
+				if(line.equals("a")) line = "admin add " + env.get("admin.name");
 				writer.println(line);
 				writer.flush();
 			}
-		}).start();
+		}, "input-writer").start();
 		
 		while (true) {
 			run();
@@ -88,9 +101,7 @@ public class Debug {
 	static PrintWriter writer;
 	
 	private static void run() throws IOException {
-		Process p = Runtime.getRuntime().exec(
-				"java -jar server-release.jar host",
-				null, cd);
+		Process p = Runtime.getRuntime().exec("java -jar server-release.jar host", null, cd);
 		
 		System.out.println("PID: " + p);
 
@@ -100,8 +111,6 @@ public class Debug {
 		r = new BufferedReader(new InputStreamReader(p.getInputStream()));
 		e = new BufferedReader(new InputStreamReader(p.getErrorStream()));
 		writer = new PrintWriter(new OutputStreamWriter(p.getOutputStream()));
-
-
 		
 		Thread writerThread = new Thread(() -> {
 			final int id = runid;
@@ -110,26 +119,15 @@ public class Debug {
 				try {
 					line = r.readLine();
 					if (line == null) { break; }
-					if(line.endsWith("Opened a server on port 6567.")) {
-						writer.println("event space_danger faston");
-						writer.println("event music_event faston");
-						writer.println("event lucky_place faston");
-						writer.println("js Vars.state.rules.infiniteResources = true");
-//						writer.println("js Vars.state.wave = -999");
-						writer.println("event ability_event faston");
-						writer.println("rules add reactorExplosions true");
+					if(line.contains("Opened a server")) {
+						writer.println(env.get("args"));
 						writer.flush();
-//						writer.println("nextmap Shattered");
-//						writer.flush();
-//						writer.println("gameover");
-//						writer.flush();
 					}
 					if(line.indexOf("Selected next map to be") != -1) {
 						writer.println("js Vars.state.rules.infiniteResources = true");
-//						writer.println("js Vars.state.wave = -999");
 					}
-					if(line.indexOf("Agzam has connected.") != -1) {
-						writer.println("admin add Agzam");
+					if(line.contains(env.get("admin.name")) && line.contains("has connected.")) {
+						writer.println("admin add " + env.get("admin.name"));
 						writer.flush();
 					}
 					System.out.println(line);
@@ -139,7 +137,7 @@ public class Debug {
 				}
 			}
 			System.out.println("END");
-		});
+		}, "auto-writer-thread");
 		writerThread.start();
 		
 		Thread errorThread = new Thread(() -> {
@@ -156,7 +154,7 @@ public class Debug {
 				}
 			}
 			System.err.println("END");
-		});
+		}, "error thread");
 		errorThread.start();		
 		
 
@@ -175,7 +173,6 @@ public class Debug {
 		e.close();
 		System.out.println("destroy");
 		System.out.println("interrupt");
-//		scannerThread.interrupt();
 		writerThread.interrupt();
 		errorThread.interrupt();
 		System.out.println("\n\n\n\n\n\n\n\n=====[Refreshing]=====");
@@ -183,5 +180,34 @@ public class Debug {
 
 	public static boolean configDebug() {
 		return Config.debug.bool();
+	}
+	
+	private static class FileTimeContoller {
+		
+		private File file;
+		private long lastTime;
+
+		private FileTimeContoller(String path) throws IOException {
+			this(new File(path));
+		}
+		
+		private FileTimeContoller(File file) throws IOException {
+			this.file = file;
+			lastTime = time();
+		}
+		
+		
+		private boolean changed() throws IOException {
+			long time = time();
+			if(lastTime != time) {
+				lastTime = time;
+				return true;
+			}
+			return false;
+		}
+		
+		private long time() throws IOException {
+			return Files.readAttributes(file.toPath(), BasicFileAttributes.class).lastModifiedTime().toMillis();
+		}
 	}
 }

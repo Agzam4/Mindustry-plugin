@@ -24,3 +24,8 @@ gradle-app.setting
 # Source
 
 src/agzam4/Debug.java
+
+
+# Env
+
+.env.properties
