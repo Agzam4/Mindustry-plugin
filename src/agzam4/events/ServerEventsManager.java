@@ -3,7 +3,11 @@ package agzam4.events;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import agzam4.Game;
 import arc.Events;
+import arc.func.Boolf;
+import arc.func.Cons;
+import arc.func.Cons2;
 import arc.struct.Seq;
 import arc.util.Log;
 import arc.util.Nullable;
@@ -18,160 +22,75 @@ import static mindustry.Vars.*;
 
 public class ServerEventsManager {
 	
-	public static final Seq<ServerEvent> events = new Seq<ServerEvent>();
+	private ServerEventsManager() {};
 	
-//	public static enum ServerEvents {
-//		newYear(new NewYearEvent()),
-//		spaceDanger(new SpaceDangerEvent()),
-//		livingWorld(new LivingWorldEvent()),
-//		luckyPlace(new LuckyPlaceEvent()),
-//		abilityEvent(new AbilityEvent()),
-//		musicEvent(new MusicEvent());
-//		;
-		
-//		ServerEvent event;
-		
-//		private ServerEvents(ServerEvent event) {
-//			this.event = event;
-//			event.type = this;
-//		}
-//
-//		@Override
-//		public String toString() {
-//			if(event == null) return super.toString();
-//			return event.getTagName();
-//		}
-//		
-//		public ServerEvent getEvent() {
-//			return event;
-//		}
-//
-//		public String getCommandName() {
-//			if(event == null) return null;
-//			return event.getCommandName();
-//		}
-//
-//		public String tag() {
-//			if(event == null) return "none";
-//			return event.getTagName();
-//		}
-//
-//		public String color() {
-//			if(event == null) return "white";
-//			return event.color;
-//		}
-//	}
-
-//	public static ServerEvent getServerEvent(int id) {
-//		if(id < 0) return null;
-//		if(id >= getServerEventsCount()) return null;
-//		return ServerEvents.values()[id].getEvent();
-//	}
-//	
-//	public static ServerEvents[] getServerEvents() {
-//		return ServerEvents.values();
-//	}
+	public static final Seq<ServerEvent> events = Seq.with();
+	public static final Seq<ServerEvent> activeEvents = Seq.with();
+	private static Boolf<ServerEvent> runningFilter = e -> e.isRunning();
 
 	public static long eventsTPS = 1_000 / 60;
-	public boolean[] isEventsOn;
 
-	private ArrayList<ServerEvent> activeEvents;
-    
-	public ServerEventsManager() {
-		activeEvents = new ArrayList<>();
-	}
+	public static boolean[] isEventsOn;
+
+	private static boolean isLoaded = false;
+	boolean isRunning = false;
 	
-	private boolean isGenerated = false;
-	public void init() {
+	public static void init() {
+		for (var child : Vars.dataDirectory.child("events").list()) {
+			if(!child.extension().equals("jar") && !child.extension().equals("zip")) continue;
+			try {
+				events.addAll(EventsLoader.load(child));
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		
 		Events.on(WorldLoadBeginEvent.class, e -> {
+			events.each(event -> event.stop());
 			EventsBlocks.reset();
 			applyMapEvents();
 			isLoaded = false;
 			world.setGenerating(true);
-			isGenerated = false;
-//			for (int i = 0; i < activeEvents.size(); i++) {
-//				activeEvents.get(i).
-//			}
         });
 		
-		Events.on(BlockBuildEndEvent.class, e -> {
-			if(isLoaded) {
-				for (int i = 0; i < activeEvents.size(); i++) {
-					if(isGenerated) activeEvents.get(i).blockBuildEnd(e);
-				}
-			}
-		});
-
-		Events.on(UnitDestroyEvent.class, e -> {
-			if(isLoaded) {
-				for (int i = 0; i < activeEvents.size(); i++) {
-					if(isGenerated) activeEvents.get(i).unitDestroy(e);
-				}
-			}
-		});
-		Events.on(DepositEvent.class, e -> {
-			if(isLoaded) {
-				for (int i = 0; i < activeEvents.size(); i++) {
-					if(isGenerated) activeEvents.get(i).deposit(e);
-				}
-			}
-		});
-		Events.on(WithdrawEvent.class, e -> {
-			if(isLoaded) {
-				for (int i = 0; i < activeEvents.size(); i++) {
-					if(isGenerated) activeEvents.get(i).withdraw(e);
-				}
-			}
-		});
-		Events.on(TapEvent.class, e -> {
-			if(isLoaded) {
-				for (int i = 0; i < activeEvents.size(); i++) {
-					if(isGenerated) activeEvents.get(i).tap(e);
-				}
-			}
-		});
-		Events.on(ConfigEvent.class, e -> {
-			if(isLoaded) {
-				for (int i = 0; i < activeEvents.size(); i++) {
-					if(isGenerated) activeEvents.get(i).config(e);
-				}
-			}
-		});
-    	Events.on(BlockDestroyEvent.class, e -> {
-			if(isLoaded) {
-				for (int i = 0; i < activeEvents.size(); i++) {
-					if(isGenerated) activeEvents.get(i).blockDestroy(e);
-				}
-			}
-    	});
-		
-//		for (int i = 0; i < ServerEvents.values().length; i++) {
-//			ServerEvents.values()[i].event.init();
-//		}
+		registerEvent(UnitDestroyEvent.class, 	(se,e) -> se.unitDestroy(e));
+		registerEvent(DepositEvent.class, 		(se,e) -> se.deposit(e));
+		registerEvent(WithdrawEvent.class, 		(se,e) -> se.withdraw(e));
+		registerEvent(TapEvent.class, 			(se,e) -> se.tap(e));
+		registerEvent(ConfigEvent.class, 		(se,e) -> se.config(e));
+		registerEvent(BlockBuildEndEvent.class, (se,e) -> se.blockBuildEnd(e));
+		registerEvent(BlockDestroyEvent.class, 	(se,e) -> se.blockDestroy(e));
 	}
 
 	
-	private Seq<MessageBuild> worldMessages = new Seq<>();
-	boolean firstUpdate = false;
+	private static <T> void registerEvent(Class<T> type, Cons2<ServerEvent, T> listener) {
+		Events.on(type, e -> {
+			if(!isLoaded) return;
+			activeEvents.each(runningFilter, se -> listener.get(se, e));
+		});
+	}
+
+
+	private static Seq<MessageBuild> worldMessages = new Seq<>();
+	private static boolean firstUpdate = false;
 	
-	public void worldLoadEnd(WorldLoadEndEvent e) {
+	public static void worldLoadEnd(WorldLoadEndEvent e) {
 		EventsBlocks.set();
-		for (int i = 0; i < activeEvents.size(); i++) {
-			activeEvents.get(i).prepare();
-		}
+
+		activeEvents.each(event -> event.prepare());
+		activeEvents.each(event -> event.run());
+		
 		world.setGenerating(false);
 		firstUpdate = true;
 		isLoaded = true;
 		worldMessages.clear();
 	}
 	
-	int updates = 0;
+	private static int updates = 0;
 	
-	public void update() {
+	public static void update() {
 		if(isLoaded) {
-			for (int i = 0; i < activeEvents.size(); i++) {
-				if(isGenerated) activeEvents.get(i).update();
-			}
+			activeEvents.each(e -> e.update());
 			if(firstUpdate) {
 				firstUpdate = false;
 
@@ -188,41 +107,17 @@ public class ServerEventsManager {
 			}
 			EventsBlocks.update();
 			updates++;
-//			if(updates >= 60) {
-//				updates = 0;
-//				for (int i = 0; i < worldMessages.size; i++) {
-//					String config = worldMessages.get(i).config();
-//					if(config.startsWith("/")) {
-//						config = config.substring(1);
-//						String name = "";
-//						for (int j = 0; j < activeEvents.size(); j++) {
-//							if(!isGenerated) continue;
-//							name = activeEvents.get(j).type.getCommandName();
-//							if(config.length() < name.length() + 2) continue;
-//							if(!config.startsWith(name)) continue;
-//							activeEvents.get(j).commandBlock(config.substring(name.length()+1));
-//							break;
-//						}
-//						worldMessages.get(i).handleString("");
-//					}
-//				}
-//			}
 		}
 	}
 
-	public void playerJoin(PlayerJoin e) {
-		if(isLoaded) {
-			for (int i = 0; i < activeEvents.size(); i++) {
-				if(isGenerated) activeEvents.get(i).playerJoin(e);
-			}
-		}
+	public static void playerJoin(PlayerJoin e) {
+		if(!isLoaded) return;
+		activeEvents.each(runningFilter, se -> se.playerJoin(e));
 	}
 
-	public boolean isLoaded = false;
-	boolean isRunning = false;
 	
 
-	public void runEvent(String commandName) {
+	public static void runEvent(String commandName) {
 		ServerEvent event = find(commandName);
 		if(event == null) {
 			Log.info("Event not found!");
@@ -231,25 +126,16 @@ public class ServerEventsManager {
 		if(activeEvents.contains(event)) {
 			Log.info("Event already active!");
 			return;
-		} else {
-			event.run();
-			activeEvents.add(event);
 		}
+		activeEvents.add(event);
+		event.announce();
 	}
 	
-	public void stopEvent(String commandName) {
+	public static void stopEvent(String commandName) {
 		ServerEvent event = find(commandName);
-		if(event == null) {
-			Log.info("Event not found!");
-			return;
-		}
-		if(activeEvents.contains(event)) {
-			event.stop();
-			activeEvents.remove(event);
-		} else {
-			Log.info("Event not active!");
-			return;
-		}
+		if(event == null) return;
+		event.stop();
+		activeEvents.remove(event);
 	}
 	
 	public static @Nullable ServerEvent find(String name) {
@@ -261,7 +147,7 @@ public class ServerEventsManager {
 	 * need /sync every player on fast start
 	 *  
 	 */
-	public void fastRunEvent(String commandName) {
+	public static void fastRunEvent(String commandName) {
 		ServerEvent event = find(commandName);
 		if(event == null) {
 			Log.info("Event not found!");
@@ -271,11 +157,11 @@ public class ServerEventsManager {
 			Log.info("Event already active!");
 			return;
 		} else {
-			event.run();
 			event.prepare();
-			isGenerated = true;
+			event.run();
 			isLoaded = true;
 			activeEvents.add(event);
+			Game.sync();
 		}
 	}
 
@@ -298,18 +184,16 @@ public class ServerEventsManager {
 //		return null;
 //	}
 
-	public void trigger(Player player, String... args) {
-		for (int i = 0; i < activeEvents.size(); i++) {
-			activeEvents.get(i).trigger(player, args);
-		}
+	public static void trigger(Player player, String... args) {
+		activeEvents.each(e -> e.trigger(player, args));
 	}
 	
 	
 //	boolean[] defaultEvents = new boolean[ServerEvents.values().length];
-	EventMap eventMap = null;
+	private static EventMap eventMap = null;
 //	EventMap nextEventMap = null;
 	
-	public void setNextMapEvents(EventMap map) {
+	public static void setNextMapEvents(EventMap map) {
 //		if(map == null) {
 //			nextEventMap = null;
 //			return;
@@ -327,7 +211,7 @@ public class ServerEventsManager {
 	}
 	
 
-	private void applyMapEvents() {
+	private static void applyMapEvents() {
 //		if(eventMap != null || nextEventMap != null) {
 //			for (int i = 0; i < activeEvents.size(); i++) {
 //				ServerEvent event = activeEvents.get(i);

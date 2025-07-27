@@ -12,68 +12,32 @@ import agzam4.achievements.AchievementsManager.Achievement;
 import agzam4.bot.TelegramBot;
 import agzam4.database.Database;
 import agzam4.database.Database.PlayerEntity;
-import agzam4.events.EventMap;
-import agzam4.events.ServerEvent;
-import agzam4.events.ServerEventsManager;
+import agzam4.events.*;
 import arc.Core;
 import arc.Events;
 import arc.audio.Sound;
 import arc.files.Fi;
-import arc.func.Cons;
-import arc.func.Cons2;
-import arc.func.Cons4;
+import arc.func.*;
 import arc.graphics.Color;
 import arc.math.Mathf;
+import arc.math.geom.Bresenham2;
 import arc.math.geom.Point2;
-import arc.struct.ObjectIntMap;
-import arc.struct.ObjectMap;
-import arc.struct.ObjectSet;
-import arc.struct.Seq;
-import arc.util.CommandHandler;
-import arc.util.Log;
-import arc.util.Nullable;
-import arc.util.Strings;
-import arc.util.Threads;
-import arc.util.Time;
-import arc.util.Timekeeper;
-import arc.util.Timer;
+import arc.struct.*;
+import arc.util.*;
 import arc.util.CommandHandler.CommandRunner;
 import mindustry.Vars;
-import mindustry.content.Blocks;
-import mindustry.content.Items;
-import mindustry.content.Liquids;
-import mindustry.content.StatusEffects;
-import mindustry.content.UnitTypes;
-import mindustry.core.World;
-import mindustry.core.NetServer;
+import mindustry.content.*;
+import mindustry.core.*;
 import mindustry.entities.units.BuildPlan;
 import mindustry.game.Team;
-import mindustry.game.EventType.BlockBuildBeginEvent;
-import mindustry.game.EventType.BlockBuildEndEvent;
-import mindustry.game.EventType.BlockDestroyEvent;
-import mindustry.game.EventType.BuildSelectEvent;
-import mindustry.game.EventType.GameOverEvent;
-import mindustry.game.EventType.PlayerJoin;
-import mindustry.game.EventType.PlayerLeave;
-import mindustry.game.EventType.TapEvent;
-import mindustry.game.EventType.Trigger;
-import mindustry.gen.Call;
-import mindustry.gen.Groups;
-import mindustry.gen.Iconc;
-import mindustry.gen.Player;
-import mindustry.gen.Unit;
+import mindustry.game.EventType.*;
+import mindustry.gen.*;
 import mindustry.maps.Map;
-import mindustry.net.Administration.ActionType;
-import mindustry.net.Administration.Config;
-import mindustry.net.Administration.PlayerInfo;
+import mindustry.net.Administration.*;
 import mindustry.net.Packets.KickReason;
-import mindustry.type.Item;
-import mindustry.type.Liquid;
-import mindustry.type.UnitType;
-import mindustry.world.Block;
-import mindustry.world.Tile;
-import mindustry.world.blocks.environment.Floor;
-import mindustry.world.blocks.environment.OverlayFloor;
+import mindustry.type.*;
+import mindustry.world.*;
+import mindustry.world.blocks.environment.*;
 import mindustry.world.blocks.storage.CoreBlock;
 
 import static agzam4.Emoji.*;
@@ -94,18 +58,7 @@ public class CommandsManager {
 
 //	private static Team admin;				// Special team
 	private static ArrayList<Integer> doorsCoordinates;
-
-	private Player brushOwner = null;
-	private Block brushBlock;
-	private Floor brushFloor;
-	private OverlayFloor brushOverlay;
-	private int brushLastX = -1;
-	private int brushLastY = -1;
 	
-	
-	private boolean adminSandbox = false;
-	private boolean blockInfo = false;
-
 	private Player lastThoriumReactorPlayer;
 	
 	public static final Seq<Sound> sounds = new Seq<Sound>();
@@ -149,64 +102,17 @@ public class CommandsManager {
 		registerAdminCommands();
 		
     	Events.run(Trigger.update, () -> {
-    		if(brushOwner == null) return;
-    		if(!brushOwner.shooting()) {
-    			brushLastY = brushLastX = -1;
-    			return;
-    		}
-    		if(brushBlock == null && brushFloor == null && brushOverlay == null) return;
-    		
-    		int tileX = World.toTile(brushOwner.mouseX());
-    		int tileY = World.toTile(brushOwner.mouseY());
-    		if(brushLastX == tileX && brushLastY == tileY) return;
-
-    		if(brushLastX == -1 || brushLastY == -1) {
-        		brushLastX = tileX;
-        		brushLastY = tileY;
-        		if(brushLastX == -1 || brushLastY == -1) return;
-        		paintTile(Vars.world.tile(tileX, tileY), false);
-    			return;
-    		}
-    		
-    		int x0 = brushLastX;//Math.min(brushLastX, tileX);
-    		int x1 = tileX;//Math.max(brushLastX, tileX);
-    		int y0 = brushLastY;//Math.min(brushLastY, tileY);
-    		int y1 = tileY;//Math.max(brushLastY, tileY);
-    		
-//    		Log.info("@ @ to @ @", tileX, tileY, brushLastX, brushLastY);
-    		brushLastX = tileX;
-    		brushLastY = tileY;
-
-    		int dx = x1-x0;
-    		int dy = y1-y0;
-    		if(Math.abs(dx) > Math.abs(dy)) {
-    			if(dx == 0) return;
-    			int k = x0 < x1 ? 1 : -1;
-    			for (int xx = 0; xx < Math.abs(dx); xx++) {
-    				int x = x0 + xx*k;
-    				int y = y0 + (dy*xx/Math.abs(dx));
-    				paintTile(Vars.world.tile(x, y), true);
-				}
-    		} else {
-    			if(dy == 0) return;
-    			int k = y0 < y1 ? 1 : -1;
-    			for (int yy = 0; yy < Math.abs(dy); yy++) {
-    				int x = x0 + (dx*yy/Math.abs(dy));
-    				int y = y0 + yy*k;
-    				paintTile(Vars.world.tile(x, y), true);
-				}
-    		}
-			paintTile(Vars.world.tile(x1, y1), false);
+    		Brush.brushes.each(Brush::update);
     	});
 
 		Events.on(GameOverEvent.class, e -> {
-			brushOwner = null;
+			Brush.brushes.clear();
 			lastkickTime.clear();
 		});
 		
 		Events.on(PlayerLeave.class, e -> {
 			if(e.player == null) return;
-			if(e.player == brushOwner) brushOwner = null;
+			Brush.brushes.removeAll(b -> b.owner == e.player);
 
     		/**
     		 * Saving PlayerEntity
@@ -241,7 +147,7 @@ public class CommandsManager {
 			playerEntity.joinTime = Time.millis();
     		joined.put(e.player.uuid(), playerEntity);
     		
-    		TelegramBot.sendToAll("<b>" + e.player.plainName() + "</b> has joined <i>(" + Groups.player.size() + " players)</i>");
+    		TelegramBot.sendToAll("<b>" + e.player.plainName() + "</b> " + (e.player.admin() ? "(admin)":"") + "has joined <i>(" + Groups.player.size() + " players)</i> <code>" + e.player.uuid() + "</code>");
     		
     		PlayerData data = Players.getData(e.player.uuid());
 
@@ -254,7 +160,7 @@ public class CommandsManager {
     		if(data == null || data.connectMessage == null) Call.sendMessage(e.player.coloredName() + "[accent] подключился");
     		else Call.sendMessage("[accent]" + data.connectMessage.replaceAll("@name", e.player.coloredName() + "[accent]"));
     		
-    		AgzamPlugin.eventsManager.playerJoin(e);
+    		ServerEventsManager.playerJoin(e);
     		e.player.name(e.player.name().replaceAll(" ", "_"));
     		
 			float rate = 1f - (e.player.getInfo().timesKicked * 5 / (float) e.player.getInfo().timesJoined);
@@ -369,46 +275,44 @@ public class CommandsManager {
 			if(builder == null) return;
 			BuildPlan buildPlan = builder.buildPlan();
 			if(buildPlan == null) return;
-
-			if(builder.isPlayer()) {
-				Player player = builder.getPlayer();
-				if(player == null) return;
-				if(player.admin()) {
-					if(player != brushOwner) return;
-					if(adminSandbox) {
-						if(brushBlock != null || brushFloor != null || brushOverlay != null) {
-							Tile tile = event.tile;
-							if(brushBlock != null) {
-								tile.setNet(brushBlock, player.team(), 0);
-							}
-							if(brushFloor != null) {
-								if(brushOverlay != null) {
-									tile.setFloorNet(brushFloor, brushOverlay);
-								} else {
-									tile.setFloorNet(brushFloor);
-								}
-							} else {
-								if(brushOverlay != null) {
-									tile.setFloorNet(tile.floor(), brushOverlay);
-								}
-							}
-						}
-					}
-				}
-			}
+//			if(builder.isPlayer()) {
+//				Player player = builder.getPlayer();
+//				if(player == null) return;
+//				if(player.admin()) {
+//					if(player != brushOwner) return;
+//					if(adminSandbox) {
+//						if(brushBlock != null || brushFloor != null || brushOverlay != null) {
+//							Tile tile = event.tile;
+//							if(brushBlock != null) {
+//								tile.setNet(brushBlock, player.team(), 0);
+//							}
+//							if(brushFloor != null) {
+//								if(brushOverlay != null) {
+//									tile.setFloorNet(brushFloor, brushOverlay);
+//								} else {
+//									tile.setFloorNet(brushFloor);
+//								}
+//							} else {
+//								if(brushOverlay != null) {
+//									tile.setFloorNet(tile.floor(), brushOverlay);
+//								}
+//							}
+//						}
+//					}
+//				}
+//			}
 		});
 
 		// "/brush" command
 		Events.on(TapEvent.class, event -> {
 			Player player = event.player;
 			if(player == null) return;
-			if(!player.admin()) return;
-			if(player != brushOwner) return;
 			if(event.tile == null) return;
+			if(!player.admin()) return;
+			Brush brush = Brush.get(player);
+			
 			Vars.mods.getScripts().runConsole("var ttile = Vars.world.tile(" + event.tile.pos() + ")");
-			if(blockInfo) {
-				if(event.tile.build != null) player.sendMessage("[white]lastAccessed: [gold]" + event.tile.build.lastAccessed);
-			}
+			if(brush.info && event.tile.build != null) player.sendMessage("[white]lastAccessed: [gold]" + event.tile.build.lastAccessed);
 		});
 		
 		Vars.netServer.admins.addActionFilter(action -> {
@@ -521,26 +425,6 @@ public class CommandsManager {
 			AgzamPlugin.dataCollect.messageEvent(player, text);
 			return text;
 		});
-	}
-
-	private void paintTile(@Nullable Tile tile, boolean saveCores) {
-		if(tile == null) return;
-		if(brushBlock != null) {
-			if(!(saveCores && tile.block() instanceof CoreBlock)) {
-				tile.setNet(brushBlock, brushOwner.team(), 0);
-			}
-		}
-		if(brushFloor != null) {
-			if(brushOverlay != null) {
-				tile.setFloorNet(brushFloor, brushOverlay);
-			} else {
-				tile.setFloorNet(brushFloor, tile.overlay());
-			}
-		} else {
-			if(brushOverlay != null) {
-				tile.setFloorNet(tile.floor(), brushOverlay);
-			}
-		}		
 	}
 
 	private void updateDoors(Tile tile) {
@@ -709,7 +593,7 @@ public class CommandsManager {
 			};
 			return (args, player) -> {
 				if(!check(player)) return;
-				if(TelegramBot.bot != null) TelegramBot.sendToAll("#helper <b><u>" + TelegramBot.strip(player.plainName()) + "</u></b>: <code>" + build(args) + "</code>");
+				if(TelegramBot.bot != null) TelegramBot.sendToAll((player.admin() ? "#admin" : "#helper") + " <b><u>" + TelegramBot.strip(player.plainName()) + "</u></b>: <code>" + build(args) + "</code>");
 				run.accept(args, player);
 			};
 		}
@@ -834,7 +718,7 @@ public class CommandsManager {
 			}
             if(res != null){
             	Vars.maps.setNextMapOverride(res);
-            	AgzamPlugin.eventsManager.setNextMapEvents(null);
+            	ServerEventsManager.setNextMapEvents(null);
                 sender.sendMessage(type.format("nextmap.set", res.plainName()));
             }else{
             	sender.sendMessage(type.err("nextmap.not-found"));
@@ -861,7 +745,17 @@ public class CommandsManager {
 				}
 				int count = arg.length > 1 ? Integer.parseInt(arg[1]) : 0;
 				
+				
 				String itemname = arg[0].toLowerCase();
+				
+
+				if(itemname.equals("all")) {
+					Team team = receiver instanceof Player p ? p.team() : Vars.state.rules.defaultTeam;
+					if(require(team.cores().size == 0, sender, type.err("fillitems.no-core"))) return;
+					Vars.content.items().each(i -> team.cores().get(0).items.set(i, 9999999));
+					return;
+				}
+				
 				Item item = Vars.content.items().find(i -> itemname.equalsIgnoreCase(i.name) || itemname.equalsIgnoreCase(Game.contentName(i)));
 				if(require(item == null, sender, type.err("fillitems.no-item"))) return;
 				Team team = receiver instanceof Player p ? p.team() : Vars.state.rules.defaultTeam;
@@ -909,44 +803,35 @@ public class CommandsManager {
 				return;
 			}
 		});
-		/* FIXME
 		serverCommand("event", "[id] [on/off/faston]", "Включить/выключить событие", (arg, sender, receiver, type) -> {
 			if(arg.length == 0) {
 				StringBuilder msg = new StringBuilder();
-				for (int i = 0; i < ServerEventsManager.getServerEventsCount(); i++) {
+				for (int i = 0; i < ServerEventsManager.events.size; i++) {
 					if(i != 0) msg.append('\n');
-					ServerEvent event = ServerEventsManager.getServerEvent(i);
+					ServerEvent event = ServerEventsManager.events.get(i);
 					if(type == ReceiverType.player) {
 						msg.append(event.isRunning() ? "[lime]" + Iconc.ok + " " : "[scarlet] " + Iconc.cancel + " ");
-						msg.append('[');
-						msg.append(event.getColor());
-						msg.append(']');
-						msg.append(event.getCommandName());
+						msg.append(event.name);
 						msg.append(' ');
 					} else if(type == ReceiverType.bot) {
 						msg.append(event.isRunning() ? "\u2714 " : "\u274c ");
 						msg.append("<code>");
-						msg.append(event.getCommandName());
+						msg.append(event.name);
 						msg.append("</code>");
 					} else {
 						msg.append(event.isRunning() ? "V " : "X ");
-						msg.append("<code>");
-						msg.append(event.getCommandName());
-						msg.append("</code>");
+						msg.append("");
+						msg.append(event.name);
+						msg.append("");
 					}
 				}
 				sender.sendMessage(msg.toString());
 				return;
 			}
 			if(arg.length == 1) {
-				for (int i = 0; i < ServerEventsManager.getServerEventsCount(); i++) {
-					ServerEvent event = ServerEventsManager.getServerEvent(i);
-					if(arg[0].equals(event.getCommandName())) {
-						sender.sendMessage("Событие [" + event.getColor() + "]" + event.getTagName() + "[white] имеет значение: " + event.isRunning());
-						return;
-					}
-				}
-				sender.sendMessage("[red]Событие не найдено, [gold]/event [red] для списка событий");
+				ServerEvent event = ServerEventsManager.events.find(e -> arg[0].equals(e.name));
+				if(require(event == null, sender, "[red]Событие не найдено, [gold]/event [red] для списка событий")) return;
+				sender.sendMessage("Событие " + event.name + "[white] имеет значение: " + event.isRunning());
 				return;
 			}
 			if(arg.length == 2) {
@@ -963,41 +848,32 @@ public class CommandsManager {
 					sender.sendMessage("Неверный аргумент, используйте [gold]on/off[]");
 					return;
 				}
+				ServerEvent event = ServerEventsManager.events.find(e -> arg[0].equals(e.name));
+				if(require(event == null, sender, "[red]Событие не найдено, [gold]/event [red] для списка событий")) return;
 
-				for (int i = 0; i < ServerEventsManager.getServerEventsCount(); i++) {
-					ServerEvent event = ServerEventsManager.getServerEvent(i);
-					if(arg[0].equals(event.getCommandName())) {
-						boolean isRunning = event.isRunning();
-						if(isRunning && isOn) {
-							sender.sendMessage("[red]Событие уже запущено");
-							return;
-						}
-						if(!isRunning && !isOn) {
-							sender.sendMessage("[red]Событие итак не запущено");
-							return;
-						}
+				boolean running = event.isRunning();
+				boolean await = ServerEventsManager.activeEvents.contains(event);
+				
+				if(require(running && isOn, sender, "[red]Событие уже запущено")) return;
+				if(require(await && isOn, sender, "[red]Событие начнется на следующей карте")) return;
+				if(require(!await && !isOn, sender, "[red]Событие итак не запущено")) return;
 
-						if(isOn) {
-							if(isFast) {
-								AgzamPlugin.eventsManager.fastRunEvent(event.getCommandName());
-								sender.sendMessage("[white]Событие резко запущено! [gold]/sync");
-							} else {
-								AgzamPlugin.eventsManager.runEvent(event.getCommandName());
-								sender.sendMessage("[green]Событие запущено!");
-							}
-						} else {
-							AgzamPlugin.eventsManager.stopEvent(event.getCommandName());
-							sender.sendMessage("[red]Событие остановлено!");
-						}
-
-						return;
+				if(isOn) {
+					if(isFast) {
+						ServerEventsManager.fastRunEvent(event.name);
+						sender.sendMessage("[white]Событие резко запущено!");
+					} else {
+						ServerEventsManager.runEvent(event.name);
+						sender.sendMessage("[green]Событие запущено!");
 					}
+				} else {
+					ServerEventsManager.stopEvent(event.name);
+					sender.sendMessage("[red]Событие остановлено!");
 				}
-				sender.sendMessage("[red]Событие не найдено, [gold]/event [red] для списка событий");
+
 				return;
 			}
 		});
-		*/
 
 		serverCommand("team", "[player] [team]", "Установить команду для игрока", (arg, sender, receiver, type) -> {
 			if(arg.length < 1) {
@@ -1269,7 +1145,6 @@ public class CommandsManager {
 		});
 
 		serverCommand("js", "<script...>", "Запустить JS", (arg, sender, receiver, type) -> {
-			Log.info("thread: @", Thread.currentThread().getName());
 			if(type == ReceiverType.bot) {
 				Core.app.post(() -> {
 					sender.sendMessage(type.format("js", Vars.mods.getScripts().runConsole(arg[0])));
@@ -1340,30 +1215,28 @@ public class CommandsManager {
 			}
 		});
 
-		adminCommand("brush", "[none/block/floor/overlay/free/info] [block/none]", "Устанваливает кисточку", (arg, player) -> {
-			brushOwner = player;
-			if(arg.length == 1) {
+		adminCommand("brush", "[none/block/floor/overlay/info] [block/none]", "Устанваливает кисточку", (arg, player) -> {
+			Brush brush = Brush.get(player);
+			if(arg.length == 0) {
+				player.sendMessage(Strings.format("Кисточка: [@,@,@]", brush.floor, brush.overlay, brush.block));
+			} else if(arg.length == 1) {
 				if(arg[0].equalsIgnoreCase("none")) {
-					brushBlock = null;
-					brushFloor = null;
-					brushOverlay = null;
-					adminSandbox = false;
-					blockInfo = false;
+					brush.block = null;
+					brush.floor = null;
+					brush.overlay = null;
+					brush.info = false;
 					player.sendMessage("[gold]Кисть отчищена");
 				} else if(arg[0].equalsIgnoreCase("block")) {
-					if(brushBlock == null) player.sendMessage("[gold]К кисти не привязан блок");
-					else player.sendMessage("[gold]К кисти привязан блок: [lightgray]" + brushBlock.name);
+					if(brush.block == null) player.sendMessage("[gold]К кисти не привязан блок");
+					else player.sendMessage("[gold]К кисти привязан блок: " + brush.block.emoji() + " [lightgray]" + brush.block);
 				} else if(arg[0].equalsIgnoreCase("floor")) {
-					if(brushBlock == null) player.sendMessage("[gold]К кисти не привязана поверхность");
-					else player.sendMessage("[gold]К кисти привязана поверхность: [lightgray]" + brushFloor.name);
+					if(brush.floor == null) player.sendMessage("[gold]К кисти не привязана поверхность");
+					else player.sendMessage("[gold]К кисти привязан блок: " + brush.floor.emoji() + " [lightgray]" + brush.floor);
 				} else if(arg[0].equalsIgnoreCase("overlay")) {
-					if(brushBlock == null) player.sendMessage("[gold]К кисти не привязано покрытие");
-					else player.sendMessage("[gold]К кисти привязан блок: [lightgray]" + brushOverlay.name);;
-				} else if(arg[0].equalsIgnoreCase("free")) {
-					adminSandbox = true;
-					player.sendMessage("[gold]готово!");
+					if(brush.overlay == null) player.sendMessage("[gold]К кисти не привязано покрытие");
+					else player.sendMessage("[gold]К кисти привязан блок: " + brush.overlay.emoji() + " [lightgray]" + brush.overlay);
 				} else if(arg[0].equalsIgnoreCase("info")) {
-					blockInfo = true;
+					brush.info  = true;
 					player.sendMessage("[gold]готово!");
 				} else {
 					player.sendMessage("[red]На первом месте только аргумены [lightgray]none/block/floor/overlay");
@@ -1382,80 +1255,47 @@ public class CommandsManager {
 				if(blockname.equals("item-")) blockname = "itemVoid";
 				if(blockname.equals("liq+")) blockname = "liquidSource";
 				if(blockname.equals("liq-")) blockname = "liquidVoid";
-
+				if(blockname.equals("s")) blockname = "shieldProjector";
+				if(blockname.equals("ls")) blockname = "largeShieldProjector";
+				
 				if(arg[0].equalsIgnoreCase("block") || arg[0].equalsIgnoreCase("b")) {
 					if(arg[1].equals("none")) {
-						brushBlock = null;
+						brush.block = null;
 						player.sendMessage("[gold]Блок отвязан");
 						return;
 					}
-					try {
-						Field field = Blocks.class.getField(blockname);
-						Block block = (Block) field.get(null);
-						brushBlock = block;
-						player.sendMessage("[gold]Блок привязан!");
-					} catch (NoSuchFieldException | SecurityException e) {
-						brushBlock = Game.getBlockByEmoji(blockname);
-						if(brushBlock == null) player.sendMessage("[red]Блок не найден");
-					} catch (ClassCastException e2) {
-						player.sendMessage("[red]Это не блок");
-					} catch (IllegalArgumentException | IllegalAccessException e) {
-						player.sendMessage("[red]Доступ к блоку заблокирован");
-					}
+					@Nullable Block find = Game.findBlock(blockname);
+					if(require(find == null, player, "[red]Поверхность не найдена")) return;
+					brush.block = find;
+					player.sendMessage("[gold]Поверхность привязана!");
 				} else if(arg[0].equalsIgnoreCase("floor") || arg[0].equalsIgnoreCase("f")) {
 					if(arg[1].equals("none")) {
-						brushFloor = null;
+						brush.floor = null;
 						player.sendMessage("[gold]Поверхность отвязана");
 						return;
 					}
-					try {
-						Field field = Blocks.class.getField(blockname);
-						Floor floor = (Floor) field.get(null);
-						brushFloor = floor;
-						player.sendMessage("[gold]Поверхность привязана!");
-					} catch (NoSuchFieldException | SecurityException e) {
-						try {
-							brushFloor = (Floor) Game.getBlockByEmoji(blockname);
-							if(brushBlock == null) player.sendMessage("[red]Поверхность не найдена");
-						} catch (ClassCastException e2) {
-							player.sendMessage("[red]Это не поверхность");
-						}
-						brushFloor = (Floor) Game.getBlockByEmoji(blockname);
-						if(brushFloor == null) player.sendMessage("[red]Блок не найден");
-					} catch (ClassCastException e2) {
-						player.sendMessage("[red]Это не поверхность");
-					} catch (IllegalArgumentException | IllegalAccessException e) {
-						player.sendMessage("[red]Доступ к поверхности заблокирован");
-					}
+					@Nullable Block find = Game.findBlock(blockname);
+					if(require(find == null, player, "[red]Поверхность не найдена")) return;
+					if(require(!(find instanceof Floor), player, "[red]Это не поверхность")) return;
+					brush.floor = find;
+					player.sendMessage("[gold]Поверхность привязана!");
 				} else if(arg[0].equalsIgnoreCase("overlay") || arg[0].equalsIgnoreCase("o")) {
 					if(arg[1].equals("none")) {
-						brushOverlay = null;
+						brush.overlay = null;
 						player.sendMessage("[gold]Покрытие отвязано");
 						return;
 					}
-					try {
-						Field field = Blocks.class.getField(blockname);
-						OverlayFloor overlay = (OverlayFloor) field.get(null);
-						brushOverlay = overlay;
-						player.sendMessage("[gold]Покрытие привязано!");
-					} catch (NoSuchFieldException | SecurityException e) {
-						try {
-							brushOverlay = (OverlayFloor) Game.getBlockByEmoji(blockname);
-							if(brushOverlay == null) player.sendMessage("[red]Покрытие не найдено");
-						} catch (ClassCastException e2) {
-							player.sendMessage("[red]Это не поверхность");
-						}
-					} catch (ClassCastException e2) {
-						player.sendMessage("[red]Это не покрытие");
-					} catch (IllegalArgumentException | IllegalAccessException e) {
-						player.sendMessage("[red]Доступ к покрытию заблокирован");
-					}
+					@Nullable Block find = Game.findBlock(blockname);
+					if(require(find == null, player, "[red]Поверхность не найдена")) return;
+					if(require(!(find instanceof OverlayFloor) && find != Blocks.air, player, "[red]Это не поверхность")) return;
+					brush.overlay = find;
+					player.sendMessage("[gold]Поверхность привязана!");
 				}
 			}
 		});
 
 		adminCommand("etrigger", "<trigger> [args...]", "Устанваливает кисточку", (args, player) -> {
-			AgzamPlugin.eventsManager.trigger(player, args);
+			ServerEventsManager.trigger(player, args);
 		});
 
 		adminCommand("extrastar", "[add/remove] [uidd/name]", "", (args, player) -> {
@@ -1657,6 +1497,25 @@ public class CommandsManager {
 			if(leave) Players.data(p.uuid()).disconnectedMessage = message.isEmpty() ? null : message;
 			Players.save();
 			sender.sendMessage("[gold]Установлено " + args[0] + ": []" + message);
+		});
+		
+
+		serverCommand("threads", "[filter]", "Конфикурация сервера", (args, sender, receiver, type) -> {
+			StringBuilder message = new StringBuilder("Threads");
+			Func<String, Byte> filter = (keyword) -> {
+				if(Structs.contains(args, keyword) || Structs.contains(args, "+" + keyword)) return 1;
+				if(Structs.contains(args, "-" + keyword)) return -1;
+				return 0;
+			};
+			byte daemon = filter.get("daemon");
+			
+			Thread.getAllStackTraces().keySet().forEach(t -> {
+				if(daemon == 1 & !t.isDaemon()) return;
+				if(daemon == -1 & t.isDaemon()) return;
+				
+				message.append(Strings.format("\n@: (@) @", t.getName(), t.isDaemon() ? "Daemon" : "", t.getState()));
+			});
+			sender.sendMessage(message.toString());
 		});
 	}
 	
@@ -1890,7 +1749,7 @@ public class CommandsManager {
 	                                return;
 	                            }
 	                            VoteSession session = new VoteSession(found, reason);
-	                            TelegramBot.sendToAll("<b><u>" + TelegramBot.strip(player.plainName()) + "</b></u> started voting for kicking <b><u>" + found.plainName() + "</b></u>");
+	                            TelegramBot.sendToAll("<b><u>" + TelegramBot.strip(player.plainName()) + "</u></b> started voting for kicking <b><u>" + found.plainName() + "</b></u>");
 	                            TelegramBot.sendPlayerToAll(found);
 	                            session.vote(player, 1);
 	                            Call.sendMessage(Strings.format("[lightgray]Причина:[orange] @[lightgray].", reason));
@@ -1902,7 +1761,6 @@ public class CommandsManager {
 	                    player.sendMessage("[red]Игрок[orange]'" + args[0] + "'[red] не найден.");
 	                }
 	            }
-	        
 			} catch (Exception e) {
 				Log.err(e);
 				player.sendMessage("[red]" + e.getLocalizedMessage());
@@ -2280,6 +2138,105 @@ public class CommandsManager {
 			if(Time.millis() < time) return;
 			Vars.netServer.admins.kickedIPs.remove(key);
 		});
+	}
+	
+	private static class Brush {
+		
+
+		private static Seq<Brush> brushes = Seq.with();
+
+		private final Player owner;
+		private Block block, floor, overlay;
+		private int brushLastX = -1, brushLastY = -1;
+		public boolean info = false;
+		
+		public Brush(Player owner) {
+			this.owner = owner;
+		}
+		
+		private void update() {
+    		if(owner == null) return;
+    		if(!owner.shooting()) {
+    			brushLastY = brushLastX = -1;
+    			return;
+    		}
+    		
+    		if(block == null && floor == null && overlay == null) return;
+    		
+    		int tileX = World.toTile(owner.mouseX());
+    		int tileY = World.toTile(owner.mouseY());
+    		if(brushLastX == tileX && brushLastY == tileY) return;
+
+    		if(brushLastX == -1 || brushLastY == -1) {
+        		brushLastX = tileX;
+        		brushLastY = tileY;
+        		if(brushLastX == -1 || brushLastY == -1) return;
+        		paintTile(Vars.world.tile(tileX, tileY), false);
+    			return;
+    		}
+    		
+    		int x0 = brushLastX;
+    		int y0 = brushLastY;
+    		int x1 = tileX;
+    		int y1 = tileY;
+    		
+    		brushLastX = tileX;
+    		brushLastY = tileY;
+    		
+    		if(x0 == -1 || y0 == -1 || x1 == -1 || y1 == -1) return;
+    		
+    		Bresenham2.line(x0, y0, x1, y1, (x,y) -> paintTile(Vars.world.tile(x, y), x != x0 || y != y0));
+
+//    		int dx = x1-x0;
+//    		int dy = y1-y0;
+//    		if(Math.abs(dx) > Math.abs(dy)) {
+//    			if(dx == 0) return;
+//    			int k = x0 < x1 ? 1 : -1;
+//    			for (int xx = 0; xx < Math.abs(dx); xx++) {
+//    				int x = x0 + xx*k;
+//    				int y = y0 + (dy*xx/Math.abs(dx));
+//    				paintTile(Vars.world.tile(x, y), true);
+//				}
+//    		} else {
+//    			if(dy == 0) return;
+//    			int k = y0 < y1 ? 1 : -1;
+//    			for (int yy = 0; yy < Math.abs(dy); yy++) {
+//    				int x = x0 + (dx*yy/Math.abs(dy));
+//    				int y = y0 + yy*k;
+//    				paintTile(Vars.world.tile(x, y), true);
+//				}
+//    		}
+//			paintTile(Vars.world.tile(x1, y1), false);
+		}
+
+		public static Brush get(Player player) {
+			var brush = brushes.find(b -> b.owner == player);
+			if(brush == null) {
+				brush = new Brush(player);
+				brushes.add(brush);
+			}
+			return brush;
+		}
+
+		private void paintTile(@Nullable Tile tile, boolean saveCores) {
+			if(tile == null) return;
+			if(block != null) {
+				if(!(saveCores && tile.block() instanceof CoreBlock)) {
+					tile.setNet(block, owner.team(), 0);
+				}
+			}
+			if(floor != null) {
+				if(overlay != null) {
+					tile.setFloorNet(floor, overlay);
+				} else {
+					tile.setFloorNet(floor, tile.overlay());
+				}
+			} else {
+				if(overlay != null) {
+					tile.setFloorNet(tile.floor(), overlay);
+				}
+			}		
+		}
 	}
 	
 }

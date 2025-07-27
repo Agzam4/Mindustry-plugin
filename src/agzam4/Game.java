@@ -6,6 +6,8 @@ import static mindustry.content.UnitTypes.*;
 
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Field;
+
 import arc.graphics.Color;
 import arc.math.Mathf;
 import arc.math.geom.Position;
@@ -45,7 +47,7 @@ public class Game {
 		bundle = I18NBundle.createEmptyBundle();
         try {
     		ObjectMap<String, String> properties = new ObjectMap<>();
-			PropertiesUtils.load(properties, new InputStreamReader(Game.class.getResourceAsStream("/assets/bundles/bundle.properties"), "UTF-8"));
+			PropertiesUtils.load(properties, new InputStreamReader(Game.class.getResourceAsStream("/bundles/bundle.properties"), "UTF-8"));
 			bundle.setProperties(properties);
         } catch (UnsupportedEncodingException e) {
 			e.printStackTrace();
@@ -259,7 +261,7 @@ public class Game {
 		Call.effect(effect, x, y, size, color);
 	}
 
-	public static Player findPlayer(final String s) {
+	public static @Nullable Player findPlayer(final String s) {
 		Player found = Groups.player.find(p -> p.uuid().equals(s));
         if(found != null) return found;
         String str = strip(s);
@@ -268,6 +270,18 @@ public class Game {
         found = Groups.player.find(p -> strip(p.name).equals(str));	
         if(found != null) return found;
         return Groups.player.find(p -> strip(p.name).replaceAll(" ", "_").equals(str));		
+	}
+
+	public static @Nullable Block findBlock(String name) {
+		Block b = Vars.content.block(name);
+		if(b != null) return b;
+		b = Vars.content.blocks().find(s -> s.hasEmoji() && s.emoji().equals(name));
+		if(b != null) return b;
+		try {
+			return Reflect.get(Blocks.class, null, name);
+		} catch (Exception | Error e) {
+			return null;
+		}
 	}
 
 	public static String strip(String s) {
@@ -355,4 +369,10 @@ public class Game {
 	public static String contentName(MappableContent content) {
 		return bundle.get("content." + content.name, "[red]???" + content.name + "???[]");
 	}
+
+	public static void sync() {
+		Call.worldDataBegin();
+		Groups.player.each(p -> Vars.netServer.sendWorldData(p));
+	}
+
 }

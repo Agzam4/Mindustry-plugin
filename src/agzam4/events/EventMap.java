@@ -55,7 +55,7 @@ public class EventMap {
 	}
 
 	public void setNextMapOverride() {
-		AgzamPlugin.eventsManager.setNextMapEvents(this);
+		ServerEventsManager.setNextMapEvents(this);
 		Vars.maps.setNextMapOverride(map);
 	}
 

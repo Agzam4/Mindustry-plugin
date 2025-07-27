@@ -1,6 +1,5 @@
 package agzam4.events;
 
-import agzam4.Game;
 import arc.util.I18NBundle;
 import arc.util.Nullable;
 import arc.util.Strings;
@@ -12,7 +11,6 @@ import mindustry.game.EventType.PlayerJoin;
 import mindustry.game.EventType.TapEvent;
 import mindustry.game.EventType.UnitDestroyEvent;
 import mindustry.game.EventType.WithdrawEvent;
-import mindustry.gen.Call;
 import mindustry.gen.Player;
 
 public abstract class ServerEvent {
@@ -44,7 +42,7 @@ public abstract class ServerEvent {
 	
 	public final void run() {
 		isRunning = true;
-		announce();
+//		announce();
 	}
 	
 	public final void runSilently() {
@@ -75,7 +73,7 @@ public abstract class ServerEvent {
 	}
 
 	public void playerJoin(PlayerJoin e) {
-		net.message(e.player, "announce");
+		net.message(e.player, "info");
 	}
 	
 	public String getInfo() {
@@ -110,6 +108,7 @@ public abstract class ServerEvent {
 	/**
 	 * Calls after world loaded but game not stared
 	 * Allows to use set blocks and other modifications without Net calls
+	 * May be called before running
 	 */
 	public void prepare() {
 		// for @Override

@@ -12,6 +12,7 @@ import mindustry.maps.*;
 import mindustry.mod.Mods.LoadedMod;
 import mindustry.mod.Plugin;
 
+import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 
@@ -32,7 +33,6 @@ public class AgzamPlugin extends Plugin {
 	public static LoadedMod plugin; 
 	
 	public static DataCollecter dataCollect;
-	public static ServerEventsManager eventsManager;
 	public static AchievementsManager achievementsManager;
 	public static CommandsManager commandsManager;
 	public static MyMenu menu;
@@ -70,8 +70,7 @@ public class AgzamPlugin extends Plugin {
     	menu = new MyMenu();
     	menu.registerCommand();
     	
-    	eventsManager = new ServerEventsManager();
-    	eventsManager.init();
+    	ServerEventsManager.init();
     	EventMap.load();
     	
     	maps = new Maps();
@@ -86,7 +85,7 @@ public class AgzamPlugin extends Plugin {
     	Events.run(Trigger.update, () -> {
 //    		achievementsManager.update();
     		menu.update();
-    		eventsManager.update();
+    		ServerEventsManager.update();
     		dataCollect.update();
     		
     		
@@ -121,9 +120,10 @@ public class AgzamPlugin extends Plugin {
     	Events.on(WorldLoadBeginEvent.class, e -> {
     		Vars.state.rules.deconstructRefundMultiplier = .51f;
     	});
+    	
     	Events.on(WorldLoadEndEvent.class, e -> {
     		commandsManager.stopSkipmapVoteSession();
-    		eventsManager.worldLoadEnd(e);
+    		ServerEventsManager.worldLoadEnd(e);
     		commandsManager.clearDoors();
             Map map = maps.getNextMap(state.rules.mode(), state.map);
 			TelegramBot.sendToAll("<b>Next map is:</b> " + map.plainName());
@@ -213,7 +213,7 @@ public class AgzamPlugin extends Plugin {
 //		Fi colors = ;// new Fi("", FileType.classpath);
 		
 		try {
-			BufferedImage colors = ImageIO.read(Game.class.getResourceAsStream("/assets/colors.png"));
+			BufferedImage colors = ImageIO.read(Game.class.getResourceAsStream("/colors.png"));
 			
 			Log.info("file: @", colors);
 //	    	var is = colors.read();
@@ -232,6 +232,12 @@ public class AgzamPlugin extends Plugin {
 					
 					int rgb = colors.getRGB(id.y/9, id.y%9);
 					id.y++;
+					
+					if(i == size*size/2) {
+						java.awt.Color col = new Color(rgb);
+						b.mapColor.set(col.getRed()/255f, col.getGreen()/255f, col.getBlue()/255f);
+						b.hasColor = true;
+					}
 					
 //	    				b.mapColor.r = colors
 					
