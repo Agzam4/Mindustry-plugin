@@ -166,7 +166,7 @@ public class MyMenu {
 	
 
 	public void registerCommand() {
-		AgzamPlugin.commandsManager.adminCommand("m", "", "Открыть меню", (args, player) -> {
+		CommandsManager.adminCommand("m", "", "Открыть меню", (args, player) -> {
 			menu(player, Config.serverName.get().toString(), "", new String[][] {{"Управление игроками"}}, new MenuOption[] {MenuOption.AdminPlayerManager});
     	});
 	}

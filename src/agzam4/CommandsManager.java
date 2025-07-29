@@ -44,11 +44,12 @@ import static agzam4.Emoji.*;
 
 public class CommandsManager {
 
+	private CommandsManager() {}
 	
-	private ObjectMap<String, Integer> lastkickTime = new ObjectMap<>();
+	private static ObjectMap<String, Integer> lastkickTime = new ObjectMap<>();
 	
 	public static SkipmapVoteSession[] currentlyMapSkipping = {null};
-    public @Nullable VoteSession currentlyKicking = null;
+    public static @Nullable VoteSession currentlyKicking = null;
     
     public static Seq<String> extraStarsUIDD;
 	
@@ -56,45 +57,20 @@ public class CommandsManager {
 	public static String discordLink = "";	// Link on discord "/setdiscord" to change
 	public static int doorsCup = 100; 		// Max doors limit "/doorscup" to change
 
-//	private static Team admin;				// Special team
 	private static ArrayList<Integer> doorsCoordinates;
+	private static Player lastThoriumReactorPlayer;
 	
-	private Player lastThoriumReactorPlayer;
-	
-	public static final Seq<Sound> sounds = new Seq<Sound>();
-
-//	public static ObjectMap<String, Long> joinTime = new ObjectMap<String, Long>(); // UUID, time
+//	public static final Seq<Sound> sounds = new Seq<Sound>();
 
 	public static ObjectMap<String, PlayerEntity> joined = new ObjectMap<>(); // UUID, PlayerEntity
 
-	public void init() {
-		
-//		Field[] soundFields = Sounds.class.getFields();
-//		for (int i = 0; i < soundFields.length; i++) {
-//			if(Modifier.isStatic(soundFields[i].getModifiers())) {
-//				try {
-//					Object object = soundFields[i].get(Sounds.class);
-//					if(object instanceof Sound) {
-//						System.out.println((Sound) object);
-//						sounds.add((Sound) object);
-//					}
-//				} catch (IllegalArgumentException | IllegalAccessException e) {
-//					e.printStackTrace();
-//				}
-//			}
-//		}
-		
+	public static void init() {
 		discordLink = Core.settings.getString(AgzamPlugin.name() + "-discord-link", null);
 		doorsCup = Core.settings.getInt(AgzamPlugin.name() + "-doors-cup", Integer.MAX_VALUE);
 		discordLink = Core.settings.getString(AgzamPlugin.name() + "-discord-link", null);
 		chatFilter = Core.settings.getBool(AgzamPlugin.name() + "-chat-filter", false);
 		extraStarsUIDD = new Seq<>();
 		
-//		helpers = (Seq<String>) Core.settings.get(ExamplePlugin.PLUGIN_NAME + "-helpers", new Seq<String>());
-
-//		admin = Team.all[10];
-//		admin.name = "admin";
-
 		doorsCoordinates = new ArrayList<>();
 		
 		registerBotCommands();
@@ -122,12 +98,6 @@ public class CommandsManager {
 				playerEntity.playtime += (int) TimeUnit.MILLISECONDS.toMinutes(Time.millis() - playerEntity.joinTime);
 				Database.players.put(playerEntity);
 			}
-//			Long time = joinTime.remove(e.player.uuid());
-//			if(time == null) TelegramBot.sendToAll("Error joinTime is null");
-//			else {
-//				PlayerEntity playerEntity = Database.player(e.player);
-//			}
-			
 			String tgmsg = "<b>" + TelegramBot.strip(Game.strip(e.player.name())) + "</b> has left <i>(" + (Groups.player.size()-1) + " players)</i> (" + joined.size + ")";
 			TelegramBot.sendToAll(tgmsg);
 
@@ -138,8 +108,6 @@ public class CommandsManager {
 		});
 
     	Events.on(PlayerJoin.class, e -> {
-//    		joinTime.put(e.player.uuid(), Time.millis());
-    		
     		/**
     		 * Loading PlayerEntity
     		 */
@@ -151,11 +119,7 @@ public class CommandsManager {
     		
     		PlayerData data = Players.getData(e.player.uuid());
 
-    		if(data != null) {
-        		if(data.name != null) {
-        			e.player.name(data.name);
-        		}
-    		}
+    		if(data != null && data.name != null)  e.player.name(data.name);
     		
     		if(data == null || data.connectMessage == null) Call.sendMessage(e.player.coloredName() + "[accent] подключился");
     		else Call.sendMessage("[accent]" + data.connectMessage.replaceAll("@name", e.player.coloredName() + "[accent]"));
@@ -427,7 +391,7 @@ public class CommandsManager {
 		});
 	}
 
-	private void updateDoors(Tile tile) {
+	private static void updateDoors(Tile tile) {
 		for (int i = 0; i < doorsCoordinates.size(); i++) {
 			int pos = doorsCoordinates.get(i);
 			Tile door = Vars.world.tile(pos);
@@ -447,9 +411,9 @@ public class CommandsManager {
 		}		
 	}
 
-	public Seq<PlayerCommand> playerCommands = new Seq<PlayerCommand>();
-	public Seq<BaseCommand> serverCommands = new Seq<BaseCommand>();
-	public Seq<BotCommand> botCommands = new Seq<BotCommand>();
+	private static Seq<PlayerCommand> playerCommands = new Seq<PlayerCommand>();
+	private static Seq<BaseCommand> serverCommands = new Seq<BaseCommand>();
+	private static Seq<BotCommand> botCommands = new Seq<BotCommand>();
 	
 	enum ReceiverType {
 		
@@ -474,47 +438,47 @@ public class CommandsManager {
 		
 	}
 
-	public void playerCommand(String text, String parms, String desc, CommandRunner<Player> run) {
+	public static void playerCommand(String text, String parms, String desc, CommandRunner<Player> run) {
 		playerCommands.add(new PlayerCommand(text, parms, desc, run));
 	}
 
-	public void playerCommand(String text, String desc, CommandRunner<Player> run) {
+	public static void playerCommand(String text, String desc, CommandRunner<Player> run) {
 		playerCommands.add(new PlayerCommand(text, "", desc, run));
 	}
 
-	public void adminCommand(String text, String parms, String desc, CommandRunner<Player> run) {
+	public static void adminCommand(String text, String parms, String desc, CommandRunner<Player> run) {
 		playerCommands.add(new PlayerCommand(text, parms, desc, run).admin(true));
 	}
 
-	public void adminCommand(String text, String desc, CommandRunner<Player> run) {
+	public static void adminCommand(String text, String desc, CommandRunner<Player> run) {
 		playerCommands.add(new PlayerCommand(text, "", desc, run).admin(true));
 	}
 	
-	public void serverCommand(String text, String desc, Cons4<String[], CommandReceiver, Object, ReceiverType> run) {
+	public static void serverCommand(String text, String desc, Cons4<String[], CommandReceiver, Object, ReceiverType> run) {
 		playerCommands.add(new PlayerCommand(text, "", desc, (arg, player) -> run.get(arg, player::sendMessage, player, ReceiverType.player)).admin(true));
 		serverCommands.add(new BaseCommand(text, "", desc, (arg) -> run.get(arg, Log::info, null, ReceiverType.server)));
 		botCommands.add(new BotCommand(text, "", desc, (arg, chat) -> run.get(arg, m -> TelegramBot.sendTo(chat, m), chat, ReceiverType.bot)));
 	}
 
-	public void serverCommand(String text, String parms, String desc, Cons4<String[], CommandReceiver, Object, ReceiverType> run) {
+	public static void serverCommand(String text, String parms, String desc, Cons4<String[], CommandReceiver, Object, ReceiverType> run) {
 		playerCommands.add(new PlayerCommand(text, parms, desc, (arg, player) -> run.get(arg, player::sendMessage, player, ReceiverType.player)).admin(true));
 		serverCommands.add(new BaseCommand(text, parms, desc, (arg) -> run.get(arg, Log::info, null, ReceiverType.server)));
 		botCommands.add(new BotCommand(text, parms, desc, (arg, chat) -> run.get(arg, m -> TelegramBot.sendTo(chat, m), chat, ReceiverType.bot)));
 	}
 
-	public void botCommand(String text, String desc, Cons2<String[], CommandReceiver> run) {
+	public static void botCommand(String text, String desc, Cons2<String[], CommandReceiver> run) {
 		botCommands.add(new BotCommand(text, "", desc, (arg, chat) -> run.get(arg, m -> TelegramBot.sendTo(chat, m))));
 	}
 
-	public void botCommand(String text, String parms, String desc, Cons2<String[], CommandReceiver> run) {
+	public static void botCommand(String text, String parms, String desc, Cons2<String[], CommandReceiver> run) {
 		botCommands.add(new BotCommand(text, parms, desc, (arg, chat) -> run.get(arg, m -> TelegramBot.sendTo(chat, m))));
 	}
 	
-	public interface CommandReceiver {
+	public static interface CommandReceiver {
 		void sendMessage(String message);
 	}
 	
-	class BotCommand {
+	static class BotCommand {
 		
 		private final String text, parms, desc;
 		private CommandRunner<Long> run;
@@ -541,7 +505,7 @@ public class CommandsManager {
 		}
 	}
 
-	class BaseCommand {
+	static class BaseCommand {
 
 		private final String text, parms, desc;
 		Cons<String[]> run;
@@ -559,7 +523,7 @@ public class CommandsManager {
 		
 	}
 	
-	class PlayerCommand {
+	static class PlayerCommand {
 		
 		private final String text, parms, desc;
 		private boolean admin = false;
@@ -611,7 +575,7 @@ public class CommandsManager {
 	
 //	int commandVotekick
 
-	public void registerClientCommands(CommandHandler handler) {
+	public static void registerClientCommands(CommandHandler handler) {
 		handler.removeCommand("a");
 		handler.removeCommand("help");
 		handler.removeCommand("votekick");
@@ -628,16 +592,16 @@ public class CommandsManager {
 //		registerAdminCommands(handler);
 	}
 	
-	public void registerServerCommands(CommandHandler handler) {
+	public static void registerServerCommands(CommandHandler handler) {
 		serverCommands.each(c -> handler.register(c.text, c.parms, c.desc, c.run()));
 	}
 
-	public void registerBotCommands(CommandHandler handler) {
+	public static void registerBotCommands(CommandHandler handler) {
 		botCommands.each(c -> handler.register(c.text, c.parms, c.desc, c.run()));
 	}
 
 
-	public void registerAdminCommands() {
+	public static void registerAdminCommands() {
 		adminCommand("admin", "<add/remove> <name>", "Добавить/удалить админа", (arg, player) -> {
 			if(require(arg.length != 2 || !(arg[0].equals("add") || arg[0].equals("remove")), player, "[red]Second parameter must be either 'add' or 'remove'.")) return;
 			boolean add = arg[0].equals("add");
@@ -1519,9 +1483,9 @@ public class CommandsManager {
 		});
 	}
 	
-	String stopcode = generateStopCode();
+	static String stopcode = generateStopCode();
 	
-	private String generateStopCode() {
+	private static String generateStopCode() {
 		char[] code = new char[10];
 		for (int i = 0; i < code.length; i++) {
 			code[i] = (char) ('0' + Mathf.random(9));
@@ -1530,7 +1494,7 @@ public class CommandsManager {
 		return stopcode;
 	}
 
-	public void registerBotCommands() {
+	public static void registerBotCommands() {
 		botCommand("help", "Список всех команд", (args, receiver) -> {
 			StringBuilder result = new StringBuilder();
 			for (BotCommand command : botCommands) {
@@ -1666,7 +1630,7 @@ public class CommandsManager {
 		});
 	}
 
-	public void registerPlayersCommands() {
+	public static void registerPlayersCommands() {
 		playerCommand("help", "[страница]", "Список всех команд", (args, player) -> {
 			if(require(args.length > 0 && !Strings.canParseInt(args[0]), player, "[red]\"страница\" может быть только числом.")) return;
 			final int commandsPerPage = 6;
@@ -1982,7 +1946,7 @@ public class CommandsManager {
 		});
 	}
 
-	public void kick(Player found, String name, String reason) {
+	public static void kick(Player found, String name, String reason) {
 		int minutes = 5;
 		Integer last = lastkickTime.get(found.uuid());
 		if(last != null) minutes = last;
@@ -1997,17 +1961,17 @@ public class CommandsManager {
 		Call.sendMessage(Strings.format("[white]Игрок [orange]@[white] забанен на [orange]@[] минут [lightgray](причина: @)", found.plainName(), minutes, reason));
 	}
 
-	private boolean require(boolean b, Player player, String string) {
+	public static boolean require(boolean b, Player player, String string) {
 		if(b) player.sendMessage(string);
 		return b;
 	}
 
-	private boolean require(boolean b, CommandReceiver receiver, String string) {
+	public static boolean require(boolean b, CommandReceiver receiver, String string) {
 		if(b) receiver.sendMessage(string);
 		return b;
 	}
 
-	public class SkipmapVoteSession {
+	public static class SkipmapVoteSession {
 
 		float voteDuration = 3 * 60;
 		ObjectSet<String> voted = new ObjectSet<>();
@@ -2053,7 +2017,7 @@ public class CommandsManager {
 		}
 	}
 	
-	 public class VoteSession {
+	 public static class VoteSession {
 	        Player target;
 	        ObjectIntMap<String> voted = new ObjectIntMap<>();
 	        Timer.Task task;
@@ -2108,7 +2072,7 @@ public class CommandsManager {
 	        }
 	    }
 
-	public void stopSkipmapVoteSession() {
+	public static void stopSkipmapVoteSession() {
 		for (int i = 0; i < currentlyMapSkipping.length; i++) {
 			if(currentlyMapSkipping[i] == null) continue;
 			currentlyMapSkipping[i].task.cancel();
@@ -2117,21 +2081,21 @@ public class CommandsManager {
 		}
 	}
 
-	public int votesRequiredSkipmap(){
+	public static int votesRequiredSkipmap(){
 		if(Groups.player.size() == 1) return 1;
 		if(Groups.player.size() == 2) return 2;
 		return (int) Math.ceil(Groups.player.size()*0.45);
 	}
 
-	public void clearDoors() {
+	public static void clearDoors() {
 		doorsCoordinates.clear();
 	}
 
-	public static Sound sound(int id) {
-		if(id < 0) return null;
-		if(id >= sounds.size) return null;
-		return sounds.get(id);
-	}
+//	public static Sound sound(int id) {
+//		if(id < 0) return null;
+//		if(id >= sounds.size) return null;
+//		return sounds.get(id);
+//	}
 
 	public static void cleanUpKicks() {
 		Vars.netServer.admins.kickedIPs.copy().each((key,time) -> {
@@ -2186,27 +2150,6 @@ public class CommandsManager {
     		if(x0 == -1 || y0 == -1 || x1 == -1 || y1 == -1) return;
     		
     		Bresenham2.line(x0, y0, x1, y1, (x,y) -> paintTile(Vars.world.tile(x, y), x != x0 || y != y0));
-
-//    		int dx = x1-x0;
-//    		int dy = y1-y0;
-//    		if(Math.abs(dx) > Math.abs(dy)) {
-//    			if(dx == 0) return;
-//    			int k = x0 < x1 ? 1 : -1;
-//    			for (int xx = 0; xx < Math.abs(dx); xx++) {
-//    				int x = x0 + xx*k;
-//    				int y = y0 + (dy*xx/Math.abs(dx));
-//    				paintTile(Vars.world.tile(x, y), true);
-//				}
-//    		} else {
-//    			if(dy == 0) return;
-//    			int k = y0 < y1 ? 1 : -1;
-//    			for (int yy = 0; yy < Math.abs(dy); yy++) {
-//    				int x = x0 + (dx*yy/Math.abs(dy));
-//    				int y = y0 + yy*k;
-//    				paintTile(Vars.world.tile(x, y), true);
-//				}
-//    		}
-//			paintTile(Vars.world.tile(x1, y1), false);
 		}
 
 		public static Brush get(Player player) {

@@ -22,7 +22,6 @@ import agzam4.achievements.*;
 import agzam4.bot.TelegramBot;
 import agzam4.database.Database;
 import agzam4.events.EventMap;
-import agzam4.events.ServerEvent;
 import agzam4.events.ServerEventsManager;
 
 import static agzam4.Emoji.*;
@@ -34,7 +33,6 @@ public class AgzamPlugin extends Plugin {
 	
 	public static DataCollecter dataCollect;
 	public static AchievementsManager achievementsManager;
-	public static CommandsManager commandsManager;
 	public static MyMenu menu;
 	
 	private static CommandHandler serverHandler;
@@ -62,10 +60,9 @@ public class AgzamPlugin extends Plugin {
     	AchievementsManager.init();
     	
     	achievementsManager = new AchievementsManager();
-    	commandsManager = new CommandsManager();
-    	commandsManager.init();
-    	commandsManager.registerBotCommands(TelegramBot.handler);
-    	commandsManager.registerServerCommands(serverHandler);
+    	CommandsManager.init();
+    	CommandsManager.registerBotCommands(TelegramBot.handler);
+    	CommandsManager.registerServerCommands(serverHandler);
     	
     	menu = new MyMenu();
     	menu.registerCommand();
@@ -113,7 +110,7 @@ public class AgzamPlugin extends Plugin {
         		state.map.setHighScore(state.wave);
     		}
     		Call.sendMessage(result.toString());
-    		commandsManager.stopSkipmapVoteSession();
+    		CommandsManager.stopSkipmapVoteSession();
 			TelegramBot.sendToAll("<b>Game over</b>: " + state.wave + "/" + state.map.getHightScore());
     	});
 
@@ -122,13 +119,12 @@ public class AgzamPlugin extends Plugin {
     	});
     	
     	Events.on(WorldLoadEndEvent.class, e -> {
-    		commandsManager.stopSkipmapVoteSession();
+    		CommandsManager.stopSkipmapVoteSession();
     		ServerEventsManager.worldLoadEnd(e);
-    		commandsManager.clearDoors();
+    		CommandsManager.clearDoors();
             Map map = maps.getNextMap(state.rules.mode(), state.map);
 			TelegramBot.sendToAll("<b>Next map is:</b> " + map.plainName());
     	});
-    	
     	
 //        Events.on(BuildSelectEvent.class, event -> { 
 //        	Unit builder = event.builder;
@@ -200,64 +196,31 @@ public class AgzamPlugin extends Plugin {
         
     }
     
-    private int ubyte(int b) {
-    	if(b < 0) {
-    		return Byte.MAX_VALUE-b;
-    	}
-    	return b;
-	}
-    
 	private void initColors() {
 		Log.info("init colors");
-//		Log.info("file: @", Arrays.toString( Vars.tree.get("").list()));
-//		Fi colors = ;// new Fi("", FileType.classpath);
-		
 		try {
 			BufferedImage colors = ImageIO.read(Game.class.getResourceAsStream("/colors.png"));
-			
 			Log.info("file: @", colors);
-//	    	var is = colors.read();
 			TelegramBot.mapColors = new int[Vars.content.blocks().size][];
 			Point2 id = new Point2(0,0);
 	    	Vars.content.blocks().each(b -> {
 	    		int index = id.x++;
 				int size = b.size*3;
 				TelegramBot.mapColors[index] = new int[size*size];
-//	    			Pixmap pixmap = new Pixmap(size, size);
 				for (int i = 0; i < size*size; i++) {
-//	    				b.mapColor.r = ubyte(is.read())/255f;
-//	    				b.mapColor.g = ubyte(is.read())/255f;
-//	    				b.mapColor.b = ubyte(is.read())/255f;
-//	    				b.mapColor.a = ubyte(is.read())/255f;
-					
 					int rgb = colors.getRGB(id.y/9, id.y%9);
 					id.y++;
-					
 					if(i == size*size/2) {
 						java.awt.Color col = new Color(rgb);
 						b.mapColor.set(col.getRed()/255f, col.getGreen()/255f, col.getBlue()/255f);
 						b.hasColor = true;
 					}
-					
-//	    				b.mapColor.r = colors
-					
 					TelegramBot.mapColors[index][i] = rgb;//b.mapColor.rgb888();
 				}
-//	    			for (int py = 0; py < size; py++) {
-//	    				for (int px = 0; px < size; px++) {
-//							pixmap.setRaw(px, py, TelegramBot.mapColors[index][px+py*size]);
-//						}
-//					}
 	    	});
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-//    	try {
-//			is.close();
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
 	}
 
 	@Override
@@ -362,7 +325,7 @@ public class AgzamPlugin extends Plugin {
     @Override
     public void registerClientCommands(CommandHandler handler) {
     	Log.info("[registerClientCommands]");
-    	commandsManager.registerClientCommands(handler);
+    	CommandsManager.registerClientCommands(handler);
     }
 
 	public static String name() {
