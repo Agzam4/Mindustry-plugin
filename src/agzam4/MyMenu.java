@@ -3,9 +3,11 @@ package agzam4;
 import java.util.ArrayList;
 
 import agzam4.bot.TelegramBot;
+import agzam4.net.NetMenu;
 import arc.Events;
 import arc.util.Log;
 import arc.util.Strings;
+import arc.util.Log.LogLevel;
 import mindustry.game.Team;
 import mindustry.content.StatusEffects;
 import mindustry.game.EventType.MenuOptionChooseEvent;
@@ -28,28 +30,30 @@ public class MyMenu {
 
 	public MyMenu() {
 		menus = new ArrayList<>();
-        Events.on(MenuOptionChooseEvent.class, e -> {
-    		if(!Admins.has(e.player, "m")) return;
-        	Log.info(e.menuId + ": " + e.option);
-        	
-        	Menu menu = null;
-        	for (int i = 0; i < menus.size(); i++) {
-				menu = menus.get(i);
-				if(menu.id == e.menuId) {
-					menus.remove(menu);
-					break;
-				}
-			}
-        	
-        	if(e.option < 0) return;
-        	
-        	if(menu != null) {
-        		if(e.option < menu.menuOptions.length) {
-        			Log.info("Option: " + menu.menuOptions[e.option].name());
-        			onButtonPressed(menu, menu.menuOptions[e.option].ordinal(), e.option);
-        		}
-        	}
-        });
+//        Events.on(MenuOptionChooseEvent.class, e -> {
+//    		if(!Admins.has(e.player, "m")) return;
+//        	Log.info(e.menuId + ": " + e.option);
+//        	
+//        	Menu menu = null;
+//        	for (int i = 0; i < menus.size(); i++) {
+//				menu = menus.get(i);
+//				if(menu.id == e.menuId) {
+//					menus.remove(menu);
+//					break;
+//				}
+//			}
+//        	
+//        	if(e.option < 0) return;
+//        	
+//        	if(menu != null) {
+//        		if(e.option < menu.menuOptions.length) {
+//        			Log.info("Option: " + menu.menuOptions[e.option].name());
+//        			onButtonPressed(menu, menu.menuOptions[e.option].ordinal(), e.option);
+//        		}
+//        	}
+//        });
+        
+        
 	}
 
 
@@ -166,9 +170,13 @@ public class MyMenu {
 	
 
 	public void registerCommand() {
-		CommandsManager.adminCommand("m", "", "Открыть меню", (args, player) -> {
-			menu(player, Config.serverName.get().toString(), "", new String[][] {{"Управление игроками"}}, new MenuOption[] {MenuOption.AdminPlayerManager});
-    	});
+//		CommandsManager.adminCommand("m", "", "Открыть меню", (args, player) -> {
+//			menu(player, Config.serverName.get().toString(), "", new String[][] {{"Управление игроками"}}, new MenuOption[] {MenuOption.AdminPlayerManager});
+//    	});
+//		NetMenu players = new NetMenu().button("test", p -> {Call.sendMessage(p.coloredName());});
+//		CommandsManager.adminCommand("p", "", "Открыть меню", (args, player) -> {
+//			players.show(player);
+//    	});
 	}
 	
 	int nextMenuId = 0;

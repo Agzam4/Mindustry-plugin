@@ -69,12 +69,12 @@ public class Debug {
 							System.out.println("Other time");
 						}
 					}
-					if(eventsFileSrc.exists()) {
-						eventsFileDst.delete();
-						eventsFileSrc.moveTo(eventsFileDst);
-						runid++;
-						System.out.println("Events update");
-					}
+//					if(eventsFileSrc.exists()) {
+//						eventsFileDst.delete();
+//						eventsFileSrc.moveTo(eventsFileDst);
+//						runid++;
+//						System.out.println("Events update");
+//					}
 					Threads.sleep(1000);
 				}
 			} catch (IOException e) {
@@ -176,6 +176,7 @@ public class Debug {
 		writerThread.interrupt();
 		errorThread.interrupt();
 		System.out.println("\n\n\n\n\n\n\n\n=====[Refreshing]=====");
+		Log.reset();
 	}
 
 	public static boolean configDebug() {
@@ -195,7 +196,6 @@ public class Debug {
 			this.file = file;
 			lastTime = time();
 		}
-		
 		
 		private boolean changed() throws IOException {
 			long time = time();

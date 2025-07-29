@@ -4,20 +4,13 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.ParameterizedType;
-import java.sql.Array;
-import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.HashMap;
 
+import agzam4.Log;
 import agzam4.database.DBFields.FIELD;
 import agzam4.database.DBFields.PRIMARY_KEY;
 import agzam4.database.SQL.TableColumnInfo;
-import arc.func.Func;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
-import arc.util.Log;
 import arc.util.Nullable;
 import arc.util.Strings;
 
@@ -53,7 +46,7 @@ public class Table<T> {
 						continue;
 					}
 					same = false;
-					Log.info("table fields not matching: [@]/[@]", currentInfo.get(i), previousInfo.get(i));
+					Log.info("Table fields not matching: [@]/[@]", currentInfo.get(i), previousInfo.get(i));
 					break;
 				}
 			}
@@ -64,7 +57,7 @@ public class Table<T> {
 				 * - ALTER TABLE <TABLENAME> DROP <COLUMNNAME>;
 				 * - ALTER TABLE <TABLENAME> ADD COLUMN <COLUM>;
 				 */
-				Log.info("[SQL] Changing the table: @ -> @", previousInfo, currentInfo);
+				Log.info("Changing the table: [blue]@[] -> [blue]@[]", previousInfo, currentInfo);
 
 				Seq<TableColumnInfo> toCopy = new Seq<>();
 				for (var info : currentInfo) {
@@ -87,7 +80,7 @@ public class Table<T> {
 		
 		
 		Database.execute(Strings.format("CREATE TABLE IF NOT EXISTS @ (@)", name, currentInfo.toString(",", info -> info.toString())));
-		Log.info("[SQL] Table \"@\" inited", name);
+		Log.info("Table [blue]@[] inited", name);
 		
 	    try {
 	        Lookup lookup = MethodHandles.lookup();
@@ -114,7 +107,6 @@ public class Table<T> {
 	
 	public void update(T entity) {
 		String sql = Strings.format("UPDATE @ SET @ WHERE @ = ?", name, filedNames.toString(" ", n -> n + " = ?"), keyName);
-		Log.info("update: @", sql);
 		Object[] args = new Object[filedNames.size+1];
 		for (int i = 0; i < filedNames.size; i++) args[i] = column(filedNames.get(i), entity);
 		args[args.length-1] = key(entity);

@@ -42,7 +42,7 @@ public class Database {
 		Class.forName("org.sqlite.JDBC");
 		
         String url = "jdbc:sqlite:" + path + ".db";
-        DriverManager.setLogWriter(new PrintWriter(System.err));
+//        DriverManager.setLogWriter(new PrintWriter(System.err));
         try {
         	var c = DriverManager.getConnection(url);
         	Log.info("Connected to SQL");

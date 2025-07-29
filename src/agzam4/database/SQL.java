@@ -84,7 +84,6 @@ public class SQL {
 			
 			String filedType = isArray ? (SQL.typesByClass.get(elementType) + "[]") : SQL.typesByClass.get(f.getType());
 			if(field == null || filedType == null) continue;
-			Log.info(filedType);
 			@Nullable PRIMARY_KEY primaryKey = f.getAnnotation(PRIMARY_KEY.class);
 			@Nullable DEFAULT def = f.getAnnotation(DEFAULT.class);
 			infos.add(new TableColumnInfo(f.getName(), filedType, true, def == null ? null : def.value(), primaryKey != null));
