@@ -44,7 +44,7 @@ public class Debug {
 	
 	public static void main(String[] args) throws IOException {
 		
-		PropertiesUtils.load(env, Fi.get(".env").reader());
+		PropertiesUtils.load(env, Fi.get(".env.properties").reader());
 		
 		String type = env.get("event.name");
 		
