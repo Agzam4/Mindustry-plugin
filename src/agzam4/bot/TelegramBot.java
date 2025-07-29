@@ -18,45 +18,49 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.BotSession;
-import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
-
-import agzam4.Game;
-import arc.Core;
+import agzam4.Log;
 import arc.files.Fi;
 import arc.func.Boolf;
-import arc.struct.Seq;
+import arc.func.Func;
+import arc.struct.ObjectMap;
 import arc.util.CommandHandler;
-import arc.util.Log;
-import arc.util.Reflect;
 import arc.util.Strings;
 import mindustry.Vars;
 import mindustry.content.Blocks;
-import mindustry.gen.Call;
 import mindustry.gen.Groups;
 import mindustry.gen.Player;
 import mindustry.graphics.Pal;
-import mindustry.net.Administration.PlayerInfo;
 import mindustry.world.Tile;
 import mindustry.world.blocks.logic.LogicBlock;
 import mindustry.world.blocks.storage.CoreBlock;
 
 public class TelegramBot extends TelegramLongPollingBot {
 
-	public static Fi botTokenPath = Fi.get(Vars.saveDirectory + "/bot/bot.save");
-	public static Fi botFollowersPath = Fi.get(Vars.saveDirectory + "/bot/followers.save");
+	public static Fi botTokenPath = Fi.get(Vars.saveDirectory + "/bot/bot.bin");
+	public static Fi botUsersPath = Fi.get(Vars.saveDirectory + "/bot/users.txt");
+	public static Fi botChatsPath = Fi.get(Vars.saveDirectory + "/bot/chats.txt");
 	
 	private static String username, token;
 	private static boolean isRunning;
 	public static TelegramBot bot;
-	public static Seq<Long> followers = new Seq<Long>();
+	public static ObjectMap<Long, TChat> chats = new ObjectMap<>();
+
+	public static ObjectMap<Long, TUser> users = new ObjectMap<>();
 
 	public static CommandHandler handler = new CommandHandler("/");
 	
 	public TelegramBot(String token) {
 		super(token);
 	}
+
+	@Override
+	public String getBotUsername() {
+		return username;
+	}
 	
 	public static void init() {
+		Log.info("Loading bot...");
+		
 		if(botTokenPath.exists()) {
 			try {
 				String[] data = botTokenPath.readString().split(" ");
@@ -64,32 +68,56 @@ public class TelegramBot extends TelegramLongPollingBot {
 			} catch (Exception e) {
 				Log.err(e);
 			}
+		} else {
+			Log.info("Token not found");
 		}
-		if(botFollowersPath.exists()) {
-			try {
-				String[] data = botFollowersPath.readString().split("\n");
-				for (int i = 0; i < data.length; i++) {
-					try {
-						Long id = Long.parseLong(data[i]);
-						followers.add(id);
-					} catch (Exception e) {
-						Log.err(e);
-					}
-				}
-			} catch (Exception e) {
-				Log.err(e);
+		
+
+		try {
+			if(botUsersPath.exists())
+			for (var line : botUsersPath.readString().split("\n")) {
+				try {
+					TUser user = new TUser(line);
+					users.put(user.id, user);
+				} catch (Exception e) {}
 			}
+		} catch (Exception e) {
+			Log.err(e);
+		}
+
+		try {
+			if(botChatsPath.exists())
+			for (var line : botChatsPath.readString().split("\n")) {
+				try {
+					TChat chat = new TChat(line);
+					chats.put(chat.id, chat);
+				} catch (Exception e) {}
+			}
+		} catch (Exception e) {
+			Log.err(e);
+		}
+		Log.info("Bot loaded!");
+	}
+	
+	public static void save() {
+		try {
+			save(users, TUser::toString, botUsersPath);
+			save(chats, TChat::toString, botChatsPath);
+		} catch (Exception e) {
+			Log.err(e);
 		}
 	}
 	
-	public static void saveFollowers() {
+	private static <T> void save(ObjectMap<Long, T> values, Func<T, String> func, Fi file) {
 		try {
 			StringBuilder builder = new StringBuilder();
-			for (int i = 0; i < followers.size; i++) {
-				if(i != 0) builder.append('\n');
-				builder.append(followers.get(i));
-			}
-			botFollowersPath.writeString(builder.toString(), false);
+			values.each((i,e) -> {
+				if(builder.length() != 0) builder.append('\n');
+				var obj = func.get(e);
+				if(obj == null) return;
+				builder.append(obj);
+			});
+			file.writeString(builder.toString(), false);
 		} catch (Exception e) {
 			Log.err(e);
 		}
@@ -109,9 +137,10 @@ public class TelegramBot extends TelegramLongPollingBot {
 				session = botsApi.registerBot(bot);
 				botTokenPath.writeString(n + " " + t, false);
 			}
+			Log.info("Bot [blue]@[] is running", n.length() > 5 ? n.substring(0, 5)+"..." : n.substring(0, n.length()));
 			isRunning = true;
 		} catch (TelegramApiException e) {
-			Log.err(e);;
+			Log.err(e);
 			isRunning = false;
 			bot = null;
 		}
@@ -124,9 +153,58 @@ public class TelegramBot extends TelegramLongPollingBot {
 			if(u.getUpdateId() == null) return;
 	        Message message = u.getMessage();
 	        if(message == null) return;
+	        
+			String text = message.getText();
+			if(text == null) return;
+			
 			if(message.getChatId() == null) return;
+
+			var from = message.getFrom();
+			if(from == null) return;
+			var fromId = from.getId();
+			if(fromId == null) return;
+
+			TUser user = users.get(fromId);
+			
+			Log.info("from: @, ", user, fromId);
+			
 			long chatId = message.getChatId();
-			if(hasFollower(chatId)) {
+			
+			if(user == null) {
+				sendMessageMarkdown(chatId, "Аккаунт не найден, ваш id: `u-" + Long.toUnsignedString(fromId, Character.MAX_RADIX) + "`");
+				return;
+			}
+			
+			if(chatId == user.id) {
+				user.onMessage(user);
+				return;
+			}
+
+			var chat = chats.get(chatId);
+			Log.info("chat: @, ", chat, chatId);
+			
+			if(chat == null) {
+				sendMessageMarkdown(chatId, "Чат не найден, id чата: `c-" + Long.toUnsignedString(chatId, Character.MAX_RADIX) + "`");
+				return;
+			}
+
+			user.onMessage(chat);
+			
+			/*
+			
+			Log.info("chatId: @, user: @", chatId, message.getFrom().getId());
+			if(chats.containsKey(chatId)) {
+				TChat chat = chats.get(chatId);
+				
+				
+				
+				
+				
+//				if(tUid == chatId) {
+//					chat.users(message);
+//				}
+				
+				
 				if(!message.isCommand()) {
 					String txt = message.getText();
 					if(txt != null) Call.sendMessage(txt);
@@ -187,6 +265,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 			} else {
 				sendMessageMarkdown(chatId, "Подтвердите свой аккаунт, зайдя в миндастри и прописав: `/bot add " + chatId + "`");
 			}
+			*/
 		} catch (Exception e) {
 			Log.err(e);
 		}
@@ -396,17 +475,17 @@ public class TelegramBot extends TelegramLongPollingBot {
 		
 		BufferedImage screen = takeScreen(dx, dy, Vars.world.width()/3, Vars.world.height()/3, false);
 		drawData(screen, false, dx, dy);
-		followers.each(id -> bot.sendMessagePhoto(id, screen));
+		chats.each((id, chat) -> bot.sendMessagePhoto(id, screen));
 	}
 
 	private boolean hasFollower(long chatId) {
-		return followers.contains(chatId);
+		return chats.containsKey(chatId);
 	}
 
 	public static void sendToAll(String message) {
 		if(bot == null) return;
 		final String msg = Strings.stripGlyphs(message);
-		followers.each(id -> {
+		chats.each((id,chat) -> {
 			bot.sendMessageHtml(id, msg);
 		});
 	}
@@ -415,11 +494,6 @@ public class TelegramBot extends TelegramLongPollingBot {
 		if(bot == null) return;
 		final String msg = Strings.stripGlyphs(message);
 		bot.sendMessageHtml(id, msg);
-	}
-
-	@Override
-	public String getBotUsername() {
-		return username;
 	}
 
 	public static String strip(String str) {

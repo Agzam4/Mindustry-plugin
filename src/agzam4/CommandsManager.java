@@ -9,13 +9,14 @@ import java.util.concurrent.TimeUnit;
 
 import agzam4.achievements.AchievementsManager;
 import agzam4.achievements.AchievementsManager.Achievement;
+import agzam4.bot.TChat;
+import agzam4.bot.TUser;
 import agzam4.bot.TelegramBot;
 import agzam4.database.Database;
 import agzam4.database.Database.PlayerEntity;
 import agzam4.events.*;
 import arc.Core;
 import arc.Events;
-import arc.audio.Sound;
 import arc.files.Fi;
 import arc.func.*;
 import arc.graphics.Color;
@@ -23,8 +24,15 @@ import arc.math.Mathf;
 import arc.math.geom.Bresenham2;
 import arc.math.geom.Point2;
 import arc.struct.*;
-import arc.util.*;
+import arc.util.CommandHandler;
 import arc.util.CommandHandler.CommandRunner;
+import arc.util.Nullable;
+import arc.util.Strings;
+import arc.util.Structs;
+import arc.util.Threads;
+import arc.util.Time;
+import arc.util.Timekeeper;
+import arc.util.Timer;
 import mindustry.Vars;
 import mindustry.content.*;
 import mindustry.core.*;
@@ -1324,25 +1332,58 @@ public class CommandsManager {
 			}
 			if(arg.length == 2) {
 				try {
-					Long id = Long.parseLong(arg[1]);
-
+					boolean user = arg[1].startsWith("u-");
+					boolean chat = arg[1].startsWith("c-");
+					
+					if(require(!user && !chat, player, "[red]wrong id")) return;
+					
+					long id = Long.parseUnsignedLong(arg[1].substring(2), Character.MAX_RADIX);
+					
 					if(arg[0].equalsIgnoreCase("add")) {
-						if(TelegramBot.followers.contains(id)) {
-							player.sendMessage("[lightgray]" + id + "[gold] уже был добавлен!");
-						} else {
-							TelegramBot.followers.add(id);
-							TelegramBot.saveFollowers();
-							player.sendMessage("[lightgray]" + id + "[gold] добавлен!");
+						if(user) {
+							if(TelegramBot.users.containsKey(id)) {
+								player.sendMessage("Пользователь [gold]" + id + "[] уже был добавлен!");
+							} else {
+								TelegramBot.users.put(id, new TUser(id));
+								TelegramBot.save();
+								player.sendMessage("Пользователь [gold]" + id + "[] добавлен!");
+							}
+							return;
+						}
+						if(chat) {
+							if(TelegramBot.chats.containsKey(id)) {
+								player.sendMessage("Чат [gold]" + id + "[] уже был добавлен!");
+							} else {
+								TelegramBot.chats.put(id, new TChat(id));
+								TelegramBot.save();
+								player.sendMessage("Чат [gold]" + id + "[] добавлен!");
+							}
+							return;
 						}
 					} else if(arg[0].equalsIgnoreCase("remove")) {
-						player.sendMessage("[lightgray]" + id + "[gold] убран!");
-						TelegramBot.followers.add(id);
-						TelegramBot.saveFollowers();
+						boolean removed = false;
+
+						if(chat) removed = TelegramBot.chats.remove(id) != null;
+						if(user) removed = TelegramBot.users.remove(id) != null;
+						
+						if(removed) player.sendMessage("[lightgray]" + id + "[gold] убран!");
+						else player.sendMessage("[lightgray]" + id + "[red] не найден!");
+						TelegramBot.save();
 					} else if(arg[0].equalsIgnoreCase("list")) {
-						TelegramBot.followers.each(e -> {
-							player.sendMessage("> " + e);
-						});
-						TelegramBot.followers.add(id);
+						if(TelegramBot.chats.size == 0) player.sendMessage("Нет чатов");
+						else {
+							player.sendMessage("Чаты: ");
+							TelegramBot.chats.each((e,c) -> {
+								player.sendMessage("> " + e);
+							});
+						}
+						if(TelegramBot.users.size == 0) player.sendMessage("Нет чатов");
+						else {
+							player.sendMessage("Пользователи: ");
+							TelegramBot.users.each((e,u) -> {
+								player.sendMessage("> " + e);
+							});
+						}
 					} else {
 						player.sendMessage("[red]Неверный аргумент");
 					}

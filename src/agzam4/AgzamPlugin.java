@@ -23,6 +23,7 @@ import agzam4.bot.TelegramBot;
 import agzam4.database.Database;
 import agzam4.events.EventMap;
 import agzam4.events.ServerEventsManager;
+import agzam4.net.NetMenu;
 
 import static agzam4.Emoji.*;
 import static mindustry.Vars.*;
@@ -58,11 +59,13 @@ public class AgzamPlugin extends Plugin {
     	Admins.init();
     	Players.init();
     	AchievementsManager.init();
+    	NetMenu.init();
     	
     	achievementsManager = new AchievementsManager();
     	CommandsManager.init();
     	CommandsManager.registerBotCommands(TelegramBot.handler);
     	CommandsManager.registerServerCommands(serverHandler);
+    	Log.reset();
     	
     	menu = new MyMenu();
     	menu.registerCommand();
