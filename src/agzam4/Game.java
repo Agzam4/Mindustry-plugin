@@ -21,6 +21,7 @@ import arc.util.io.PropertiesUtils;
 import mindustry.Vars;
 import mindustry.content.Blocks;
 import mindustry.content.Items;
+import mindustry.content.UnitTypes;
 import mindustry.ctype.MappableContent;
 import mindustry.entities.Effect;
 import mindustry.entities.bullet.BulletType;
@@ -30,6 +31,7 @@ import mindustry.gen.Call;
 import mindustry.gen.Groups;
 import mindustry.gen.Player;
 import mindustry.gen.Posc;
+import mindustry.gen.Unit;
 import mindustry.type.Item;
 import mindustry.type.UnitType;
 import mindustry.world.Block;
@@ -37,6 +39,7 @@ import mindustry.world.Tile;
 import mindustry.world.blocks.defense.turrets.ItemTurret;
 import mindustry.world.blocks.defense.turrets.PowerTurret;
 import mindustry.world.blocks.environment.Floor;
+import mindustry.world.blocks.storage.CoreBlock;
 import mindustry.world.meta.Attribute;
 
 public class Game {
@@ -373,6 +376,22 @@ public class Game {
 	public static void sync() {
 		Call.worldDataBegin();
 		Groups.player.each(p -> Vars.netServer.sendWorldData(p));
+	}
+
+	public static void clearUnit(Player player) {
+		UnitType type = UnitTypes.alpha;
+		Position pos = player;
+		var core = player.bestCore();
+		if(core != null) {
+			pos = core;
+			if(core.block instanceof CoreBlock block) {
+				type = block.unitType;
+			}
+		}
+		var u = type.spawn(player.team(), pos);
+		u.spawnedByCore = true;
+		u.add();
+		player.unit(u);
 	}
 
 }

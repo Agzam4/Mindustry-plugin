@@ -34,14 +34,12 @@ public class AgzamPlugin extends Plugin {
 	
 	public static DataCollecter dataCollect;
 	public static AchievementsManager achievementsManager;
-	public static MyMenu menu;
 	
 	private static CommandHandler serverHandler;
     
     @Override
     public void init() {
     	plugin = Vars.mods.getMod("agzam4plugin");
-    	
     	Log.info("init");
     	try {
 			Database.init(Vars.saveDirectory.absolutePath() + "/database");
@@ -67,9 +65,6 @@ public class AgzamPlugin extends Plugin {
     	CommandsManager.registerServerCommands(serverHandler);
     	Log.reset();
     	
-    	menu = new MyMenu();
-    	menu.registerCommand();
-    	
     	ServerEventsManager.init();
     	EventMap.load();
     	
@@ -84,7 +79,6 @@ public class AgzamPlugin extends Plugin {
 
     	Events.run(Trigger.update, () -> {
 //    		achievementsManager.update();
-    		menu.update();
     		ServerEventsManager.update();
     		dataCollect.update();
     		

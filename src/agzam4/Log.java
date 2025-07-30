@@ -9,10 +9,9 @@ public class Log {
 
 	private static ObjectMap<String, Colors> colors = new ObjectMap<>();
 	
-	static {
+	public static void init() {
 		for (var c : Colors.values()) {
 			colors.put(c.name, c);
-//			System.out.println("added: " + c.toString()  + c.name + "\033[0m");
 		}
 		reset();
 	}
@@ -177,5 +176,6 @@ public class Log {
 	public static void err(Throwable e) {
 		arc.util.Log.err(e);
 	}
+
 
 }

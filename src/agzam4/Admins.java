@@ -18,6 +18,11 @@ public class Admins {
 //		Vars.netServer.admins.getAdmins().forEach(i -> admins.put(i, AdminData.from(i)));
 		load();
 	}
+
+	public static @Nullable AdminData adminData(@Nullable Player player) {
+		if(player == null) return null;
+		return adminData(player.getInfo());
+	}
 	
 	public static @Nullable AdminData adminData(@Nullable PlayerInfo info) {
 		if(info == null) return null;

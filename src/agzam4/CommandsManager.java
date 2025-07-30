@@ -15,6 +15,7 @@ import agzam4.bot.TelegramBot;
 import agzam4.database.Database;
 import agzam4.database.Database.PlayerEntity;
 import agzam4.events.*;
+import agzam4.net.NetMenu;
 import arc.Core;
 import arc.Events;
 import arc.files.Fi;
@@ -633,6 +634,64 @@ public class CommandsManager {
 			Vars.netServer.admins.save();
 		});
 
+		adminCommand("m", "", "Открыть меню", (args, admin) -> {
+			 var players = new NetMenu("[white]" + Config.serverName.get().toString());
+
+			 for (int i = 0; i < Groups.player.size(); i++) {
+				 Player player = Groups.player.index(i);
+				 if(admin == null) continue;
+				 players.button(player.coloredName(), () -> {
+					 var playerControl = new NetMenu(player.coloredName());
+					 playerControl.build(() -> {
+						 if(Admins.has(admin, "team")) {
+							 for (var team : Team.baseTeams) {
+								 playerControl.button(team.emoji.isEmpty() ? Strings.format("[#@]@", team.color.toString(), Iconc.logic) : team.emoji, () -> {
+									 player.team(team);
+								 });
+							 }
+							 playerControl.row();
+						 }
+						 playerControl.button("[green]\ue80f Вылечить", () -> {
+							 if(player.unit() == null) return;
+							 player.unit().heal();
+						 });
+						 playerControl.button("[red]\uue815 Уничтожить", () -> {
+							 if(player.unit() == null) return;
+							 player.unit().kill();
+						 });
+						 playerControl.row();
+
+						 if(player.unit() != null) {
+							 Cons2<StatusEffect, String> createEffect = (e,name) -> {
+								 if(player.unit().hasEffect(e)) {
+									 playerControl.button(Strings.format("[scarlet]@[] @", Iconc.cancel, name), () -> {
+										 if(player.unit() == null) return;
+										 player.unit().unapply(e);
+									 });
+									 return;
+								 }
+								 playerControl.button(Strings.format("[lime]@[] @", Iconc.add, name), () -> {
+									 if(player.unit() == null) return;
+									 player.unit().apply(e, Float.MAX_VALUE);
+								 });
+							 };
+							 createEffect.get(StatusEffects.invincible, "Неуязвимость");
+							 createEffect.get(StatusEffects.fast, "Скорость");
+						 }
+
+						 playerControl.row();
+						 playerControl.button("[gold]\ue86d Сброс юнита", () -> {
+							 if(player.unit() != null) {
+								 Game.clearUnit(player);
+							 }
+						 });
+					 });
+					 playerControl.show(admin);
+				 }).row();
+			 }
+			 players.show(admin);
+    	});
+		
 		adminCommand("restart", "[code] [args...]", "Перезагрузить сервер", (args, player) -> {
 			if(args.length == 0) {
 				generateStopCode();
