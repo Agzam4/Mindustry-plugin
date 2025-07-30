@@ -1,6 +1,5 @@
 package agzam4.database;
 
-import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -8,27 +7,19 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
-import java.util.HashMap;
-
 import agzam4.achievements.AchievementsManager;
 import agzam4.achievements.AchievementsManager.Achievement;
 import agzam4.database.DBFields.AUTOINCREMENT;
 import agzam4.database.DBFields.DEFAULT;
 import agzam4.database.DBFields.FIELD;
 import agzam4.database.DBFields.PRIMARY_KEY;
-import agzam4.database.Database.PlayerEntity;
 import agzam4.database.SQL.TableColumnInfo;
 import arc.func.Cons;
 import arc.func.Func;
-import arc.math.Mathf;
 import arc.struct.Seq;
 import arc.util.Log;
 import arc.util.Nullable;
 import arc.util.Strings;
-import mindustry.Vars;
-import mindustry.game.Team;
-import mindustry.gen.Call;
-import mindustry.gen.Groups;
 import mindustry.gen.Player;
 
 public class Database {
