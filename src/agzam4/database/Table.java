@@ -27,7 +27,7 @@ public class Table<T> {
 	private final Seq<String> columns = new Seq<String>();
 	private final Seq<String> columnsNoKey;
 
-	private final ObjectMap<String, TableColumnInfo> columnsInfos = new ObjectMap<>();
+//	private final ObjectMap<String, TableColumnInfo> columnsInfos = new ObjectMap<>();
 	
 	private final Class<T> entityType;
 	

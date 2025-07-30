@@ -1,5 +1,6 @@
 package agzam4.bot;
 
+import agzam4.Log;
 import agzam4.CommandsManager.CommandReceiver;
 import arc.util.CommandHandler.ResponseType;
 import arc.util.Nullable;
@@ -23,18 +24,25 @@ public class TUser extends TSender {
 			if(response.type == ResponseType.valid) return;
 			if(response.type == ResponseType.noCommand) {
 				sender.message("не команда найдена");
+				return;
 			}
 			if(response.type == ResponseType.manyArguments) {
 				sender.message("Слишком много аргументов");
+				return;
 			}
 			if(response.type == ResponseType.fewArguments) {
 				sender.message("Слишком мало аргументов");
+				return;
 			}
 			if(response.type == ResponseType.unknownCommand) {
 				sender.message("Команда не найдена");
+				return;
 			}
+			sender.message(":(");
+			return;
 		}
-		
+		sender.message("Type /help for more");
+		return;
 //		
 //		if(sender == this) {
 //			sender.message("Hello user!");	
@@ -64,6 +72,10 @@ public class TUser extends TSender {
 
 		public void noAccess(String command) {
 			chat.message("Нет доступа к " + command);
+		}
+
+		public boolean hasPermissions(String text) {
+			return user.hasPermission(text) && chat.hasPermission(text);
 		}
 		
 	}

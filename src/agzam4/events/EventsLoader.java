@@ -1,41 +1,20 @@
 package agzam4.events;
 
-import static mindustry.Vars.android;
-import static mindustry.Vars.headless;
-import static mindustry.Vars.ios;
-import static mindustry.Vars.maxModSubtitleLength;
-import static mindustry.Vars.minJavaModGameVersion;
 import static mindustry.Vars.platform;
-import static mindustry.Vars.skipModCode;
-
-import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
-import java.util.Locale;
-
-import agzam4.Game;
-import arc.Core;
 import arc.files.Fi;
 import arc.files.ZipFi;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
 import arc.util.I18NBundle;
 import arc.util.Log;
-import arc.util.Nullable;
 import arc.util.OS;
-import arc.util.Strings;
 import arc.util.Time;
 import arc.util.io.PropertiesUtils;
 import arc.util.serialization.Json;
 import arc.util.serialization.Jval;
 import arc.util.serialization.Jval.Jformat;
-import mindustry.core.Version;
-import mindustry.mod.ClassLoaderCloser;
-import mindustry.mod.Mod;
 import mindustry.mod.ModClassLoader;
-import mindustry.mod.Plugin;
-import mindustry.mod.Mods.LoadedMod;
 import mindustry.mod.Mods.ModLoadException;
-import mindustry.mod.Mods.ModMeta;
 
 public class EventsLoader {
 

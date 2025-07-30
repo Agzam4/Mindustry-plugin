@@ -20,6 +20,7 @@ import javax.imageio.ImageIO;
 
 import agzam4.achievements.*;
 import agzam4.bot.Bots;
+import agzam4.bot.Bots.NotifyTag;
 import agzam4.bot.TelegramBot;
 import agzam4.database.Database;
 import agzam4.events.EventMap;
@@ -110,7 +111,7 @@ public class AgzamPlugin extends Plugin {
     		}
     		Call.sendMessage(result.toString());
     		CommandsManager.stopSkipmapVoteSession();
-			TelegramBot.sendToAll("<b>Game over</b>: " + state.wave + "/" + state.map.getHightScore());
+			Bots.notify(NotifyTag.round, "<b>Game over</b>: " + state.wave + "/" + state.map.getHightScore());
     	});
 
     	Events.on(WorldLoadBeginEvent.class, e -> {
@@ -121,8 +122,8 @@ public class AgzamPlugin extends Plugin {
     		CommandsManager.stopSkipmapVoteSession();
     		ServerEventsManager.worldLoadEnd(e);
     		CommandsManager.clearDoors();
-            Map map = maps.getNextMap(state.rules.mode(), state.map);
-			TelegramBot.sendToAll("<b>Next map is:</b> " + map.plainName());
+//            Map map = maps.getNextMap(state.rules.mode(), state.map);
+			Bots.notify(NotifyTag.round, Strings.format("<b>Next map is:</b> <code>@</code>", TelegramBot.strip(state.map.plainName())));
     	});
     	
 //        Events.on(BuildSelectEvent.class, event -> { 

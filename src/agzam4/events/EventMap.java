@@ -2,7 +2,6 @@ package agzam4.events;
 
 import java.io.IOException;
 
-import agzam4.AgzamPlugin;
 import arc.files.Fi;
 import arc.struct.Seq;
 import arc.util.Log;

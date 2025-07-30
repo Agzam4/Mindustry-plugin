@@ -6,7 +6,6 @@ import static mindustry.content.UnitTypes.*;
 
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Field;
 
 import arc.graphics.Color;
 import arc.math.Mathf;
@@ -31,7 +30,6 @@ import mindustry.gen.Call;
 import mindustry.gen.Groups;
 import mindustry.gen.Player;
 import mindustry.gen.Posc;
-import mindustry.gen.Unit;
 import mindustry.type.Item;
 import mindustry.type.UnitType;
 import mindustry.world.Block;

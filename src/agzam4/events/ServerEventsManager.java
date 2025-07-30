@@ -1,12 +1,8 @@
 package agzam4.events;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-
 import agzam4.Game;
 import arc.Events;
 import arc.func.Boolf;
-import arc.func.Cons;
 import arc.func.Cons2;
 import arc.struct.Seq;
 import arc.util.Log;
@@ -86,8 +82,6 @@ public class ServerEventsManager {
 		worldMessages.clear();
 	}
 	
-	private static int updates = 0;
-	
 	public static void update() {
 		if(isLoaded) {
 			activeEvents.each(e -> e.update());
@@ -106,7 +100,6 @@ public class ServerEventsManager {
 				}
 			}
 			EventsBlocks.update();
-			updates++;
 		}
 	}
 

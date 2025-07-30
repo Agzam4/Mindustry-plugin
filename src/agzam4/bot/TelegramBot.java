@@ -18,13 +18,13 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.BotSession;
+
+import agzam4.Game;
 import agzam4.Log;
 import arc.files.Fi;
 import arc.func.Boolf;
 import arc.func.Func;
 import arc.struct.LongMap;
-import arc.struct.ObjectMap;
-import arc.util.CommandHandler;
 import arc.util.Strings;
 import mindustry.Vars;
 import mindustry.content.Blocks;
@@ -100,22 +100,23 @@ public class TelegramBot extends TelegramLongPollingBot {
 	
 	public static void save() {
 		try {
-			save(users, TUser::toString, botUsersPath);
-			save(chats, TChat::toString, botChatsPath);
+			save(users, botUsersPath);
+			save(chats, botChatsPath);
 		} catch (Exception e) {
 			Log.err(e);
 		}
 	}
 	
-	private static <T> void save(LongMap<T> values, Func<T, String> func, Fi file) {
+	private static <T> void save(LongMap<T> values, Fi file) {
 		try {
 			StringBuilder builder = new StringBuilder();
 			values.eachValue((e) -> {
 				if(builder.length() != 0) builder.append('\n');
-				var obj = func.get(e);
+				var obj = e.toString();
 				if(obj == null) return;
 				builder.append(obj);
 			});
+			Log.info("saving [blue]@[] [lime]@[] [gray]@[]", file, builder.toString(), values);
 			file.writeString(builder.toString(), false);
 		} catch (Exception e) {
 			Log.err(e);
@@ -164,8 +165,6 @@ public class TelegramBot extends TelegramLongPollingBot {
 			if(fromId == null) return;
 
 			TUser user = users.get(fromId);
-			
-			Log.info("from: @, ", user, fromId);
 			
 			long chatId = message.getChatId();
 			
@@ -477,17 +476,14 @@ public class TelegramBot extends TelegramLongPollingBot {
 		chats.eachValue((chat) -> bot.sendMessagePhoto(chat.id, screen));
 	}
 
-	private boolean hasFollower(long chatId) {
-		return chats.containsKey(chatId);
-	}
 
 	@Deprecated
 	public static void sendToAll(String message) {
-		if(bot == null) return;
-		final String msg = Strings.stripGlyphs(message);
-		chats.eachValue((chat) -> {
-			bot.sendMessageHtml(chat.id, msg);
-		});
+//		if(bot == null) return;
+//		final String msg = Strings.stripGlyphs(message);
+//		chats.eachValue((chat) -> {
+//			bot.sendMessageHtml(chat.id, msg);
+//		});
 	}
 
 	public static void sendTo(Long id, String message) {
@@ -497,7 +493,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 	}
 
 	public static String strip(String str) {
-		return str.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+		return escapeHtml(Game.strip(str));//str.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 	}
 
 }

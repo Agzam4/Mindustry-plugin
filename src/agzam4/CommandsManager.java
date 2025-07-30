@@ -9,6 +9,8 @@ import java.util.concurrent.TimeUnit;
 
 import agzam4.achievements.AchievementsManager;
 import agzam4.achievements.AchievementsManager.Achievement;
+import agzam4.bot.Bots;
+import agzam4.bot.Bots.NotifyTag;
 import agzam4.bot.TChat;
 import agzam4.bot.TSender;
 import agzam4.bot.TUser;
@@ -109,9 +111,10 @@ public class CommandsManager {
 				playerEntity.playtime += (int) TimeUnit.MILLISECONDS.toMinutes(Time.millis() - playerEntity.joinTime);
 				Database.players.put(playerEntity);
 			}
-			String tgmsg = "<b>" + TelegramBot.strip(Game.strip(e.player.name())) + "</b> has left <i>(" + (Groups.player.size()-1) + " players)</i> (" + joined.size + ")";
-			TelegramBot.sendToAll(tgmsg);
-
+			Bots.notify(NotifyTag.playerConnection, 
+					Strings.format("<b>@</b> has left <i>(@ players)</i>", TelegramBot.strip(e.player.name), joined.size)
+			);
+			
 			PlayerData data = Players.getData(e.player.uuid());
 			if(data == null || data.disconnectedMessage == null) Call.sendMessage(e.player.coloredName() + "[accent] отключился");
 			else Call.sendMessage("[accent]" + data.disconnectedMessage.replaceAll("@name", e.player.coloredName() + "[accent]"));
@@ -126,8 +129,11 @@ public class CommandsManager {
 			playerEntity.joinTime = Time.millis();
     		joined.put(e.player.uuid(), playerEntity);
     		
-    		TelegramBot.sendToAll("<b>" + e.player.plainName() + "</b> " + (e.player.admin() ? "(admin)":"") + "has joined <i>(" + Groups.player.size() + " players)</i> <code>" + e.player.uuid() + "</code>");
-    		
+    		Bots.notify(NotifyTag.playerConnection,
+    				Strings.format("<b>@</b>@ has joined <i>(@ players)</i>", TelegramBot.strip(e.player.name), (e.player.admin() ? " (admin)":""), joined.size),
+    				Strings.format("<b>@</b>@ has joined <i>(@ players)</i> <code>@</code>", TelegramBot.strip(e.player.name), (e.player.admin() ? " (admin)":""), joined.size, e.player.uuid())
+    		);
+			
     		PlayerData data = Players.getData(e.player.uuid());
 
     		if(data != null && data.name != null)  e.player.name(data.name);
@@ -353,7 +359,7 @@ public class CommandsManager {
 		});
 		// "/chatfilter" command
 		Vars.netServer.admins.addChatFilter((player, text) -> {
-			if(player != null && text != null) TelegramBot.sendToAll("<u><b>" + TelegramBot.strip(player.plainName()) + "</b></u>: " + Strings.stripColors(text));
+			if(player != null && text != null) Bots.notify(NotifyTag.chatMessage, "<u><b>" + TelegramBot.strip(player.name) + "</b></u>: " + TelegramBot.strip(text));
 			if(chatFilter) {
 				text = "[white]" + text + "[white]";
 				char[] msg = text.toCharArray();
@@ -502,13 +508,9 @@ public class CommandsManager {
 		}
 		
 
-		public boolean check(MessageData data) {
-			return data.user.permissions.contains(text) && data.chat.permissions.contains(text);
-		}
-		
 		public CommandRunner<MessageData> run() {
 			return (args, sender) -> {
-				if(!check(sender)) {
+				if(!sender.hasPermissions(text)) {
 					sender.noAccess(text);
 					return;
 				}
@@ -516,15 +518,15 @@ public class CommandsManager {
 			};
 		}
 
-		private String build(String[] args) {
-			StringBuilder command = new StringBuilder("&#47;");
-			command.append(text);
-			for (int i = 0; i < args.length; i++) {
-				command.append(' ');
-				command.append(args[i] == null ? "null" : args[i]);
-			}
-			return command.toString();
-		}
+//		private String build(String[] args) {
+//			StringBuilder command = new StringBuilder("&#47;");
+//			command.append(text);
+//			for (int i = 0; i < args.length; i++) {
+//				command.append(' ');
+//				command.append(args[i] == null ? "null" : args[i]);
+//			}
+//			return command.toString();
+//		}
 	}
 
 	static class BaseCommand {
@@ -574,12 +576,16 @@ public class CommandsManager {
 		
 		public CommandRunner<Player> run() {
 			if(!admin) return (args, player) -> {
-				if(TelegramBot.bot != null) TelegramBot.sendToAll("<b><u>" + TelegramBot.strip(player.plainName()) + "</u></b>: <code>" + build(args) + "</code>");
+				Bots.notify(NotifyTag.playerCommand, "<b><u>" + TelegramBot.strip(player.plainName()) + "</u></b>: <code>" + build(args) + "</code>");
 				run.accept(args, player);
 			};
 			return (args, player) -> {
 				if(!check(player)) return;
-				if(TelegramBot.bot != null) TelegramBot.sendToAll((player.admin() ? "#admin" : "#helper") + " <b><u>" + TelegramBot.strip(player.plainName()) + "</u></b>: <code>" + build(args) + "</code>");
+				Bots.notify(NotifyTag.adminCommand, 
+						player.admin() ? null : Strings.format("#helper <b><u>@</u></b>: <code>@</code>", TelegramBot.strip(player.name), build(args)),
+						Strings.format("@ <b><u>@</u></b>: <code>@</code>", player.admin() ? "#admin" : "#helper", TelegramBot.strip(player.name), build(args))
+				);
+				
 				run.accept(args, player);
 			};
 		}
@@ -724,7 +730,7 @@ public class CommandsManager {
 				});
 				Log.info("Restarting");
 				String command = "java -jar \"" + Fi.get("").absolutePath() + "/server-release.jar\"" + ((args.length <= 1) ? "" : " " + args[1]);
-				TelegramBot.sendToAll("Restarting server: <code>" + command + "</code>");
+				Bots.notify(NotifyTag.serverInfo, null, "Restarting server: <code>" + command + "</code>");
 				Threads.daemon(() -> {
 					Core.app.exit();
 					try {
@@ -1391,7 +1397,7 @@ public class CommandsManager {
 			}
 		});
 
-		adminCommand("bot", "[add/remove/list/start/stop/t/p] [id/name] [token]", "Привязать/отвязать телеграм аккаунт", (arg, player) -> {
+		adminCommand("bot", "[add/remove/list/start/stop/t/p] [id/name] [token...]", "Привязать/отвязать телеграм аккаунт", (arg, player) -> {
 			if(require(arg.length < 1, player, "Мало аргументов")) return;
 			try {
 				arg[0] = arg[0].toLowerCase();
@@ -1462,6 +1468,7 @@ public class CommandsManager {
 						var sender = senders.get(id);
 						if(require(sender == null, player, "Id не найден")) return;
 						if(require(arg.length != 3, player, "Должно быть 3 аргумента!")) return;
+						Log.info("args: [blue]@[]", Arrays.toString(arg));
 						for (var a : arg[2].split(" ")) {
 							boolean add = true;
 							if(a.startsWith("+")) a = a.substring(1);
@@ -1469,18 +1476,20 @@ public class CommandsManager {
 								add = false;
 								a = a.substring(1);
 							}
+							Log.info("arg: [blue]@[]",  a);
 							if(t) {
 								if(add) sender.addTag(a);
-								else sender.addTag(a);
+								else sender.removeTag(a);
 							}
 							if(p) {
 								if(add) sender.addPermission(a);
-								else sender.addTag(a);
+								else sender.removePermission(a);
 							}
 						}
 						player.sendMessage("Объект " + id + ":");
 						player.sendMessage("Разрешения: " + sender.permissions.toString(" "));
 						player.sendMessage("Теги: " + sender.tags.toString(" "));
+						TelegramBot.save();
 						return;
 					}
 					
@@ -1646,8 +1655,9 @@ public class CommandsManager {
 
 	public static void registerBotCommands() {
 		botCommand("help", "Список всех команд", (args, receiver) -> {
-			StringBuilder result = new StringBuilder();
+			StringBuilder result = new StringBuilder("Команды:\n");
 			for (BotCommand command : botCommands) {
+				if(!receiver.hasPermissions(command.text)) continue;
 				result.append("/").append(command.text).append(" ").append(TelegramBot.escapeHtml(command.parms)).append("<i> - ").append(command.desc).append("</i>\n");
 			}
 			receiver.sendMessage(result.toString());
@@ -1782,11 +1792,10 @@ public class CommandsManager {
 
 		botCommand("this", "информация", (args, receiver) -> {
 			StringBuilder result = new StringBuilder();
-			result.append(Strings.format("User: <code>u-@</code>\nChat: <code>c-@</code>", receiver.user.uid(), receiver.chat.uid()));
-			result.append(chatFilter);
-			for (BotCommand command : botCommands) {
-				result.append("/").append(command.text).append(" ").append(TelegramBot.escapeHtml(command.parms)).append("<i> - ").append(command.desc).append("</i>\n");
-			}
+			result.append(Strings.format("<b><u>User</u></b>:\nID: <code>u-@</code>\nTags: <code>@</code>\nPermissions: <code>@</code>", 
+					receiver.user.uid(), receiver.user.tags.toString("</code> <code>"), receiver.user.permissions.toString("</code> <code>")));
+			result.append(Strings.format("\n<b><u>Chat</u></b>:\nID: <code>c-@</code>\nTags: <code>@</code>\nPermissions: <code>@</code>", 
+					receiver.chat.uid(), receiver.chat.tags.toString("</code> <code>"), receiver.chat.permissions.toString("</code> <code>")));
 			receiver.sendMessage(result.toString());
 		});
 	}
@@ -1874,7 +1883,8 @@ public class CommandsManager {
 	                                return;
 	                            }
 	                            VoteSession session = new VoteSession(found, reason);
-	                            TelegramBot.sendToAll("<b><u>" + TelegramBot.strip(player.plainName()) + "</u></b> started voting for kicking <b><u>" + found.plainName() + "</b></u>");
+	                            Bots.notify(NotifyTag.votekick, Strings.format("<b><u>@</u></b> started voting for kicking <b><u>@</b></u>", TelegramBot.strip(player.name), TelegramBot.strip(found.name)));
+	                            
 	                            TelegramBot.sendPlayerToAll(found);
 	                            session.vote(player, 1);
 	                            Call.sendMessage(Strings.format("[lightgray]Причина:[orange] @[lightgray].", reason));
@@ -2113,7 +2123,7 @@ public class CommandsManager {
 		if(last != null) minutes = last;
 		minutes = Math.min(minutes, 60);
 		lastkickTime.put(found.uuid(), minutes*2);
-        TelegramBot.sendToAll(Strings.format("Выдан бан на <b>@</b> минут\nПричина: <i>@</i>\nБан выдал: <i>@</i>", minutes, TelegramBot.strip(reason), TelegramBot.strip(name)));
+		Bots.notify(NotifyTag.votekick, Strings.format("Выдан бан на <b>@</b> минут\nПричина: <i>@</i>\nБан выдал: <i>@</i>", minutes, TelegramBot.strip(reason), TelegramBot.strip(name)));
         TelegramBot.sendPlayerToAll(found);
 		found.kick(Strings.format("Вы были забанены на [red]@[] минут\nПричина: [orange]@[white]\nБан выдал: [orange]@[]\nОбжаловать: @", minutes, reason, name, discordLink), minutes * 60 * 1000);
 		if(discordLink != null) {
@@ -2191,7 +2201,7 @@ public class CommandsManager {
 	            this.task = Timer.schedule(() -> {
 	                if(!checkPass()){
 	                    Call.sendMessage(Strings.format("[lightgray]Голосование провалено. Недостаточно голосов, чтобы кикнуть [orange] @[lightgray].", target.name));
-	                    TelegramBot.sendToAll("Голосование провалено");
+	                    Bots.notify(NotifyTag.votekick, "Голосование провалено");
 		                currentlyKicking = null;
 	                    task.cancel();
 	                }
@@ -2216,7 +2226,12 @@ public class CommandsManager {
 	        public boolean checkPass(){
 	            if(votes >= votesRequired()){
 	                Call.sendMessage(Strings.format("[orange]Голосование принято. [red] @[orange] забанен на @ минут", target.name, (NetServer.kickDuration / 60)));
-	                TelegramBot.sendToAll(Strings.format("Голосование принято. <b><u>@</u></b> забанен на @ минут\nUUID: <code>@</code>\nUSID: <code>@</code>\nIP: <code>@</code>", TelegramBot.strip(TelegramBot.escapeHtml(target.name)), (NetServer.kickDuration / 60), target.uuid(), target.usid(), target.ip()));
+	                
+	                Bots.notify(NotifyTag.votekick, 
+	                		Strings.format("Голосование принято. <b><u>@</u></b> забанен на @ минут", TelegramBot.strip(target.name), NetServer.kickDuration / 60),
+	                		Strings.format("Голосование принято. <b><u>@</u></b> забанен на @ минут\nUUID: <code>@</code>\nUSID: <code>@</code>\nIP: <code>@</code>", TelegramBot.strip(target.name), (NetServer.kickDuration / 60), target.uuid(), target.usid(), target.ip())
+	                );
+	                
 	                Groups.player.each(p -> p.uuid().equals(target.uuid()), p -> {
 	                	p.kick(KickReason.vote, NetServer.kickDuration * 1000);
 		                Vars.netServer.admins.handleKicked(p.uuid(), p.ip(), NetServer.kickDuration * 1000);

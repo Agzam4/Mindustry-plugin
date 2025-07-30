@@ -1,7 +1,6 @@
 package agzam4.database;
 
 import agzam4.database.DBFields.*;
-import arc.struct.ObjectSet;
 
 /**
  * TODO: single permissions system for bots and players:
@@ -25,11 +24,6 @@ public class Users {
 
 		private @FIELD String permissions = "";
 		
-		private ObjectSet<String> permissionsSet = null;
-
-		private void save() {
-
-		}
 		
 	}
 	

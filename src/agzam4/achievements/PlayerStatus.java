@@ -1,10 +1,5 @@
 package agzam4.achievements;
 
-import static mindustry.Vars.*;
-
-import mindustry.gen.Call;
-import mindustry.gen.Player;
-
 public class PlayerStatus {
 
 //	private String uidd;

@@ -16,6 +16,8 @@ public class TSender {
 	
 	public TSender(long id) {
 		this.id = id;
+		addPermission("this");
+		addPermission("help");
 	}
 	
 	public TSender(String data) {
@@ -45,6 +47,14 @@ public class TSender {
 		permissions.add(permission);
 	}
 
+	public void removePermission(String permission) {
+		permissions.remove(permission);
+	}
+
+	public boolean hasPermission(String permission) {
+		return permissions.contains(permission) || permissions.contains("all");
+	}
+
 	public String uid() {
 		return Long.toUnsignedString(id, Character.MAX_RADIX);
 	}
@@ -59,7 +69,7 @@ public class TSender {
 	
 	@Override
 	public String toString() {
-		return Strings.format("@ @", uid(), tags.toString(","), permissions.toString(","));
+		return Strings.format("@ @ @", uid(), tags.toString(","), permissions.toString(","));
 	}
 	
 	public static LongMap<TSender> senders(String tag) {

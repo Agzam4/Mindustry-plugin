@@ -37,7 +37,6 @@ import org.telegram.telegrambots.meta.generics.BotSession;
 import org.telegram.telegrambots.meta.generics.LongPollingBot;
 import org.telegram.telegrambots.meta.generics.UpdatesHandler;
 import org.telegram.telegrambots.meta.generics.UpdatesReader;
-import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class DaemonBotSession implements BotSession {
@@ -137,7 +136,6 @@ public class DaemonBotSession implements BotSession {
         return running.get();
     }
 
-    @SuppressWarnings("WeakerAccess")
     private class ReaderThread extends Thread implements UpdatesReader {
 
         private final UpdatesSupplier updatesSupplier;

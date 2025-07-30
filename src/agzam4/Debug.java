@@ -41,7 +41,8 @@ public class Debug {
 	static Scanner scanner = new Scanner(System.in);
 	static File cd = new File(System.getProperty("user.dir") + "/build/libs/");
 	static ObjectMap<String, String> env = new ObjectMap<>();
-	
+
+	@SuppressWarnings("unused")
 	public static void main(String[] args) throws IOException {
 		
 		PropertiesUtils.load(env, Fi.get(".env.properties").reader());

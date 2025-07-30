@@ -1,8 +1,6 @@
 package agzam4.achievements;
 
 //import agzam4.achievements.AchievementsManager.Achievement;
-import arc.struct.ObjectMap;
-import arc.util.Log;
 
 public class PlayerAchievements {
 
