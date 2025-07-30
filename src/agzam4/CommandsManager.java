@@ -10,7 +10,9 @@ import java.util.concurrent.TimeUnit;
 import agzam4.achievements.AchievementsManager;
 import agzam4.achievements.AchievementsManager.Achievement;
 import agzam4.bot.TChat;
+import agzam4.bot.TSender;
 import agzam4.bot.TUser;
+import agzam4.bot.TUser.MessageData;
 import agzam4.bot.TelegramBot;
 import agzam4.database.Database;
 import agzam4.database.Database.PlayerEntity;
@@ -466,21 +468,21 @@ public class CommandsManager {
 	public static void serverCommand(String text, String desc, Cons4<String[], CommandReceiver, Object, ReceiverType> run) {
 		playerCommands.add(new PlayerCommand(text, "", desc, (arg, player) -> run.get(arg, player::sendMessage, player, ReceiverType.player)).admin(true));
 		serverCommands.add(new BaseCommand(text, "", desc, (arg) -> run.get(arg, Log::info, null, ReceiverType.server)));
-		botCommands.add(new BotCommand(text, "", desc, (arg, chat) -> run.get(arg, m -> TelegramBot.sendTo(chat, m), chat, ReceiverType.bot)));
+		botCommands.add(new BotCommand(text, "", desc, (arg, chat) -> run.get(arg, m -> chat.chat.message(m), chat, ReceiverType.bot)));
 	}
 
 	public static void serverCommand(String text, String parms, String desc, Cons4<String[], CommandReceiver, Object, ReceiverType> run) {
 		playerCommands.add(new PlayerCommand(text, parms, desc, (arg, player) -> run.get(arg, player::sendMessage, player, ReceiverType.player)).admin(true));
 		serverCommands.add(new BaseCommand(text, parms, desc, (arg) -> run.get(arg, Log::info, null, ReceiverType.server)));
-		botCommands.add(new BotCommand(text, parms, desc, (arg, chat) -> run.get(arg, m -> TelegramBot.sendTo(chat, m), chat, ReceiverType.bot)));
+		botCommands.add(new BotCommand(text, parms, desc, (arg, chat) -> run.get(arg, m -> chat.chat.message(m), chat, ReceiverType.bot)));
 	}
 
-	public static void botCommand(String text, String desc, Cons2<String[], CommandReceiver> run) {
-		botCommands.add(new BotCommand(text, "", desc, (arg, chat) -> run.get(arg, m -> TelegramBot.sendTo(chat, m))));
+	public static void botCommand(String text, String desc, Cons2<String[], MessageData> run) {
+		botCommands.add(new BotCommand(text, "", desc, (arg, chat) -> run.get(arg, chat)));
 	}
 
-	public static void botCommand(String text, String parms, String desc, Cons2<String[], CommandReceiver> run) {
-		botCommands.add(new BotCommand(text, parms, desc, (arg, chat) -> run.get(arg, m -> TelegramBot.sendTo(chat, m))));
+	public static void botCommand(String text, String parms, String desc, Cons2<String[], MessageData> run) {
+		botCommands.add(new BotCommand(text, parms, desc, (arg, chat) -> run.get(arg, chat)));
 	}
 	
 	public static interface CommandReceiver {
@@ -490,17 +492,28 @@ public class CommandsManager {
 	static class BotCommand {
 		
 		private final String text, parms, desc;
-		private CommandRunner<Long> run;
+		private CommandRunner<MessageData> run;
 
-		public BotCommand(String text, String parms, String desc, CommandRunner<Long> run) {
+		public BotCommand(String text, String parms, String desc, CommandRunner<MessageData> run) {
 			this.text = text;
 			this.parms = parms;
 			this.desc = desc;
 			this.run = run;
 		}
 		
-		public CommandRunner<Long> run() {
-			return run;
+
+		public boolean check(MessageData data) {
+			return data.user.permissions.contains(text) && data.chat.permissions.contains(text);
+		}
+		
+		public CommandRunner<MessageData> run() {
+			return (args, sender) -> {
+				if(!check(sender)) {
+					sender.noAccess(text);
+					return;
+				}
+				run.accept(args, sender);
+			};
 		}
 
 		private String build(String[] args) {
@@ -1378,27 +1391,41 @@ public class CommandsManager {
 			}
 		});
 
-		adminCommand("bot", "[add/remove/list/start/stop] [id/name] [token]", "Привязать/отвязать телеграм аккаунт", (arg, player) -> {
-			if(arg.length == 3) {
-				if(arg[0].equalsIgnoreCase("start")) {
-					TelegramBot.run(arg[1], arg[2]);
-					player.sendMessage("[gold]Бот запущен! [gray](" + arg[1] + " " + arg[2] + ")");
-				} else if(arg[0].equalsIgnoreCase("stop")) {
-					TelegramBot.stop();
-					player.sendMessage("[gold]Бот остановлен!");
+		adminCommand("bot", "[add/remove/list/start/stop/t/p] [id/name] [token]", "Привязать/отвязать телеграм аккаунт", (arg, player) -> {
+			if(require(arg.length < 1, player, "Мало аргументов")) return;
+			try {
+				arg[0] = arg[0].toLowerCase();
+
+				if(arg[0].equalsIgnoreCase("list")) {
+					Cons2<LongMap<? extends TSender>, String> show = (m, name) -> {
+						if(m.size == 0) player.sendMessage(Strings.format("@: <empty>", name));
+						else {
+							player.sendMessage(Strings.format("@:", name));
+							m.eachValue(e -> {
+								player.sendMessage("> " + e);
+							});
+						}
+					};
+					show.get(TelegramBot.users, "Пользователи");
+					show.get(TelegramBot.chats, "Чаты");
 				}
-				return;
-			}
-			if(arg.length == 2) {
-				try {
+				
+				if(arg[0].equals("add") || arg[0].equals("remove") || arg[0].equals("t") || arg[0].equals("p")) {
+					if(require(arg.length < 2, player, "Должно быть 2 аргумента: " + arg[0] + " <id>")) return;
+
 					boolean user = arg[1].startsWith("u-");
 					boolean chat = arg[1].startsWith("c-");
 					
-					if(require(!user && !chat, player, "[red]wrong id")) return;
+					LongMap<? extends TSender> senders = null;
+					if(chat) senders = TelegramBot.chats;
+					if(user) senders = TelegramBot.users;
 					
+					if(require(senders == null, player, "Неверный Id")) return;
+					if(require(!user && !chat, player, "Неверный Id")) return;
+
 					long id = Long.parseUnsignedLong(arg[1].substring(2), Character.MAX_RADIX);
-					
-					if(arg[0].equalsIgnoreCase("add")) {
+
+					if(arg[0].equals("add")) {
 						if(user) {
 							if(TelegramBot.users.containsKey(id)) {
 								player.sendMessage("Пользователь [gold]" + id + "[] уже был добавлен!");
@@ -1419,36 +1446,59 @@ public class CommandsManager {
 							}
 							return;
 						}
-					} else if(arg[0].equalsIgnoreCase("remove")) {
-						boolean removed = false;
-
-						if(chat) removed = TelegramBot.chats.remove(id) != null;
-						if(user) removed = TelegramBot.users.remove(id) != null;
-						
-						if(removed) player.sendMessage("[lightgray]" + id + "[gold] убран!");
-						else player.sendMessage("[lightgray]" + id + "[red] не найден!");
-						TelegramBot.save();
-					} else if(arg[0].equalsIgnoreCase("list")) {
-						if(TelegramBot.chats.size == 0) player.sendMessage("Нет чатов");
-						else {
-							player.sendMessage("Чаты: ");
-							TelegramBot.chats.each((e,c) -> {
-								player.sendMessage("> " + e);
-							});
-						}
-						if(TelegramBot.users.size == 0) player.sendMessage("Нет чатов");
-						else {
-							player.sendMessage("Пользователи: ");
-							TelegramBot.users.each((e,u) -> {
-								player.sendMessage("> " + e);
-							});
-						}
-					} else {
-						player.sendMessage("[red]Неверный аргумент");
+						return;
 					}
-				} catch (Exception e) {
-					player.sendMessage("[red]" + e.getMessage());
+					if(arg[0].equals("remove")) {
+						if(senders.remove(id) == null) player.sendMessage("[lightgray]" + id + "[red] не найден!");
+						else player.sendMessage("[lightgray]" + id + "[gold] убран!");
+						TelegramBot.save();
+						return;
+					}
+
+					boolean t = arg[0].equals("t");
+					boolean p = arg[0].equals("p");
+					
+					if(t || p) {
+						var sender = senders.get(id);
+						if(require(sender == null, player, "Id не найден")) return;
+						if(require(arg.length != 3, player, "Должно быть 3 аргумента!")) return;
+						for (var a : arg[2].split(" ")) {
+							boolean add = true;
+							if(a.startsWith("+")) a = a.substring(1);
+							if(a.startsWith("-")) {
+								add = false;
+								a = a.substring(1);
+							}
+							if(t) {
+								if(add) sender.addTag(a);
+								else sender.addTag(a);
+							}
+							if(p) {
+								if(add) sender.addPermission(a);
+								else sender.addTag(a);
+							}
+						}
+						player.sendMessage("Объект " + id + ":");
+						player.sendMessage("Разрешения: " + sender.permissions.toString(" "));
+						player.sendMessage("Теги: " + sender.tags.toString(" "));
+						return;
+					}
+					
+					return;
 				}
+				if(arg[0].equals("start")) {
+					if(require(arg.length != 3, player, "Должно быть 3 аргумента: start <name> <token>")) return;
+					TelegramBot.run(arg[1], arg[2]);
+					player.sendMessage("[gold]Бот запущен! [gray](" + arg[1] + " " + arg[2] + ")");
+					return;
+				}
+				if(arg[0].equals("stop")) {
+					TelegramBot.stop();
+					player.sendMessage("Бот остановлен!");
+					return;
+				}
+			} catch (Exception e) {
+				player.sendMessage("[red]" + e.getMessage());
 			}
 		});
 		
@@ -1727,6 +1777,17 @@ public class CommandsManager {
 			} catch (Exception e) {
 				receiver.sendMessage("[red]" + e.getLocalizedMessage());
 			}
+		});
+		
+
+		botCommand("this", "информация", (args, receiver) -> {
+			StringBuilder result = new StringBuilder();
+			result.append(Strings.format("User: <code>u-@</code>\nChat: <code>c-@</code>", receiver.user.uid(), receiver.chat.uid()));
+			result.append(chatFilter);
+			for (BotCommand command : botCommands) {
+				result.append("/").append(command.text).append(" ").append(TelegramBot.escapeHtml(command.parms)).append("<i> - ").append(command.desc).append("</i>\n");
+			}
+			receiver.sendMessage(result.toString());
 		});
 	}
 

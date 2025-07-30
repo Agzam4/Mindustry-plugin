@@ -1,7 +1,5 @@
 package agzam4.bot;
 
-import arc.util.Strings;
-
 public class TChat extends TSender {
 	
 	public TChat(long id) {

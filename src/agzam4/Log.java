@@ -3,17 +3,20 @@ package agzam4;
 import java.util.Stack;
 
 import arc.struct.ObjectMap;
-import mindustry.game.EventType.ResetEvent;
 
 public class Log {
 
 	private static ObjectMap<String, Colors> colors = new ObjectMap<>();
 	
-	public static void init() {
+	static {
 		for (var c : Colors.values()) {
 			colors.put(c.name, c);
 		}
 		reset();
+	}
+	
+	public static void init() {
+		
 	}
 	
 	public static void reset() {
@@ -28,7 +31,7 @@ public class Log {
 		yellow(33),
 		magenta(35),
 		gray(90),
-		lightGreen(92),
+		lime(92),
 		lightYellow(93),
 		blue(94),
 		cyan(96),

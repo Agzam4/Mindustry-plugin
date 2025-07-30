@@ -19,6 +19,7 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 
 import agzam4.achievements.*;
+import agzam4.bot.Bots;
 import agzam4.bot.TelegramBot;
 import agzam4.database.Database;
 import agzam4.events.EventMap;
@@ -40,6 +41,7 @@ public class AgzamPlugin extends Plugin {
     @Override
     public void init() {
     	plugin = Vars.mods.getMod("agzam4plugin");
+    	Log.init();
     	Log.info("init");
     	try {
 			Database.init(Vars.saveDirectory.absolutePath() + "/database");
@@ -61,7 +63,7 @@ public class AgzamPlugin extends Plugin {
     	
     	achievementsManager = new AchievementsManager();
     	CommandsManager.init();
-    	CommandsManager.registerBotCommands(TelegramBot.handler);
+    	CommandsManager.registerBotCommands(Bots.handler);
     	CommandsManager.registerServerCommands(serverHandler);
     	Log.reset();
     	

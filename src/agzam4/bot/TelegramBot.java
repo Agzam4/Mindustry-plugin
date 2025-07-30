@@ -22,6 +22,7 @@ import agzam4.Log;
 import arc.files.Fi;
 import arc.func.Boolf;
 import arc.func.Func;
+import arc.struct.LongMap;
 import arc.struct.ObjectMap;
 import arc.util.CommandHandler;
 import arc.util.Strings;
@@ -43,11 +44,9 @@ public class TelegramBot extends TelegramLongPollingBot {
 	private static String username, token;
 	private static boolean isRunning;
 	public static TelegramBot bot;
-	public static ObjectMap<Long, TChat> chats = new ObjectMap<>();
-
-	public static ObjectMap<Long, TUser> users = new ObjectMap<>();
-
-	public static CommandHandler handler = new CommandHandler("/");
+	
+	public static LongMap<TChat> chats = new LongMap<>();
+	public static LongMap<TUser> users = new LongMap<>();
 	
 	public TelegramBot(String token) {
 		super(token);
@@ -108,10 +107,10 @@ public class TelegramBot extends TelegramLongPollingBot {
 		}
 	}
 	
-	private static <T> void save(ObjectMap<Long, T> values, Func<T, String> func, Fi file) {
+	private static <T> void save(LongMap<T> values, Func<T, String> func, Fi file) {
 		try {
 			StringBuilder builder = new StringBuilder();
-			values.each((i,e) -> {
+			values.eachValue((e) -> {
 				if(builder.length() != 0) builder.append('\n');
 				var obj = func.get(e);
 				if(obj == null) return;
@@ -176,7 +175,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 			}
 			
 			if(chatId == user.id) {
-				user.onMessage(user);
+				user.onMessage(user, text);
 				return;
 			}
 
@@ -188,7 +187,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 				return;
 			}
 
-			user.onMessage(chat);
+			user.onMessage(chat, text);
 			
 			/*
 			
@@ -475,18 +474,19 @@ public class TelegramBot extends TelegramLongPollingBot {
 		
 		BufferedImage screen = takeScreen(dx, dy, Vars.world.width()/3, Vars.world.height()/3, false);
 		drawData(screen, false, dx, dy);
-		chats.each((id, chat) -> bot.sendMessagePhoto(id, screen));
+		chats.eachValue((chat) -> bot.sendMessagePhoto(chat.id, screen));
 	}
 
 	private boolean hasFollower(long chatId) {
 		return chats.containsKey(chatId);
 	}
 
+	@Deprecated
 	public static void sendToAll(String message) {
 		if(bot == null) return;
 		final String msg = Strings.stripGlyphs(message);
-		chats.each((id,chat) -> {
-			bot.sendMessageHtml(id, msg);
+		chats.eachValue((chat) -> {
+			bot.sendMessageHtml(chat.id, msg);
 		});
 	}
 

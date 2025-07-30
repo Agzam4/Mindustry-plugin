@@ -8,8 +8,10 @@ import arc.util.Strings;
 public class TSender {
 
 	private static ObjectMap<String, LongMap<TSender>> senders = new ObjectMap<>();
-	
+
 	public final ObjectSet<String> tags = new ObjectSet<String>();
+	public final ObjectSet<String> permissions = new ObjectSet<String>();
+	
 	public final long id;
 	
 	public TSender(long id) {
@@ -19,14 +21,28 @@ public class TSender {
 	public TSender(String data) {
 		String[] args = data.split(" ");
 		this.id = TSender.id(args[0]);
-		for (int i = 1; i < args.length; i++) {
-			addTag(args[i]);
+		if(args.length <= 1) return;
+		for (var t : args[1].split(",")) {
+			addTag(t);
+		}
+		if(args.length <= 2) return;
+		for (var p : args[2].split(",")) {
+			addPermission(p);
 		}
 	}
-	
-	private void addTag(String tag) {
+
+	public void addTag(String tag) {
 		tags.add(tag);
 		senders(tag).put(this.id, this);
+	}
+	
+	public void removeTag(String tag) {
+		tags.remove(tag);
+		senders(tag).remove(id);
+	}
+
+	public void addPermission(String permission) {
+		permissions.add(permission);
 	}
 
 	public String uid() {
@@ -43,7 +59,7 @@ public class TSender {
 	
 	@Override
 	public String toString() {
-		return Strings.format("@ @", id, tags.toString(" "));
+		return Strings.format("@ @", uid(), tags.toString(","), permissions.toString(","));
 	}
 	
 	public static LongMap<TSender> senders(String tag) {
@@ -54,4 +70,5 @@ public class TSender {
 		}
 		return list;
 	}
+	
 }
