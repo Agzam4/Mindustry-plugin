@@ -776,6 +776,9 @@ public class CommandsManager {
         });
 
 		serverCommand("runwave", "Запускает волну", (arg, sender, receiver, type) -> {
+
+			boolean force = receiver instanceof Player player ? Admins.has(player, "force-runwave") : true;
+			if(require(!force && Vars.state.enemies > 0, sender, type.bungle("runwave.enemies"))) return;
 			Vars.logic.runWave();
 			sender.sendMessage(type.bungle("runwave.ready"));
         });
