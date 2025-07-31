@@ -1127,7 +1127,7 @@ public class CommandsManager {
 			}
 		});
 
-		serverCommand("bans", "List all banned IPs and IDs.", (arg, sender, receiver, type) -> {
+		serverCommand("bans", "List all banned IPs and IDs", (arg, sender, receiver, type) -> {
 			sender.sendMessage("Banned players [ID]:");
 			
 			Vars.netServer.admins.playerInfo.each((key, info) -> {
@@ -1144,6 +1144,10 @@ public class CommandsManager {
 				if(Time.millis() < time) {
 					sender.sendMessage("> " + key + " - kicked [lightgray](" + (time - Time.millis())/1000/60 + " minutes)");
 				}
+			});
+			sender.sendMessage("Dos players [IP]:");
+			Vars.netServer.admins.dosBlacklist.each((value) -> {
+				sender.sendMessage("> " + value + " - banned");
 			});
 		});
 
