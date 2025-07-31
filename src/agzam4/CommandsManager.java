@@ -776,7 +776,6 @@ public class CommandsManager {
         });
 
 		serverCommand("runwave", "Запускает волну", (arg, sender, receiver, type) -> {
-
 			boolean force = receiver instanceof Player player ? Admins.has(player, "force-runwave") : true;
 			if(require(!force && Vars.state.enemies > 0, sender, type.bungle("runwave.enemies"))) return;
 			Vars.logic.runWave();
@@ -856,6 +855,7 @@ public class CommandsManager {
 				return;
 			}
 		});
+		
 		serverCommand("event", "[id] [on/off/faston]", "Включить/выключить событие", (arg, sender, receiver, type) -> {
 			if(arg.length == 0) {
 				StringBuilder msg = new StringBuilder();
@@ -988,7 +988,7 @@ public class CommandsManager {
 			}
 		});
 
-		serverCommand("config", "[name] [set/add] [value...]", "Конфикурация сервера", (arg, sender, receiver, type) -> {
+		serverCommand("config", "[name] [set/add] [value...]", "Конфигурация сервера", (arg, sender, receiver, type) -> {
 			if(arg.length == 0){
 				sender.sendMessage("All config values:");
 				for(Config c : Config.all){
