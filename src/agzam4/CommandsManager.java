@@ -1164,10 +1164,16 @@ public class CommandsManager {
 				});
 				sender.sendMessage("Unbanned all IPs");
 				Vars.netServer.admins.kickedIPs.clear();
+				Vars.netServer.admins.dosBlacklist.clear();
+				return;
+			}
+			if(Vars.netServer.admins.dosBlacklist.remove(arg[0])) {
+				sender.sendMessage("Unbanned dos player: " + arg[0]);
 				return;
 			}
 			PlayerInfo info = Vars.netServer.admins.playerInfo.get(arg[0]);
 			Long ip = Vars.netServer.admins.kickedIPs.remove(arg[0]);
+			
 			if(require(info == null && ip == null, sender, "player/ip not found")) return;
 			if(info != null) {
 				info.banned = false;
