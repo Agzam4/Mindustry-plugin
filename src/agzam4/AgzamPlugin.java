@@ -1,7 +1,6 @@
 package agzam4;
 
 import arc.*;
-import arc.math.geom.Point2;
 import arc.util.*;
 import mindustry.*;
 import mindustry.content.Blocks;
@@ -11,12 +10,6 @@ import mindustry.gen.*;
 import mindustry.maps.*;
 import mindustry.mod.Mods.LoadedMod;
 import mindustry.mod.Plugin;
-
-import java.awt.Color;
-import java.awt.image.BufferedImage;
-import java.io.IOException;
-
-import javax.imageio.ImageIO;
 
 import agzam4.achievements.*;
 import agzam4.bot.Bots;
@@ -96,7 +89,7 @@ public class AgzamPlugin extends Plugin {
     	});
 		
     	Events.on(ServerLoadEvent.class, e -> {
-        	initColors();
+        	Images.init();
     	});
     	
     	Events.on(GameOverEvent.class, e -> {
@@ -196,33 +189,6 @@ public class AgzamPlugin extends Plugin {
         
     }
     
-	private void initColors() {
-		Log.info("init colors");
-		try {
-			BufferedImage colors = ImageIO.read(Game.class.getResourceAsStream("/colors.png"));
-			Log.info("file: @", colors);
-			TelegramBot.mapColors = new int[Vars.content.blocks().size][];
-			Point2 id = new Point2(0,0);
-	    	Vars.content.blocks().each(b -> {
-	    		int index = id.x++;
-				int size = b.size*3;
-				TelegramBot.mapColors[index] = new int[size*size];
-				for (int i = 0; i < size*size; i++) {
-					int rgb = colors.getRGB(id.y/9, id.y%9);
-					id.y++;
-					if(i == size*size/2) {
-						java.awt.Color col = new Color(rgb);
-						b.mapColor.set(col.getRed()/255f, col.getGreen()/255f, col.getBlue()/255f);
-						b.hasColor = true;
-					}
-					TelegramBot.mapColors[index][i] = rgb;//b.mapColor.rgb888();
-				}
-	    	});
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
 	@Override
     public void registerServerCommands(CommandHandler handler) {
 //    	Log.info("[registerServerCommands]");

@@ -1884,8 +1884,8 @@ public class CommandsManager {
 	                            }
 	                            VoteSession session = new VoteSession(found, reason);
 	                            Bots.notify(NotifyTag.votekick, Strings.format("<b><u>@</u></b> started voting for kicking <b><u>@</b></u>", TelegramBot.strip(player.name), TelegramBot.strip(found.name)));
+	                            Bots.notify(NotifyTag.votekick, Images.screenshot(found));
 	                            
-	                            TelegramBot.sendPlayerToAll(found);
 	                            session.vote(player, 1);
 	                            Call.sendMessage(Strings.format("[lightgray]Причина:[orange] @[lightgray].", reason));
 	                            vtime.reset();
@@ -2124,8 +2124,9 @@ public class CommandsManager {
 		minutes = Math.min(minutes, 60);
 		lastkickTime.put(found.uuid(), minutes*2);
 		Bots.notify(NotifyTag.votekick, Strings.format("Выдан бан на <b>@</b> минут\nПричина: <i>@</i>\nБан выдал: <i>@</i>", minutes, TelegramBot.strip(reason), TelegramBot.strip(name)));
-        TelegramBot.sendPlayerToAll(found);
-		found.kick(Strings.format("Вы были забанены на [red]@[] минут\nПричина: [orange]@[white]\nБан выдал: [orange]@[]\nОбжаловать: @", minutes, reason, name, discordLink), minutes * 60 * 1000);
+        Bots.notify(NotifyTag.votekick, Images.screenshot(found));
+		
+        found.kick(Strings.format("Вы были забанены на [red]@[] минут\nПричина: [orange]@[white]\nБан выдал: [orange]@[]\nОбжаловать: @", minutes, reason, name, discordLink), minutes * 60 * 1000);
 		if(discordLink != null) {
 			if(!discordLink.isEmpty()) Call.openURI(found.con, discordLink);
 		}

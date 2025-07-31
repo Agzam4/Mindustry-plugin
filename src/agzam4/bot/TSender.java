@@ -1,5 +1,7 @@
 package agzam4.bot;
 
+import java.awt.image.BufferedImage;
+
 import arc.struct.LongMap;
 import arc.struct.ObjectMap;
 import arc.struct.ObjectSet;
@@ -86,9 +88,13 @@ public class TSender {
 	public static long id(String uid) {
 		return Long.parseUnsignedLong(uid, Character.MAX_RADIX);
 	}
-	
+
 	public final void message(String message) {
 		TelegramBot.sendTo(id, message);
+	}
+
+	public final void message(BufferedImage image) {
+		TelegramBot.sendMessagePhoto(id, image);
 	}
 	
 	@Override

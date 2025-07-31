@@ -1,33 +1,5 @@
 package agzam4.database.json;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.io.Writer;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-import agzam4.Log;
-import agzam4.database.Users;
-import agzam4.database.Users.UserEntity;
-import arc.struct.Seq;
-import arc.util.ArcRuntimeException;
-import arc.util.Nullable;
-import arc.util.io.Streams;
-import arc.util.serialization.BaseJsonReader;
-import arc.util.serialization.BaseJsonWriter;
-import arc.util.serialization.JsonReader;
-import arc.util.serialization.JsonValue;
-import arc.util.serialization.JsonWriter;
-import arc.util.serialization.SerializationException;
-import arc.util.serialization.JsonWriter.OutputType;
-
 @Deprecated
 public class Json  {
 
