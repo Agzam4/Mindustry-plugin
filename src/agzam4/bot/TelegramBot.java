@@ -23,7 +23,6 @@ import agzam4.Game;
 import agzam4.Log;
 import arc.files.Fi;
 import arc.func.Boolf;
-import arc.func.Func;
 import arc.struct.LongMap;
 import arc.util.Strings;
 import mindustry.Vars;
@@ -179,7 +178,6 @@ public class TelegramBot extends TelegramLongPollingBot {
 			}
 
 			var chat = chats.get(chatId);
-			Log.info("chat: @, ", chat, chatId);
 			
 			if(chat == null) {
 				sendMessageMarkdown(chatId, "Чат не найден, id чата: `c-" + Long.toUnsignedString(chatId, Character.MAX_RADIX) + "`");

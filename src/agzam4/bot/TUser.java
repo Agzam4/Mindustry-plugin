@@ -1,9 +1,10 @@
 package agzam4.bot;
 
-import agzam4.Log;
 import agzam4.CommandsManager.CommandReceiver;
+import agzam4.Log;
 import arc.util.CommandHandler.ResponseType;
 import arc.util.Nullable;
+import mindustry.gen.Call;
 
 public class TUser extends TSender {
 
@@ -41,6 +42,10 @@ public class TUser extends TSender {
 			sender.message(":(");
 			return;
 		}
+		if(this == sender && hasPermission("server-say")) {
+			Call.sendMessage(message);
+			return;
+		}
 		sender.message("Type /help for more");
 		return;
 //		
@@ -74,8 +79,13 @@ public class TUser extends TSender {
 			chat.message("Нет доступа к " + command);
 		}
 
-		public boolean hasPermissions(String text) {
-			return user.hasPermission(text) && chat.hasPermission(text);
+		public boolean hasPermissions(String permission) {
+			if(!chat.hasPermission(permission)) return false;
+			if(user.hasOnlyChatPermission(permission)) {
+				Log.info("Checking [blue]only-chat @[] @ ([gray]@[] != [gray]@[])", permission, user != chat, user.uid(), chat.uid());
+				return user != chat;
+			}
+			return user.hasPermission(permission);
 		}
 		
 	}

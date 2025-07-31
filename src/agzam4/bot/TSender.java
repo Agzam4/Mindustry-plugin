@@ -9,8 +9,23 @@ public class TSender {
 
 	private static ObjectMap<String, LongMap<TSender>> senders = new ObjectMap<>();
 
-	public final ObjectSet<String> tags = new ObjectSet<String>();
-	public final ObjectSet<String> permissions = new ObjectSet<String>();
+	private final ObjectSet<String> tags = new ObjectSet<String>();
+	
+	/**
+	 * tags format:
+	 * <code>
+	 * [!]tag<br>
+	 * "!" - super tag<br>
+	 * </code>
+	 * 
+	 * permissions format:
+	 * <code>
+	 * [$]name<br>
+	 * "$" - allow only in chats<br>
+	 * </code>
+	 * 
+	 */
+	private final ObjectSet<String> permissions = new ObjectSet<String>();
 	
 	public final long id;
 	
@@ -51,10 +66,19 @@ public class TSender {
 		permissions.remove(permission);
 	}
 
+//	public boolean applyPermission(boolean value, String permission) {
+//		if(hasPermission("|" + permission)) return true;
+//		return value & hasPermission(permission);
+//	}
+
 	public boolean hasPermission(String permission) {
 		return permissions.contains(permission) || permissions.contains("all");
 	}
-
+	
+	public boolean hasOnlyChatPermission(String permission) {
+		return permissions.contains("$" + permission) || (permissions.contains("$all") && !permissions.contains(permission));
+	}
+	
 	public String uid() {
 		return Long.toUnsignedString(id, Character.MAX_RADIX);
 	}
@@ -80,5 +104,12 @@ public class TSender {
 		}
 		return list;
 	}
-	
+
+	public String permissionsString(String separator) {
+		return permissions.toString(separator);
+	}
+
+	public String tagsString(String separator) {
+		return tags.toString(separator);
+	}
 }

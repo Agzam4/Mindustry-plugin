@@ -1487,8 +1487,8 @@ public class CommandsManager {
 							}
 						}
 						player.sendMessage("Объект " + id + ":");
-						player.sendMessage("Разрешения: " + sender.permissions.toString(" "));
-						player.sendMessage("Теги: " + sender.tags.toString(" "));
+						player.sendMessage("Разрешения: " + sender.permissionsString(" "));
+						player.sendMessage("Теги: " + sender.tagsString(" "));
 						TelegramBot.save();
 						return;
 					}
@@ -1793,9 +1793,9 @@ public class CommandsManager {
 		botCommand("this", "информация", (args, receiver) -> {
 			StringBuilder result = new StringBuilder();
 			result.append(Strings.format("<b><u>User</u></b>:\nID: <code>u-@</code>\nTags: <code>@</code>\nPermissions: <code>@</code>", 
-					receiver.user.uid(), receiver.user.tags.toString("</code> <code>"), receiver.user.permissions.toString("</code> <code>")));
-			result.append(Strings.format("\n<b><u>Chat</u></b>:\nID: <code>c-@</code>\nTags: <code>@</code>\nPermissions: <code>@</code>", 
-					receiver.chat.uid(), receiver.chat.tags.toString("</code> <code>"), receiver.chat.permissions.toString("</code> <code>")));
+					receiver.user.uid(), receiver.user.tagsString("</code> <code>"), receiver.user.permissionsString("</code> <code>")));
+			if(receiver.user != receiver.chat) result.append(Strings.format("\n<b><u>Chat</u></b>:\nID: <code>c-@</code>\nTags: <code>@</code>\nPermissions: <code>@</code>", 
+					receiver.chat.uid(), receiver.chat.tagsString("</code> <code>"), receiver.chat.permissionsString("</code> <code>")));
 			receiver.sendMessage(result.toString());
 		});
 	}
