@@ -32,6 +32,8 @@ public class ServerEventsManager {
 	boolean isRunning = false;
 	
 	public static void init() {
+		EventsLabels.init();
+		
 		for (var child : Vars.dataDirectory.child("events").list()) {
 			if(!child.extension().equals("jar") && !child.extension().equals("zip")) continue;
 			try {
@@ -44,6 +46,7 @@ public class ServerEventsManager {
 		Events.on(WorldLoadBeginEvent.class, e -> {
 			events.each(event -> event.stop());
 			EventsBlocks.reset();
+			EventsLabels.reset();
 			applyMapEvents();
 			isLoaded = false;
 			world.setGenerating(true);
