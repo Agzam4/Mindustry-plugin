@@ -1811,6 +1811,74 @@ public class CommandsManager {
 					receiver.chat.uid(), receiver.chat.tagsString("</code> <code>"), receiver.chat.permissionsString("</code> <code>")));
 			receiver.sendMessage(result.toString());
 		});
+		
+
+		botCommand("map", "mini screen of map", (args, receiver) -> {
+			receiver.chat.message(Images.screenshot(0, 0, Vars.world.width(), Vars.world.height(), true));
+		});
+		botCommand("mapm", "large screen of map", (args, receiver) -> {
+			receiver.chat.message(Images.screenshot(0, 0, Vars.world.width(), Vars.world.height(), false));
+		});
+		botCommand("at", "<player>", "screen around player", (args, receiver) -> {
+			if(require(args.length != 1, receiver, "wrong args amount")) return;
+			Player found = Groups.player.find(p -> p.plainName().equalsIgnoreCase(args[0]));
+			if(found == null) found = Groups.player.find(p -> p.plainName().indexOf(args[0]) != -1);
+			if(found == null) {
+				receiver.sendMessage("Player <i>" + args[0] + "</i> not found");
+				return;
+			}
+			receiver.chat.message(Images.screenshot(found));
+		});
+//		botCommand("kick", "<player>", "kick player by name", (args, receiver) -> {
+//			if(require(args.length != 1, receiver, "wrong args amount")) return;
+//			Player found = Groups.player.find(p -> p.plainName().equalsIgnoreCase(args[0]));
+//			if(found == null) found = Groups.player.find(p -> p.plainName().indexOf(args[0]) != -1);
+//			if(found == null) {
+//				receiver.sendMessage("Player <i>" + args[0] + "</i> not found");
+//				return;
+//			}
+//			kick(found, "сервер", "неизвестно");
+//		});
+		botCommand("kick", "<игрок> <причина...>", "Проголосовать, чтобы кикнуть игрока по уважительной причине", (args, receiver) -> {
+			if(require(args.length != 2, receiver, "wrong args amount")) return;
+			try {
+	            if(args.length == 0){
+	                StringBuilder builder = new StringBuilder();
+	                builder.append("[orange]Игроки для кика:");
+	                Groups.player.each(p -> !p.admin && p.con != null, p -> {
+	                    builder.append(Strings.format("\n<code>@</code> <code>@</code>", TelegramBot.strip(p.name))).append(p.name).append("[accent] (#").append(p.id()).append(")\n");
+	                });
+	                receiver.sendMessage(builder.toString());
+	                return;
+	            }
+	            
+	            String reason = args[1];
+	            if(reason.equalsIgnoreCase("g") || reason.equalsIgnoreCase("г")) reason = "гриф";
+	            if(reason.equalsIgnoreCase("f") || reason.equalsIgnoreCase("ф")) reason = "фрикик";
+
+	            Player found;
+	            if(args[0].length() > 1 && args[0].startsWith("#") && Strings.canParseInt(args[0].substring(1))) {
+	            	int id = Strings.parseInt(args[0].substring(1));
+	            	found = Groups.player.find(p -> p.id() == id);
+	            } else {
+	            	found = Groups.player.find(p -> p.name.equalsIgnoreCase(args[0]));
+	            	if(found == null) found = Groups.player.find(p -> p.name.equalsIgnoreCase(args[0]));
+	            	if(found == null) found = Groups.player.find(p -> Strings.stripGlyphs(p.name).equalsIgnoreCase(Strings.stripGlyphs(args[0])));
+	            	if(found == null) found = Groups.player.find(p -> Strings.stripColors(p.name).equalsIgnoreCase(Strings.stripColors(args[0])));
+	            	if(found == null) found = Groups.player.find(p -> Strings.stripColors(Strings.stripGlyphs(p.name)).equalsIgnoreCase(Strings.stripColors(Strings.stripGlyphs(args[0]))));
+	            }
+	            if(found != null) {
+	    			if(require(Admins.has(found, "votekick"), receiver, "Этот игрок защищен пластаном")) return;
+	    			if(require(Admins.has(found, "whitelist"), receiver, "Этот игрок защищен метастеклом")) return;
+        			kick(found, "сервер", reason);
+	            } else {
+	            	receiver.sendMessage("Игрок " + args[0] + " не найден.");
+	            }
+			} catch (Exception e) {
+				Log.err(e);
+				receiver.sendMessage(e.getLocalizedMessage());
+			}
+		});
 	}
 
 	public static void registerPlayersCommands() {

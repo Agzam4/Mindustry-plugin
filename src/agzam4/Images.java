@@ -59,7 +59,6 @@ public class Images {
 		int dy = (int) (player.tileY() - Vars.world.height()/6);
 		
 		BufferedImage screen = screenshot(dx, dy, Vars.world.width()/3, Vars.world.height()/3, false);
-		drawData(screen, false, dx, dy);
 		return screen;
 	}
 	
@@ -135,6 +134,7 @@ public class Images {
 		} catch (Exception e) {
 			Log.err(e);
 		}
+		drawData(screen, single, sx, sy);
 		return screen;
 	}
 
