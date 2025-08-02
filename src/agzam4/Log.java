@@ -60,21 +60,21 @@ public class Log {
 	}
 
 	public static void info(Object... args) {
-//		arc.util.Log.info(args);
-		System.out.println(getCaller() + paint(format("", args)));
+//		(args);
+		arc.util.Log.info(getCaller() + paint(format("", args)));
 	}
 
 	public static void info(String text, Object... args) {
 //		arc.util.Log.info(text, args);
-		System.out.println(getCaller() + paint(format(text, args)));
+		arc.util.Log.info(getCaller() + paint(format(text, args)));
 	}
 
 	public static void warn(Object... args) {
-		System.out.println(getCaller() + paint(format("[yellow]", args) + "[]"));
+		arc.util.Log.warn(getCaller() + paint(format("[yellow]", args) + "[]"));
 	}
 	
 	public static void warn(String text, Object... args) {
-		System.out.println(getCaller() + paint("[yellow]" + format(text, args) + "[]"));
+		arc.util.Log.warn(getCaller() + paint("[yellow]" + format(text, args) + "[]"));
 	}
 	
 	private static String getCaller() {
@@ -101,7 +101,7 @@ public class Log {
 	}
 
 	public static void err(String text, Object... args) {
-		System.err.println(getCaller() + format(text, args));
+		arc.util.Log.err(getCaller() + format(text, args));
 	}
 	
 	private static String format(String str, Object... args) {
@@ -147,7 +147,7 @@ public class Log {
 					}
 					continue;
 				}
-				Colors color =colors.get(tag);
+				Colors color = colors.get(tag);
 				if(color == null) {
 					colored.append('[');
 					colored.append(tag);
@@ -164,6 +164,7 @@ public class Log {
 		if(begin != -1) {
 			colored.append(str.substring(begin-1, str.length()));
 		}
+		if(stack.size() > 1) colored.append(Colors.reset);
 		return colored.toString();
 	}
 	
