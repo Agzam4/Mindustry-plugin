@@ -34,28 +34,20 @@ public class EventsLabels {
 			marker.pos.y = y;
 			marker.text = "";
 			visible = false;
-//			text(text);
 			markers.add(this);
 		}
 		
 		private void sync(NetConnection con) {
-//			Call.createMarker(con, id, marker);
-//			Call.updateMarker(con, id, LMarkerControl.labelFlags, visible ? 1d : 0d, 1d, 0d);
 			if(visible) Call.createMarker(con, id, marker);
 			else Call.removeMarker(con, id);
 		}
 
 		public void text(String text) {
 			if(text == null) text = "";
-//			text = id + "#" + text; DEBUG
 			if(marker.text.equals(text)) return;
 			marker.text = text;
 			setVisible(text == null || !text.isEmpty());
-//			Vars.state.markers.add(id, marker);
-//			if(visible) {
-//				Log.info("[ ] update: @ (@) @", id, marker.text, marker.pos);
-				Call.updateMarkerText(id, LMarkerControl.flushText, false, marker.text);
-//			}
+			Call.updateMarkerText(id, LMarkerControl.flushText, false, marker.text);
 		}
 
 		public String text() {
