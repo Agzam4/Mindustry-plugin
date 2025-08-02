@@ -42,7 +42,6 @@ public class Debug {
 	static File cd = new File(System.getProperty("user.dir") + "/build/libs/");
 	static ObjectMap<String, String> env = new ObjectMap<>();
 
-	@SuppressWarnings("unused")
 	public static void main(String[] args) throws IOException {
 		
 		PropertiesUtils.load(env, Fi.get(".env.properties").reader());
@@ -51,18 +50,20 @@ public class Debug {
 		
 		System.out.println(cd.getPath());
 
+		Fi user = Fi.get(System.getProperty("user.dir"));
+		Fi eventsFileSrc = user.parent().child(type).child("build").child("libs").child(type + ".jar");
+		Fi eventsFileDst = user.child("build").child("libs").child("config").child("events").child(type + ".jar");
+		if(!user.exists()) Log.info("Events project not found");
+		
 		new Thread(() -> {
 			try {
 				Seq<FileTimeContoller> controllers = Seq.with();
 				
-				Fi user = Fi.get(System.getProperty("user.dir"));
 				for (var f : new File(System.getProperty("user.dir") + "/build/libs/config/mods").listFiles()) {
 					if(!f.getName().endsWith(".jar")) continue;
 					controllers.add(new FileTimeContoller(f));
 					break;
 				}
-				Fi eventsFileSrc = user.parent().child(type).child("build").child("libs").child(type + ".jar");
-				Fi eventsFileDst = user.child("build").child("libs").child("config").child("events").child(type + ".jar");
 				while (true) {
 					for (int i = 0; i < controllers.size; i++) {
 						if(controllers.get(i).changed()) {
@@ -70,12 +71,12 @@ public class Debug {
 							System.out.println("Other time");
 						}
 					}
-//					if(eventsFileSrc.exists()) {
-//						eventsFileDst.delete();
-//						eventsFileSrc.moveTo(eventsFileDst);
-//						runid++;
-//						System.out.println("Events update");
-//					}
+					if(eventsFileSrc.exists()) {
+						eventsFileDst.delete();
+						eventsFileSrc.moveTo(eventsFileDst);
+						runid++;
+						System.out.println("Events update");
+					}
 					Threads.sleep(1000);
 				}
 			} catch (IOException e) {
