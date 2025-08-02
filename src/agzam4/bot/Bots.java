@@ -21,13 +21,11 @@ public class Bots {
 		chatMessage,
 		serverInfo;
 		
-		
 		private final String tag;
 		
 		private NotifyTag() {
 			tag = Strings.camelToKebab(name());
 		}
-		
 		
 	}
 

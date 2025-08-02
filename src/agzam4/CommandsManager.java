@@ -883,7 +883,7 @@ public class CommandsManager {
 			}
 			if(arg.length == 1) {
 				ServerEvent event = ServerEventsManager.events.find(e -> arg[0].equals(e.name));
-				if(require(event == null, sender, "[red]Событие не найдено, [gold]/event [red] для списка событий")) return;
+				if(require(event == null, sender, "Событие не найдено, [blue]/event[] для списка событий")) return;
 				sender.sendMessage("Событие " + event.name + "[white] имеет значение: " + event.isRunning());
 				return;
 			}

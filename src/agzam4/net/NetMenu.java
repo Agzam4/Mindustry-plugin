@@ -11,9 +11,7 @@ public class NetMenu {
 
 	private static int ids = 0;
 	
-	
 	private static IntMap<NetMenu> menus = new IntMap<>();
-	
 
 	public String title = "";
 	public String text = "";

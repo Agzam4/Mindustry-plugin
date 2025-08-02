@@ -13,10 +13,7 @@ public class EventsLabels {
 	private static Seq<NetMarker> markers = new Seq<>();
 	
 	public static void init() {
-		// TODO: on sync
-		Events.on(ConnectPacketEvent.class, e -> {
-			markers.each(m -> m.sync(e.connection));
-		});
+		Events.on(ConnectPacketEvent.class, e -> markers.each(m -> m.sync(e.connection)));
 	}
 
 	public static void reset() {
@@ -66,7 +63,6 @@ public class EventsLabels {
 		}
 		
 		public boolean setVisible(boolean visible) {
-			
 			if(this.visible != visible) {
 				this.visible = visible;
 				if(visible) {
