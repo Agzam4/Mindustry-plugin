@@ -54,6 +54,10 @@ public class Debug {
 		Fi eventsFileSrc = user.parent().child(type).child("build").child("libs").child(type + ".jar");
 		Fi eventsFileDst = user.child("build").child("libs").child("config").child("events").child(type + ".jar");
 		if(!user.exists()) Log.info("Events project not found");
+
+		Log.info("User dir: [blue]@[]", user.absolutePath());
+		Log.info("Events src: [blue]@[]", eventsFileSrc.absolutePath());
+		Log.info("Events trget: [blue]@[]", eventsFileDst.absolutePath());
 		
 		new Thread(() -> {
 			try {
