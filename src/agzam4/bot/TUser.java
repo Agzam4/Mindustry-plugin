@@ -1,21 +1,35 @@
 package agzam4.bot;
 
 import agzam4.CommandsManager.CommandReceiver;
+
+import java.io.IOException;
+
 import agzam4.Log;
 import arc.util.CommandHandler.ResponseType;
+import arc.util.serialization.JsonValue;
+import arc.util.serialization.JsonWriter;
 import arc.util.Nullable;
 import mindustry.gen.Call;
 
 public class TUser extends TSender {
 
+	public String name = "user";
+	
 	public TUser(long id) {
 		super(id);
 	}
 	
-	public TUser(String data) {
-		super(data);
+	public TUser(JsonValue json) {
+		super(json);
+		name = json.getString("name", name);
 	}
-
+	
+	@Override
+	protected void write(JsonWriter writer) throws IOException {
+		super.write(writer);
+		writer.set("name", name);
+	}
+	
 	public void onMessage(TSender sender, String message) {
 		if(message.startsWith("/")) {
 			var response = Bots.handler.handleMessage(message, new MessageData() {{
@@ -89,4 +103,5 @@ public class TUser extends TSender {
 		}
 		
 	}
+	
 }

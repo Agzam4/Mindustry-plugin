@@ -1,11 +1,13 @@
 package agzam4.bot;
 
 import java.awt.image.BufferedImage;
-
+import java.io.IOException;
 import arc.struct.LongMap;
 import arc.struct.ObjectMap;
 import arc.struct.ObjectSet;
-import arc.util.Strings;
+import arc.struct.Queue;
+import arc.util.serialization.JsonValue;
+import arc.util.serialization.JsonWriter;
 
 public class TSender {
 
@@ -36,18 +38,40 @@ public class TSender {
 		addPermission("this");
 		addPermission("help");
 	}
+
+	public TSender(JsonValue json) {
+		this.id = TSender.id(json.getString("id"));
+		if(json.has("permissions")) {
+			for (var p : json.get("permissions")) {
+				permissions.add(p.asString());
+			}
+		}
+		if(json.has("tags")) {
+			for (var p : json.get("tags")) {
+				tags.add(p.asString());
+			}
+		}
+	}
 	
-	public TSender(String data) {
-		String[] args = data.split(" ");
-		this.id = TSender.id(args[0]);
-		if(args.length <= 1) return;
-		for (var t : args[1].split(",")) {
+	protected void read(Queue<String> args) {
+		for (var t : args.removeFirst().split(",")) {
 			addTag(t);
 		}
-		if(args.length <= 2) return;
-		for (var p : args[2].split(",")) {
+		for (var p : args.removeFirst().split(",")) {
 			addPermission(p);
 		}
+	}
+	
+	protected void write(JsonWriter writer) throws IOException {
+		writer.set("id", uid());
+		// tags
+		writer.array("tags");
+		for (var t : tags) writer.value(t);
+		writer.pop();
+//		// permissions
+		writer.array("permissions");
+		for (var p : permissions) writer.value(p);
+		writer.pop();
 	}
 
 	public void addTag(String tag) {
@@ -81,7 +105,7 @@ public class TSender {
 		return permissions.contains("$" + permission) || (permissions.contains("$all") && !permissions.contains(permission));
 	}
 	
-	public String uid() {
+	public final String uid() {
 		return Long.toUnsignedString(id, Character.MAX_RADIX);
 	}
 	
@@ -89,17 +113,12 @@ public class TSender {
 		return Long.parseUnsignedLong(uid, Character.MAX_RADIX);
 	}
 
-	public final void message(String message) {
+	public void message(String message) {
 		TelegramBot.sendTo(id, message);
 	}
 
-	public final void message(BufferedImage image) {
+	public void message(BufferedImage image) {
 		TelegramBot.sendMessagePhoto(id, image);
-	}
-	
-	@Override
-	public String toString() {
-		return Strings.format("@ @ @", uid(), tags.toString(","), permissions.toString(","));
 	}
 	
 	public static LongMap<TSender> senders(String tag) {
@@ -118,4 +137,9 @@ public class TSender {
 	public String tagsString(String separator) {
 		return tags.toString(separator);
 	}
+
+	public String fuid() {
+		return uid();
+	}
+
 }

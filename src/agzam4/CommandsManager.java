@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
+import org.telegram.telegrambots.meta.api.objects.Chat;
+
 import agzam4.achievements.AchievementsManager;
 import agzam4.achievements.AchievementsManager.Achievement;
 import agzam4.bot.Bots;
@@ -1328,7 +1330,10 @@ public class CommandsManager {
 						return;
 					}
 					@Nullable Block find = Game.findBlock(blockname);
-					if(require(find == null, player, "[red]Поверхность не найдена")) return;
+
+					if(require(find == null, player, "[red]Блок не найден")) return;
+					if(require(!find.canBeBuilt() && !Admins.has(player, "brush-sandbox"), player, "[red]Блок недоступен в текущем режиме игры")) return;
+					
 					brush.block = find;
 					player.sendMessage("[gold]Поверхность привязана!");
 				} else if(arg[0].equalsIgnoreCase("floor") || arg[0].equalsIgnoreCase("f")) {
@@ -1410,12 +1415,12 @@ public class CommandsManager {
 			}
 		});
 
-		adminCommand("bot", "[add/remove/list/start/stop/t/p] [id/name] [token...]", "Привязать/отвязать телеграм аккаунт", (arg, player) -> {
-			if(require(arg.length < 1, player, "Мало аргументов")) return;
+		adminCommand("bot", "[add/remove/list/start/stop/t/p/name] [id/name] [token...]", "Привязать/отвязать телеграм аккаунт", (args, player) -> {
+			if(require(args.length < 1, player, "Мало аргументов")) return;
 			try {
-				arg[0] = arg[0].toLowerCase();
+				args[0] = args[0].toLowerCase();
 
-				if(arg[0].equalsIgnoreCase("list")) {
+				if(args[0].equalsIgnoreCase("list")) {
 					Cons2<LongMap<? extends TSender>, String> show = (m, name) -> {
 						if(m.size == 0) player.sendMessage(Strings.format("@: <empty>", name));
 						else {
@@ -1429,23 +1434,35 @@ public class CommandsManager {
 					show.get(TelegramBot.chats, "Чаты");
 				}
 				
-				if(arg[0].equals("add") || arg[0].equals("remove") || arg[0].equals("t") || arg[0].equals("p")) {
-					if(require(arg.length < 2, player, "Должно быть 2 аргумента: " + arg[0] + " <id>")) return;
+				if(args[0].equals("add") || args[0].equals("remove") || args[0].equals("t") || args[0].equals("p") || args[0].equals("name")) {
+					if(require(args.length < 2, player, "Должно быть 2 аргумента: " + args[0] + " <id>")) return;
 
-					boolean user = arg[1].startsWith("u-");
-					boolean chat = arg[1].startsWith("c-");
+					boolean isUser = args[1].startsWith("u-");
+					boolean isChat = args[1].startsWith("c-");
 					
 					LongMap<? extends TSender> senders = null;
-					if(chat) senders = TelegramBot.chats;
-					if(user) senders = TelegramBot.users;
+					if(isChat) senders = TelegramBot.chats;
+					if(isUser) senders = TelegramBot.users;
 					
 					if(require(senders == null, player, "Неверный Id")) return;
-					if(require(!user && !chat, player, "Неверный Id")) return;
+					if(require(!isUser && !isChat, player, "Неверный Id")) return;
 
-					long id = Long.parseUnsignedLong(arg[1].substring(2), Character.MAX_RADIX);
+					String[] idData = args[1].split("/");
+					Integer threadId = idData.length >= 2 ? Integer.parseUnsignedInt(idData[1], Character.MAX_RADIX) : null;
+					long id = Long.parseUnsignedLong(idData[0].substring(2), Character.MAX_RADIX);
 
-					if(arg[0].equals("add")) {
-						if(user) {
+					if(args[0].equals("name")) {
+						if(require(!isUser, player, "Это не пользователь")) return;
+						var user = TelegramBot.users.get(id);
+						if(require(user == null, player, "Пользователь не найден")) return;
+						if(require(args.length < 3, player, "Имя пользователя: " + user.name)) return;
+						user.name = args[2];
+						player.sendMessage("Установлено имя: " + user.name);
+						return;
+					}
+					
+					if(args[0].equals("add")) {
+						if(isUser) {
 							if(TelegramBot.users.containsKey(id)) {
 								player.sendMessage("Пользователь [gold]" + id + "[] уже был добавлен!");
 							} else {
@@ -1455,7 +1472,24 @@ public class CommandsManager {
 							}
 							return;
 						}
-						if(chat) {
+						if(isChat) {
+							if(threadId != null) {
+								TChat chat = TelegramBot.chats.get(id);
+								if(chat == null) {
+									chat = new TChat(id);
+									player.sendMessage("Чат [gold]" + id + "[] добавлен!");
+									TelegramBot.chats.put(id, chat);
+								}
+								TChat thread = new TChat(id);
+								thread.thread = threadId;
+								
+								chat.thread(thread);
+								player.sendMessage(Strings.format("Тема [gold]@/@[] добавлена!", id, threadId));
+								
+								TelegramBot.save();
+								return;
+							}
+							
 							if(TelegramBot.chats.containsKey(id)) {
 								player.sendMessage("Чат [gold]" + id + "[] уже был добавлен!");
 							} else {
@@ -1467,59 +1501,82 @@ public class CommandsManager {
 						}
 						return;
 					}
-					if(arg[0].equals("remove")) {
-						if(senders.remove(id) == null) player.sendMessage("[lightgray]" + id + "[red] не найден!");
-						else player.sendMessage("[lightgray]" + id + "[gold] убран!");
+					if(args[0].equals("remove")) {
+						if(threadId == null) {
+							if(senders.remove(id) == null) player.sendMessage("[lightgray]" + id + "[red] не найден!");
+							else player.sendMessage("[lightgray]" + id + "[gold] убран!");
+						} else {
+							var sender = senders.get(id);
+							if(require(sender == null, player, "Чат не найден")) return;
+							if(sender instanceof TChat chat) {
+								if(chat.threads.remove(threadId) == null) player.sendMessage("Тема [lightgray]" + id + "[red] не найдена!");
+								else player.sendMessage("Тема [lightgray]" + id + "[gold] убрана!");
+								TelegramBot.save();
+								return;
+							}
+							player.sendMessage("Это не чат");
+							return;
+						}
 						TelegramBot.save();
 						return;
 					}
 
-					boolean t = arg[0].equals("t");
-					boolean p = arg[0].equals("p");
+					boolean t = args[0].equals("t");
+					boolean p = args[0].equals("p");
 					
 					if(t || p) {
-						var sender = senders.get(id);
+						TSender sender = senders.get(id);
 						if(require(sender == null, player, "Id не найден")) return;
-						if(require(arg.length != 3, player, "Должно быть 3 аргумента!")) return;
-						Log.info("args: [blue]@[]", Arrays.toString(arg));
-						for (var a : arg[2].split(" ")) {
-							boolean add = true;
-							if(a.startsWith("+")) a = a.substring(1);
-							if(a.startsWith("-")) {
-								add = false;
-								a = a.substring(1);
+
+						if(threadId != null) {
+							if(!(sender instanceof TChat chat)) {
+								player.sendMessage("Это не чат");
+								return;
 							}
-							Log.info("arg: [blue]@[]",  a);
-							if(t) {
-								if(add) sender.addTag(a);
-								else sender.removeTag(a);
-							}
-							if(p) {
-								if(add) sender.addPermission(a);
-								else sender.removePermission(a);
+							sender = chat.threads.get(threadId);
+							if(require(sender == null, player, "Тема не найдена")) return;
+						}
+						
+						if(args.length >= 3) {
+							for (var a : args[2].split(" ")) {
+								boolean add = true;
+								if(a.startsWith("+")) a = a.substring(1);
+								if(a.startsWith("-")) {
+									add = false;
+									a = a.substring(1);
+								}
+								if(t) {
+									if(add) sender.addTag(a);
+									else sender.removeTag(a);
+								}
+								if(p) {
+									if(add) sender.addPermission(a);
+									else sender.removePermission(a);
+								}
 							}
 						}
-						player.sendMessage("Объект " + id + ":");
-						player.sendMessage("Разрешения: " + sender.permissionsString(" "));
-						player.sendMessage("Теги: " + sender.tagsString(" "));
+						player.sendMessage("[gold]Объект []" + sender.fuid() + ":");
+						player.sendMessage("[gold]Разрешения: []" + sender.permissionsString(" "));
+						player.sendMessage("[gold]Теги: []" + sender.tagsString(" "));
 						TelegramBot.save();
 						return;
 					}
 					
 					return;
 				}
-				if(arg[0].equals("start")) {
-					if(require(arg.length != 3, player, "Должно быть 3 аргумента: start <name> <token>")) return;
-					TelegramBot.run(arg[1], arg[2]);
-					player.sendMessage("[gold]Бот запущен! [gray](" + arg[1] + " " + arg[2] + ")");
+				if(args[0].equals("start")) {
+					if(require(args.length != 3, player, "Должно быть 3 аргумента: start <name> <token>")) return;
+					TelegramBot.run(args[1], args[2]);
+					player.sendMessage("[gold]Бот запущен! [gray](" + args[1] + " " + args[2] + ")");
 					return;
 				}
-				if(arg[0].equals("stop")) {
+				if(args[0].equals("stop")) {
 					TelegramBot.stop();
 					player.sendMessage("Бот остановлен!");
 					return;
 				}
 			} catch (Exception e) {
+				e.printStackTrace();
 				player.sendMessage("[red]" + e.getMessage());
 			}
 		});
@@ -1764,51 +1821,13 @@ public class CommandsManager {
 //		botCommand("mapm", "Картинка карты", (args, receiver) -> {
 //			// TODO: move code from bot to here
 //		});
-		
-		botCommand("kick", "[игрок] [причина...]", "Проголосовать, чтобы кикнуть игрока по уважительной причине", (args, receiver) -> {
-			try {
-	            if(args.length == 0) {
-	                StringBuilder builder = new StringBuilder();
-	                builder.append("[orange]Игроки для кика: \n");
-	                Groups.player.each(p -> !p.admin && p.con != null, p -> {
-	                    builder.append("<code>").append(TelegramBot.strip(p.name)).append("</code> (<code>#").append(p.id()).append("</code>)\n");
-	                });
-	                receiver.sendMessage(builder.toString());
-	            } else {
-	            	String reason = args.length < 2 ? "гриф" : args[1];
-
-	            	if(reason.equalsIgnoreCase("g") || reason.equalsIgnoreCase("г")) reason = "гриф";
-	            	if(reason.equalsIgnoreCase("f") || reason.equalsIgnoreCase("ф")) reason = "фрикик";
-	            	
-	                Player found;
-	                if (args[0].length() > 1 && args[0].startsWith("#") && Strings.canParseInt(args[0].substring(1))){
-	                    int id = Strings.parseInt(args[0].substring(1));
-	                    found = Groups.player.find(p -> p.id() == id);
-	                } else {
-	                    found = Groups.player.find(p -> p.name.equalsIgnoreCase(args[0]));
-	                    if(found == null) found = Groups.player.find(p -> p.name.equalsIgnoreCase(args[0]));
-	                    if(found == null) found = Groups.player.find(p -> Strings.stripGlyphs(p.name).equalsIgnoreCase(Strings.stripGlyphs(args[0])));
-	                    if(found == null) found = Groups.player.find(p -> Strings.stripColors(p.name).equalsIgnoreCase(Strings.stripColors(args[0])));
-	                    if(found == null) found = Groups.player.find(p -> Strings.stripColors(Strings.stripGlyphs(p.name)).equalsIgnoreCase(Strings.stripColors(Strings.stripGlyphs(args[0]))));
-	                }
-	                if(found != null) {
-                		kick(found, "сервер", reason);
-	                } else {
-	                	receiver.sendMessage("[red]Игрок[orange]'" + args[0] + "'[red] не найден.");
-	                }
-	            }
-			} catch (Exception e) {
-				receiver.sendMessage("[red]" + e.getLocalizedMessage());
-			}
-		});
-		
 
 		botCommand("this", "информация", (args, receiver) -> {
 			StringBuilder result = new StringBuilder();
 			result.append(Strings.format("<b><u>User</u></b>:\nID: <code>u-@</code>\nTags: <code>@</code>\nPermissions: <code>@</code>", 
-					receiver.user.uid(), receiver.user.tagsString("</code> <code>"), receiver.user.permissionsString("</code> <code>")));
+					receiver.user.fuid(), receiver.user.tagsString("</code> <code>"), receiver.user.permissionsString("</code> <code>")));
 			if(receiver.user != receiver.chat) result.append(Strings.format("\n<b><u>Chat</u></b>:\nID: <code>c-@</code>\nTags: <code>@</code>\nPermissions: <code>@</code>", 
-					receiver.chat.uid(), receiver.chat.tagsString("</code> <code>"), receiver.chat.permissionsString("</code> <code>")));
+					receiver.chat.fuid(), receiver.chat.tagsString("</code> <code>"), receiver.chat.permissionsString("</code> <code>")));
 			receiver.sendMessage(result.toString());
 		});
 		
@@ -1839,18 +1858,19 @@ public class CommandsManager {
 //			}
 //			kick(found, "сервер", "неизвестно");
 //		});
-		botCommand("kick", "<игрок> <причина...>", "Проголосовать, чтобы кикнуть игрока по уважительной причине", (args, receiver) -> {
-			if(require(args.length != 2, receiver, "wrong args amount")) return;
+		botCommand("kick", "[игрок] [причина...]", "Проголосовать, чтобы кикнуть игрока по уважительной причине", (args, receiver) -> {
 			try {
 	            if(args.length == 0){
 	                StringBuilder builder = new StringBuilder();
-	                builder.append("[orange]Игроки для кика:");
+	                builder.append("Игроки для кика:");
 	                Groups.player.each(p -> !p.admin && p.con != null, p -> {
-	                    builder.append(Strings.format("\n<code>@</code> <code>@</code>", TelegramBot.strip(p.name))).append(p.name).append("[accent] (#").append(p.id()).append(")\n");
+	                    builder.append(Strings.format("\n<code>@</code> <code>#@</code>", TelegramBot.strip(p.name), p.id()));
 	                });
 	                receiver.sendMessage(builder.toString());
 	                return;
 	            }
+	            
+				if(require(args.length != 2, receiver, "wrong args amount")) return;
 	            
 	            String reason = args[1];
 	            if(reason.equalsIgnoreCase("g") || reason.equalsIgnoreCase("г")) reason = "гриф";
@@ -1870,7 +1890,8 @@ public class CommandsManager {
 	            if(found != null) {
 	    			if(require(Admins.has(found, "votekick"), receiver, "Этот игрок защищен пластаном")) return;
 	    			if(require(Admins.has(found, "whitelist"), receiver, "Этот игрок защищен метастеклом")) return;
-        			kick(found, "сервер", reason);
+        			kick(found, receiver.user.name, reason);
+    				receiver.sendMessage("Игрок забанен");
 	            } else {
 	            	receiver.sendMessage("Игрок " + args[0] + " не найден.");
 	            }
