@@ -1,4 +1,4 @@
-package agzam4;
+package agzam4.utils;
 
 import java.util.Stack;
 

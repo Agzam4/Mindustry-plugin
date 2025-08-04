@@ -1,4 +1,4 @@
-package agzam4;
+package agzam4.admins;
 
 import arc.files.Fi;
 import arc.struct.ObjectMap;

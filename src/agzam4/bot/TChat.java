@@ -10,7 +10,7 @@ import javax.imageio.ImageIO;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 
-import agzam4.Log;
+import agzam4.utils.Log;
 import arc.struct.IntMap;
 import arc.util.ArcRuntimeException;
 import arc.util.Nullable;

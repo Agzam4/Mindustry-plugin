@@ -5,10 +5,10 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.Field;
 
-import agzam4.Log;
 import agzam4.database.DBFields.FIELD;
 import agzam4.database.DBFields.PRIMARY_KEY;
 import agzam4.database.SQL.TableColumnInfo;
+import agzam4.utils.Log;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
 import arc.util.Nullable;

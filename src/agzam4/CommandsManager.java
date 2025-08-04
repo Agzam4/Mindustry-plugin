@@ -1,16 +1,13 @@
 package agzam4;
 
-import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
-
-import org.telegram.telegrambots.meta.api.objects.Chat;
 
 import agzam4.achievements.AchievementsManager;
 import agzam4.achievements.AchievementsManager.Achievement;
+import agzam4.admins.AdminData;
+import agzam4.admins.Admins;
 import agzam4.bot.Bots;
 import agzam4.bot.Bots.NotifyTag;
 import agzam4.bot.TChat;
@@ -22,9 +19,9 @@ import agzam4.database.Database;
 import agzam4.database.Database.PlayerEntity;
 import agzam4.events.*;
 import agzam4.net.NetMenu;
+import agzam4.utils.Log;
 import arc.Core;
 import arc.Events;
-import arc.files.Fi;
 import arc.func.*;
 import arc.graphics.Color;
 import arc.math.Mathf;
@@ -36,7 +33,6 @@ import arc.util.CommandHandler.CommandRunner;
 import arc.util.Nullable;
 import arc.util.Strings;
 import arc.util.Structs;
-import arc.util.Threads;
 import arc.util.Time;
 import arc.util.Timekeeper;
 import arc.util.Timer;
@@ -75,6 +71,8 @@ public class CommandsManager {
 	private static ArrayList<Integer> doorsCoordinates;
 	private static Player lastThoriumReactorPlayer;
 	
+	public static boolean needServerRestart;
+	
 //	public static final Seq<Sound> sounds = new Seq<Sound>();
 
 	public static ObjectMap<String, PlayerEntity> joined = new ObjectMap<>(); // UUID, PlayerEntity
@@ -99,6 +97,9 @@ public class CommandsManager {
 		Events.on(GameOverEvent.class, e -> {
 			Brush.brushes.clear();
 			lastkickTime.clear();
+			if(needServerRestart) {
+				Game.stop();
+			}
 		});
 		
 		Events.on(PlayerLeave.class, e -> {
@@ -713,39 +714,49 @@ public class CommandsManager {
 			 players.show(admin);
     	});
 		
-		adminCommand("restart", "[code] [args...]", "Перезагрузить сервер", (args, player) -> {
-			if(args.length == 0) {
-				generateStopCode();
-				player.sendMessage("Код остановки сервера: [red]" + stopcode);
+		serverCommand("restart", "[on/off/force]", "Перезагрузить сервер", (args, sender, receiver, type) -> {
+			if(require(args.length != 1, sender, "Restart server: [lightgray]" + needServerRestart)) return;
+			
+			if(args[0].equalsIgnoreCase("force")) {
+				Game.stop();
 				return;
 			}
-			Log.info("args @ @ @", Arrays.toString(args), args.length, args.length >= 1);
-			if(args.length >= 1) {
-				Log.info("args[0].equals(stopcode): @ @/@", args[0].equals(stopcode), args[0], stopcode);
-				if(require(!args[0].equals(stopcode), player, "[red]Неверный код остановки сервера")) return;
-				Log.info("Sucsess code");
-				
-				Call.sendMessage("[scarlet]Рестарт сервера");
-				Call.setHudText("[scarlet]Рестарт сервера");
-				Groups.player.each(p -> {
-					p.kick(KickReason.serverRestarting);
-				});
-				Log.info("Restarting");
-				String command = "java -jar \"" + Fi.get("").absolutePath() + "/server-release.jar\"" + ((args.length <= 1) ? "" : " " + args[1]);
-				Bots.notify(NotifyTag.serverInfo, null, "Restarting server: <code>" + command + "</code>");
-				Threads.daemon(() -> {
-					Core.app.exit();
-					try {
-						Runtime.getRuntime().exec(command, new String[] {}, new File("").getParentFile());
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-					System.exit(0);
-				});
-				Core.app.exit();
+
+			if(args[0].equalsIgnoreCase("on")) {
+				needServerRestart = true;
 				return;
 			}
-			player.sendMessage("[red]Неверные аргументы");
+			if(args[0].equalsIgnoreCase("off")) {
+				needServerRestart = false;
+				return;
+			}
+			
+			
+//			Log.info("args @ @ @", Arrays.toString(args), args.length, args.length >= 1);
+//			if(args.length >= 1) {
+//				Log.info("args[0].equals(stopcode): @ @/@", args[0].equals(stopcode), args[0], stopcode);
+//				if(require(!args[0].equals(stopcode), player, "[red]Неверный код остановки сервера")) return;
+//				Log.info("Sucsess code");
+//				
+//				Call.sendMessage("[scarlet]Рестарт сервера");
+//				Call.setHudText("[scarlet]Рестарт сервера");
+//				
+//				Log.info("Restarting");
+//				String command = "java -jar \"" + Fi.get("").absolutePath() + "/server-release.jar\"" + ((args.length <= 1) ? "" : " " + args[1]);
+//				Bots.notify(NotifyTag.serverInfo, null, "Restarting server: <code>" + command + "</code>");
+//				Threads.daemon(() -> {
+//					Core.app.exit();
+//					try {
+//						Runtime.getRuntime().exec(command, new String[] {}, new File("").getParentFile());
+//					} catch (IOException e) {
+//						e.printStackTrace();
+//					}
+//					System.exit(0);
+//				});
+//				Core.app.exit();
+//				return;
+//			}
+//			player.sendMessage("[red]Неверные аргументы");
 		});
 		
 		serverCommand("nextmap", "<название...>", "Устанавливает следущую карту", (arg, sender, receiver, type) -> {
@@ -1985,7 +1996,7 @@ public class CommandsManager {
 	                                return;
 	                            }
 	                            VoteSession session = new VoteSession(found, reason);
-	                            Bots.notify(NotifyTag.votekick, Strings.format("<b><u>@</u></b> started voting for kicking <b><u>@</b></u>", TelegramBot.strip(player.name), TelegramBot.strip(found.name)));
+	                            Bots.notify(NotifyTag.votekick, Strings.format("<b><u>@</u></b> started voting for kicking <b><u>@</u></b>", TelegramBot.strip(player.name), TelegramBot.strip(found.name)));
 	                            Bots.notify(NotifyTag.votekick, Images.screenshot(found));
 	                            
 	                            session.vote(player, 1);

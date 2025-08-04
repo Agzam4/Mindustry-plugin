@@ -1,10 +1,10 @@
 package agzam4.bot;
 
 import agzam4.CommandsManager.CommandReceiver;
+import agzam4.utils.Log;
 
 import java.io.IOException;
 
-import agzam4.Log;
 import arc.util.CommandHandler.ResponseType;
 import arc.util.serialization.JsonValue;
 import arc.util.serialization.JsonWriter;
@@ -60,7 +60,7 @@ public class TUser extends TSender {
 			Call.sendMessage(message);
 			return;
 		}
-		sender.message("Type /help for more");
+		if(this == sender) sender.message("Type /help for more");
 		return;
 //		
 //		if(sender == this) {

@@ -12,6 +12,7 @@ import mindustry.mod.Mods.LoadedMod;
 import mindustry.mod.Plugin;
 
 import agzam4.achievements.*;
+import agzam4.admins.Admins;
 import agzam4.bot.Bots;
 import agzam4.bot.Bots.NotifyTag;
 import agzam4.bot.TelegramBot;
@@ -19,6 +20,7 @@ import agzam4.database.Database;
 import agzam4.events.EventMap;
 import agzam4.events.ServerEventsManager;
 import agzam4.net.NetMenu;
+import agzam4.utils.Log;
 
 import static agzam4.Emoji.*;
 import static mindustry.Vars.*;
@@ -30,7 +32,7 @@ public class AgzamPlugin extends Plugin {
 	public static DataCollecter dataCollect;
 	public static AchievementsManager achievementsManager;
 	
-	private static CommandHandler serverHandler;
+	public static CommandHandler serverHandler;
     
     @Override
     public void init() {

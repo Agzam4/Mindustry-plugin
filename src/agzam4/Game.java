@@ -7,6 +7,8 @@ import static mindustry.content.UnitTypes.*;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 
+import agzam4.bot.Bots;
+import agzam4.bot.Bots.NotifyTag;
 import arc.graphics.Color;
 import arc.math.Mathf;
 import arc.math.geom.Position;
@@ -30,6 +32,7 @@ import mindustry.gen.Call;
 import mindustry.gen.Groups;
 import mindustry.gen.Player;
 import mindustry.gen.Posc;
+import mindustry.net.Packets.KickReason;
 import mindustry.type.Item;
 import mindustry.type.UnitType;
 import mindustry.world.Block;
@@ -392,4 +395,13 @@ public class Game {
 		player.unit(u);
 	}
 
+	public static void stop() {
+		Bots.notify(NotifyTag.serverInfo, null, "Stoping server...");
+		Groups.player.each(p -> {
+			p.kick(KickReason.serverRestarting);
+		});
+		AgzamPlugin.serverHandler.handleMessage("stop");
+		AgzamPlugin.serverHandler.handleMessage("exit");
+		System.exit(0);
+	}
 }

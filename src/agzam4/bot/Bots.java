@@ -37,6 +37,7 @@ public class Bots {
 
 	public static void notify(NotifyTag tag, String message) {
 		notify(tag.tag, message);
+		notify("!" + tag.tag, message);
 	}
 
 	/**

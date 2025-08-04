@@ -19,7 +19,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.BotSession;
 
 import agzam4.Game;
-import agzam4.Log;
+import agzam4.utils.Log;
 import arc.files.Fi;
 import arc.func.Cons;
 import arc.struct.LongMap;

@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Scanner;
 
+import agzam4.utils.Log;
 import arc.files.Fi;
 import arc.graphics.Color;
 import arc.math.geom.Point2;
@@ -165,7 +166,7 @@ public class Debug {
 		
 
 		final int id = runid;
-		while (id == runid) {
+		while (id == runid && p.isAlive()) {
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e1) {
