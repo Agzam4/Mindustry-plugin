@@ -5,7 +5,6 @@ import java.io.IOException;
 import arc.struct.LongMap;
 import arc.struct.ObjectMap;
 import arc.struct.ObjectSet;
-import arc.struct.Queue;
 import arc.util.serialization.JsonValue;
 import arc.util.serialization.JsonWriter;
 

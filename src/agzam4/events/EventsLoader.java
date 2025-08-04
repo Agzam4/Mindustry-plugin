@@ -103,9 +103,9 @@ public class EventsLoader {
     					} else {
     						Log.info("bungle not found for: @", event.name);
     					}
-    					event.init();
+//    					event.init();
                         
-                    	Log.info("NEW EVENT: @", event.name);
+                    	Log.info("[cyan]Event [blue]@[] loaded!", event.name);
                     	events.add(event);
                     } else {
                     	Log.info("main file not found");
