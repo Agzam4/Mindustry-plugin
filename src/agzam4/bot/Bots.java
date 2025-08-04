@@ -33,11 +33,15 @@ public class Bots {
 	public static void notify(NotifyTag tag, BufferedImage image) {
 		notify(tag.tag, image);
 		notify("!" + tag.tag, image);
+		notify("all", image);
+		notify("!all", image);
 	}
 
 	public static void notify(NotifyTag tag, String message) {
 		notify(tag.tag, message);
 		notify("!" + tag.tag, message);
+		notify("all", message);
+		notify("!all", message);
 	}
 
 	/**
@@ -47,15 +51,21 @@ public class Bots {
 	 * @param superMessage - use for sending important information like uuid and ip
 	 */
 	public static void notify(NotifyTag tag, String message, String superMessage) {
-		if(message != null) notify(tag.tag, message);
-		if(superMessage != null) notify("!" + tag.tag, superMessage);
+		if(message != null) {
+			notify(tag.tag, message);
+			notify("all", message);
+		}
+		if(superMessage != null) {
+			notify("!" + tag.tag, superMessage);
+			notify("!all", superMessage);
+		}
 	}
 
-	public static void notify(String tag, String message) {
+	private static void notify(String tag, String message) {
 		TSender.senders(tag).eachValue(s -> s.message(message));
 	}
 
-	public static void notify(String tag, BufferedImage image) {
+	private static void notify(String tag, BufferedImage image) {
 		TSender.senders(tag).eachValue(s -> s.message(image));
 	}
 	
