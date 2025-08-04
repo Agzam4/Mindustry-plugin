@@ -43,22 +43,13 @@ public class TSender {
 		this.id = TSender.id(json.getString("id"));
 		if(json.has("permissions")) {
 			for (var p : json.get("permissions")) {
-				permissions.add(p.asString());
+				addPermission(p.asString());
 			}
 		}
 		if(json.has("tags")) {
 			for (var p : json.get("tags")) {
-				tags.add(p.asString());
+				addTag(p.asString());
 			}
-		}
-	}
-	
-	protected void read(Queue<String> args) {
-		for (var t : args.removeFirst().split(",")) {
-			addTag(t);
-		}
-		for (var p : args.removeFirst().split(",")) {
-			addPermission(p);
 		}
 	}
 	
