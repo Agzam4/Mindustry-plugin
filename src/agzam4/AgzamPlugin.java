@@ -118,7 +118,9 @@ public class AgzamPlugin extends Plugin {
     		ServerEventsManager.worldLoadEnd(e);
     		CommandsManager.clearDoors();
 //            Map map = maps.getNextMap(state.rules.mode(), state.map);
-			Bots.notify(NotifyTag.round, Strings.format("<b>Next map is:</b> <code>@</code>", TelegramBot.strip(state.map.plainName())));
+    		Timer.schedule(() -> {
+    			Bots.notify(NotifyTag.round, Strings.format("<b>Next map is:</b> <code>@</code>", TelegramBot.strip(state.map.plainName())));
+    		}, 1f);
     	});
     	
 //        Events.on(BuildSelectEvent.class, event -> { 

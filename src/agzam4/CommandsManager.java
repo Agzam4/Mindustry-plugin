@@ -733,7 +733,25 @@ public class CommandsManager {
 			}
 		});
 		
-		serverCommand("nextmap", "<название...>", "Устанавливает следущую карту", (arg, sender, receiver, type) -> {
+		serverCommand("nextmap", "[название...]", "Устанавливает следущую карту", (arg, sender, receiver, type) -> {
+			if(arg.length == 0) {
+				StringBuilder maps = new StringBuilder("Карты:");
+				int id = 0;
+				for(Map map : Vars.maps.all()){
+					id++;
+					String mapName = Strings.stripColors(map.name());
+					if(type == ReceiverType.bot) {
+						maps.append(Strings.format("\n<code>#@</code> <i>@</i> <code>@</code> <i>(@x@, рекорд: @)</i>", 
+								id, map.custom ? "Кастомная" : "Дефолтная", mapName, map.width, map.height, map.getHightScore()));
+					} else {
+						maps.append(Strings.format("\n[gold]#@ @ [white]| @ [white](@x@, рекорд: @)", 
+								id, map.custom ? "Кастомная" : "Дефолтная", mapName, map.width, map.height, map.getHightScore()));
+					}
+				}
+				sender.sendMessage(maps.toString());
+				return;
+			}
+			
             Map res = Vars.maps.all().find(map -> map.plainName().replace('_', ' ').equalsIgnoreCase(Game.strip(arg[0]).replace('_', ' ')));
             boolean canEventmaps = receiver instanceof Player player ? Admins.has(player, "eventmaps") : true;
             if(arg[0].startsWith("$") && canEventmaps) {
