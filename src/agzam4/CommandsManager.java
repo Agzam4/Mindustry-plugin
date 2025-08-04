@@ -1833,6 +1833,10 @@ public class CommandsManager {
 			}
 			receiver.chat.message(Images.screenshot(found));
 		});
+		botCommand("say", "<message...>", "оправить сообщение в игровой чат", (args, receiver) -> {
+			if(require(args.length != 1, receiver, "wrong args amount")) return;
+			Call.sendMessage(Strings.format("[coral][[@[coral]]:[white]", receiver.user.name, args[0]));
+		});
 //		botCommand("kick", "<player>", "kick player by name", (args, receiver) -> {
 //			if(require(args.length != 1, receiver, "wrong args amount")) return;
 //			Player found = Groups.player.find(p -> p.plainName().equalsIgnoreCase(args[0]));
