@@ -167,12 +167,14 @@ public class Debug {
 
 		final int id = runid;
 		while (id == runid && p.isAlive()) {
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e1) {
-				e1.printStackTrace();
-			}
+			Threads.sleep(100);
 		}
+		if(p.isAlive()) {
+			writer.println("restart force");
+			writer.flush();
+			Threads.sleep(100);
+		}
+		
 		System.out.println("close");
 		p.destroy();
 		writer.close();
