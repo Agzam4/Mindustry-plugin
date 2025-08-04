@@ -4,7 +4,6 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.Field;
-
 import agzam4.database.DBFields.FIELD;
 import agzam4.database.DBFields.PRIMARY_KEY;
 import agzam4.database.SQL.TableColumnInfo;
@@ -175,7 +174,7 @@ public class Table<T> {
 		}, sqlArgs);
 	}
 
-	public @Nullable T get(Object key, EntityInit<T> def) {
+	public T get(Object key, EntityInit<T> def) {
 		T e = get(key);
 		if(e == null) {
 			e = def.get();
