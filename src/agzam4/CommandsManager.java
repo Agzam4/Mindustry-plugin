@@ -715,48 +715,22 @@ public class CommandsManager {
     	});
 		
 		serverCommand("restart", "[on/off/force]", "Перезагрузить сервер", (args, sender, receiver, type) -> {
-			if(require(args.length != 1, sender, "Restart server: [lightgray]" + needServerRestart)) return;
-			
+			if(require(args.length != 1, sender, "Перезапуск: [lightgray]" + needServerRestart)) return;
 			if(args[0].equalsIgnoreCase("force")) {
 				Game.stop();
 				return;
 			}
-
 			if(args[0].equalsIgnoreCase("on")) {
 				needServerRestart = true;
+				sender.sendMessage("Сервер будет перезапущен на следующей карте");
 				return;
 			}
 			if(args[0].equalsIgnoreCase("off")) {
+				if(require(!needServerRestart, sender, "Перезапуск итак отменен")) return;
 				needServerRestart = false;
+				sender.sendMessage("Перезапуск отменен");
 				return;
 			}
-			
-			
-//			Log.info("args @ @ @", Arrays.toString(args), args.length, args.length >= 1);
-//			if(args.length >= 1) {
-//				Log.info("args[0].equals(stopcode): @ @/@", args[0].equals(stopcode), args[0], stopcode);
-//				if(require(!args[0].equals(stopcode), player, "[red]Неверный код остановки сервера")) return;
-//				Log.info("Sucsess code");
-//				
-//				Call.sendMessage("[scarlet]Рестарт сервера");
-//				Call.setHudText("[scarlet]Рестарт сервера");
-//				
-//				Log.info("Restarting");
-//				String command = "java -jar \"" + Fi.get("").absolutePath() + "/server-release.jar\"" + ((args.length <= 1) ? "" : " " + args[1]);
-//				Bots.notify(NotifyTag.serverInfo, null, "Restarting server: <code>" + command + "</code>");
-//				Threads.daemon(() -> {
-//					Core.app.exit();
-//					try {
-//						Runtime.getRuntime().exec(command, new String[] {}, new File("").getParentFile());
-//					} catch (IOException e) {
-//						e.printStackTrace();
-//					}
-//					System.exit(0);
-//				});
-//				Core.app.exit();
-//				return;
-//			}
-//			player.sendMessage("[red]Неверные аргументы");
 		});
 		
 		serverCommand("nextmap", "<название...>", "Устанавливает следущую карту", (arg, sender, receiver, type) -> {
