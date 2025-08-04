@@ -4,6 +4,8 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+
 import agzam4.database.DBFields.FIELD;
 import agzam4.database.DBFields.PRIMARY_KEY;
 import agzam4.database.SQL.TableColumnInfo;
@@ -178,6 +180,16 @@ public class Table<T> {
 		T e = get(key);
 		if(e == null) {
 			e = def.get();
+			put(e);
+		}
+		return e;
+	}
+	
+	public T getAuto(Object key) throws Throwable {
+		T e = get(key);
+		if(e == null) {
+			T entity = entityType.getConstructor().newInstance();
+			setters.get(keyName).invoke(entity, key);
 			put(e);
 		}
 		return e;
