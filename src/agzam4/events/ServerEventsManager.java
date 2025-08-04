@@ -2,6 +2,7 @@ package agzam4.events;
 
 import agzam4.Game;
 import arc.Events;
+import arc.files.Fi;
 import arc.func.Boolf;
 import arc.func.Cons2;
 import arc.struct.Seq;
@@ -17,6 +18,8 @@ import mindustry.world.blocks.logic.MessageBlock.MessageBuild;
 import static mindustry.Vars.*;
 
 public class ServerEventsManager {
+
+	public static Fi eventsPath = Fi.get(Vars.saveDirectory + "/active-events.txt");
 	
 	private ServerEventsManager() {};
 	
@@ -40,6 +43,18 @@ public class ServerEventsManager {
 				events.addAll(EventsLoader.load(child));
 			} catch (Exception e) {
 				e.printStackTrace();
+			}
+		}
+		
+		if(eventsPath.exists()) {
+			try {
+				for (String name : eventsPath.readString().split("\n")) {
+					ServerEvent e = find(name);
+					if(e == null) return;
+					activeEvents.add(e);
+				}
+			} catch (Exception exception) {
+				Log.err(exception);
 			}
 		}
 		
@@ -111,8 +126,6 @@ public class ServerEventsManager {
 		activeEvents.each(runningFilter, se -> se.playerJoin(e));
 	}
 
-	
-
 	public static void runEvent(String commandName) {
 		ServerEvent event = find(commandName);
 		if(event == null) {
@@ -124,14 +137,21 @@ public class ServerEventsManager {
 			return;
 		}
 		activeEvents.add(event);
+		save();
 		event.announce();
 	}
 	
+	private static void save() {
+		eventsPath.writeString(activeEvents.toString("\n", e -> e.name), false);
+		Log.info("Saving events to [blue]@[]", eventsPath.absolutePath());
+	}
+
 	public static void stopEvent(String commandName) {
 		ServerEvent event = find(commandName);
 		if(event == null) return;
 		event.stop();
 		activeEvents.remove(event);
+		save();
 	}
 	
 	public static @Nullable ServerEvent find(String name) {
@@ -157,6 +177,7 @@ public class ServerEventsManager {
 			event.run();
 			isLoaded = true;
 			activeEvents.add(event);
+			save();
 			Game.sync();
 		}
 	}
