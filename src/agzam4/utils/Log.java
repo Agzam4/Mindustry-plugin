@@ -164,31 +164,36 @@ public class Log {
 //    "lb", lightBlue,
 //    "lc", lightCyan,
 //    "w", white
+
+	public static void tinfo(int d, String text) {
+		arc.util.Log.info(getCaller(d + 2) + paint(format(text)));
+	}
 	
+	public static void tinfo(int d, String text, Object... args) {
+		arc.util.Log.info(getCaller(d + 2) + paint(format(text, args)));
+	}
 
 	public static void info(Object... args) {
-//		(args);
-		arc.util.Log.info(getCaller() + paint(format("", args)));
+		arc.util.Log.info(getCaller(2) + paint(format("", args)));
 	}
 
 	public static void info(String text, Object... args) {
-//		arc.util.Log.info(text, args);
-		arc.util.Log.info(getCaller() + paint(format(text, args)));
+		arc.util.Log.info(getCaller(2) + paint(format(text, args)));
 	}
 
 	public static void warn(Object... args) {
-		arc.util.Log.warn(getCaller() + paint(format("[yellow]", args) + "[]"));
+		arc.util.Log.warn(getCaller(2) + paint(format("[yellow]", args) + "[]"));
 	}
 	
 	public static void warn(String text, Object... args) {
-		arc.util.Log.warn(getCaller() + paint("[yellow]" + format(text, args) + "[]"));
+		arc.util.Log.warn(getCaller(2) + paint("[yellow]" + format(text, args) + "[]"));
 	}
 	
-	private static String getCaller() {
+	private static String getCaller(int d) {
 		try {
 			throw new Exception("Meow");
 		} catch (Exception e) {
-			StackTraceElement method = e.getStackTrace()[2];
+			StackTraceElement method = e.getStackTrace()[d];
 	        StringBuilder sb = new StringBuilder();
 	        sb.append('(');
 	        if (method.isNativeMethod()) {
@@ -208,7 +213,7 @@ public class Log {
 	}
 
 	public static void err(String text, Object... args) {
-		arc.util.Log.err(getCaller() + format(text, args));
+		arc.util.Log.err(getCaller(2) + format(text, args));
 	}
 	
 	private static String format(String str, Object... args) {
