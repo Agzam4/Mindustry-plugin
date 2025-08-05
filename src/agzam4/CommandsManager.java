@@ -28,11 +28,11 @@ import arc.math.Mathf;
 import arc.math.geom.Bresenham2;
 import arc.math.geom.Point2;
 import arc.struct.*;
-import arc.util.CommandHandler;
 import arc.util.CommandHandler.CommandRunner;
 import arc.util.Nullable;
 import arc.util.Strings;
 import arc.util.Structs;
+import arc.util.Threads;
 import arc.util.Time;
 import arc.util.Timekeeper;
 import arc.util.Timer;
@@ -50,6 +50,7 @@ import mindustry.type.*;
 import mindustry.world.*;
 import mindustry.world.blocks.environment.*;
 import mindustry.world.blocks.storage.CoreBlock;
+import mindustry.world.meta.BuildVisibility;
 
 import static agzam4.Emoji.*;
 
@@ -105,7 +106,6 @@ public class CommandsManager {
 		Events.on(PlayerLeave.class, e -> {
 			if(e.player == null) return;
 			Brush.brushes.removeAll(b -> b.owner == e.player);
-
     		/**
     		 * Saving PlayerEntity
     		 */
@@ -499,7 +499,8 @@ public class CommandsManager {
 	}
 	
 	static class BotCommand {
-		
+
+		private boolean registered;
 		private final String text, parms, desc;
 		private CommandRunner<MessageData> run;
 
@@ -535,6 +536,7 @@ public class CommandsManager {
 	static class BaseCommand {
 
 		private final String text, parms, desc;
+		private boolean registered;
 		Cons<String[]> run;
 		
 		public BaseCommand(String text, String parms, String desc, Cons<String[]> run) {
@@ -555,6 +557,7 @@ public class CommandsManager {
 		private final String text, parms, desc;
 		private boolean admin = false;
 		private CommandRunner<Player> run;
+		private boolean registered;
 
 		public PlayerCommand(String text, String parms, String desc, CommandRunner<Player> run) {
 			this.text = text;
@@ -606,29 +609,47 @@ public class CommandsManager {
 	
 //	int commandVotekick
 
-	public static void registerClientCommands(CommandHandler handler) {
-		handler.removeCommand("a");
-		handler.removeCommand("help");
-		handler.removeCommand("votekick");
-		handler.removeCommand("vote");
+	public static void flushClientCommands() {
+//		handler.removeCommand("a");
+//		handler.removeCommand("help");
+//		handler.removeCommand("votekick");
+//		handler.removeCommand("vote");
 //		handler.getCommandList().forEach(command -> {
 //			if(command.text.equals("votekick")) {
 //				command.description
 //			}
 //		});
+		var handler = AgzamPlugin.clientHandler;
 		
-		playerCommands.each(c -> handler.register(c.text, c.parms, c.desc, c.run()));
+		playerCommands.each(c -> {
+			if(c.registered) return;
+			handler.removeCommand(c.text);
+			handler.register(c.text, c.parms, c.desc, c.run());
+			c.registered = true;
+		});
 
 //		registerPlayersCommands(handler);
 //		registerAdminCommands(handler);
 	}
 	
-	public static void registerServerCommands(CommandHandler handler) {
-		serverCommands.each(c -> handler.register(c.text, c.parms, c.desc, c.run()));
+	public static void flushServerCommands() {
+		var handler = AgzamPlugin.serverHandler;
+		serverCommands.each(c -> {
+			if(c.registered) return;
+			handler.removeCommand(c.text);
+			handler.register(c.text, c.parms, c.desc, c.run());
+			c.registered = true;
+		});
 	}
 
-	public static void registerBotCommands(CommandHandler handler) {
-		botCommands.each(c -> handler.register(c.text, c.parms, c.desc, c.run()));
+	public static void flushBotCommands() {
+		var handler = Bots.handler;
+		botCommands.each(c -> {
+			if(c.registered) return;
+			handler.removeCommand(c.text);
+			handler.register(c.text, c.parms, c.desc, c.run());
+			c.registered = true;
+		});
 	}
 
 
@@ -1335,8 +1356,7 @@ public class CommandsManager {
 					@Nullable Block find = Game.findBlock(blockname);
 
 					if(require(find == null, player, "[red]Блок не найден")) return;
-					if(require(!find.canBeBuilt() && !Admins.has(player, "brush-sandbox"), player, "[red]Блок недоступен в текущем режиме игры")) return;
-					
+					if(require(!(find.canBeBuilt() || find.buildVisibility == BuildVisibility.hidden) && !Admins.has(player, "brush-sandbox"), player, "[red]Блок недоступен в текущем режиме игры")) return;
 					brush.block = find;
 					player.sendMessage("[gold]Поверхность привязана!");
 				} else if(arg[0].equalsIgnoreCase("floor") || arg[0].equalsIgnoreCase("f")) {
@@ -1992,7 +2012,7 @@ public class CommandsManager {
 	                                return;
 	                            }
 	                            VoteSession session = new VoteSession(found, reason);
-	                            Bots.notify(NotifyTag.votekick, Strings.format("<b><u>@</u></b> started voting for kicking <b><u>@</u></b>", TelegramBot.strip(player.name), TelegramBot.strip(found.name)));
+	                            Bots.notify(NotifyTag.votekick, Strings.format("<code>@</code> started voting for kicking <code>@</code> (<code>#@</code>): <code>@</code>", TelegramBot.strip(player.name), TelegramBot.strip(found.name), found.id, TelegramBot.strip(reason)));
 	                            Bots.notify(NotifyTag.votekick, Images.screenshot(found));
 	                            
 	                            session.vote(player, 1);
@@ -2466,6 +2486,12 @@ public class CommandsManager {
 				}
 			}		
 		}
+	}
+
+	public static void flushCommands() {
+    	CommandsManager.flushBotCommands();
+    	CommandsManager.flushServerCommands();
+    	CommandsManager.flushClientCommands();		
 	}
 	
 }

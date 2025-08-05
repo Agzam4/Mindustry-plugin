@@ -31,8 +31,9 @@ public class AgzamPlugin extends Plugin {
 	
 	public static DataCollecter dataCollect;
 	public static AchievementsManager achievementsManager;
-	
+
 	public static CommandHandler serverHandler;
+	public static CommandHandler clientHandler;
     
     @Override
     public void init() {
@@ -59,12 +60,12 @@ public class AgzamPlugin extends Plugin {
     	
     	achievementsManager = new AchievementsManager();
     	CommandsManager.init();
-    	CommandsManager.registerBotCommands(Bots.handler);
-    	CommandsManager.registerServerCommands(serverHandler);
     	Log.reset();
     	
     	ServerEventsManager.init();
     	EventMap.load();
+
+    	CommandsManager.flushBotCommands();
     	
     	maps = new Maps();
     	
@@ -195,107 +196,14 @@ public class AgzamPlugin extends Plugin {
     
 	@Override
     public void registerServerCommands(CommandHandler handler) {
-//    	Log.info("[registerServerCommands]");
 		serverHandler = handler;
-        handler.register("reactors", "List all thorium reactors in the map.", args -> {
-            for(int x = 0; x < Vars.world.width(); x++){
-                for(int y = 0; y < Vars.world.height(); y++){
-                    if(Vars.world.tile(x, y).block() == Blocks.thoriumReactor && Vars.world.tile(x, y).isCenter()){
-                        Log.info("Reactor at @, @", x, y);
-                    }
-                }
-            }
-        });
-        
-        handler.register("cdata", "cdata", args -> {
-        	Log.info("Statistics files dir: " + DataCollecter.getPathToFile(""));
-        	Log.info("User dir: " + System.getProperty("user.dir"));
-        	Log.info("Sleep time: " + dataCollect.getSleepTime());
-        });
-        
-        /** FIXME
-        handler.register("event", "[id] [on/off/faston]", "Включить/выключить событие", arg -> {
-        	if(arg.length == 0) {
-        		StringBuilder msg = new StringBuilder("[red]Недостаточно аргументов.[white]\nID событий:");
-        		msg.append(ServerEventsManager.events.toString("\n"));
-//        		for (int i = 0; i < ServerEventsManager.events.size; i++) {
-//        			msg.append('\n');
-//        			ServerEvent event = ServerEventsManager.getServerEvent(i);
-//        			msg.append('[');
-//        			msg.append(event.getColor());
-//        			msg.append(']');
-//        			msg.appendev();
-//        		}
-        		Log.info(msg.toString());
-        		return;
-        	}
-        	if(arg.length == 1) {
-//        		for (int i = 0; i < ServerEventsManager.getServerEventsCount(); i++) {
-//        			ServerEvent event = ServerEventsManager.getServerEvent(i);
-//        			if(arg[0].equals(event.getCommandName())) {
-//        				player.sendMessage("Событие [" + event.bungle("color") + "]" + event.bungle("name") + "[white] имеет значение: " + event.isRunning());
-//        				return;
-//        			}
-//        		}
-        		Log.info("[red]Событие не найдено, [gold]/event [red] для списка событий");
-        		return;
-        	}
-        	if(arg.length == 2) {
-        		boolean isOn = false;
-        		boolean isFast = false;
-        		if(arg[1].equals("on")) {
-        			isOn = true;
-        		}else if(arg[1].equals("off")) {
-        			isOn = false;
-        		}else if(arg[1].equals("faston")) {
-        			isOn = true;
-        			isFast = true;
-        		}else {
-        			Log.info("Неверный аргумент, используйте [gold]on/off[]");
-        			return;
-        		}
-
-        		for (int i = 0; i < ServerEventsManager.getServerEventsCount(); i++) {
-        			ServerEvent event = ServerEventsManager.getServerEvent(i);
-        			if(arg[0].equals(event.getCommandName())) {
-        				boolean isRunning = event.isRunning();
-        				if(isRunning && isOn) {
-        					Log.info("[red]Событие уже запущено");
-        					return;
-        				}
-        				if(!isRunning && !isOn) {
-        					player.sendMessage("[red]Событие итак не запущено");
-        					return;
-        				}
-
-        				if(isOn) {
-        					if(isFast) {
-        						AgzamPlugin.eventsManager.fastRunEvent(event.getCommandName());
-        						Log.info("[white]Событие резко запущено! [gold]/sync");
-        					} else {
-        						AgzamPlugin.eventsManager.runEvent(event.getCommandName());
-        						Log.info("[green]Событие запущено!");
-        					}
-        				} else {
-        					AgzamPlugin.eventsManager.stopEvent(event.getCommandName());
-        					Log.info("[red]Событие остановлено!");
-        				}
-
-        				return;
-        			}
-        		}
-
-        		Log.info("[red]Событие не найдено, [gold]/event [red] для списка событий");
-        		return;
-        	}
-		});
-        	*/
+    	CommandsManager.flushServerCommands();
     }
     
     @Override
     public void registerClientCommands(CommandHandler handler) {
-    	Log.info("[registerClientCommands]");
-    	CommandsManager.registerClientCommands(handler);
+    	clientHandler = handler;
+    	CommandsManager.flushClientCommands();
     }
 
 	public static String name() {
