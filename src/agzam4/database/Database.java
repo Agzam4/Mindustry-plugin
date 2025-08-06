@@ -14,10 +14,10 @@ import agzam4.database.DBFields.DEFAULT;
 import agzam4.database.DBFields.FIELD;
 import agzam4.database.DBFields.PRIMARY_KEY;
 import agzam4.database.SQL.TableColumnInfo;
+import agzam4.utils.Log;
 import arc.func.Cons;
 import arc.func.Func;
 import arc.struct.Seq;
-import arc.util.Log;
 import arc.util.Nullable;
 import arc.util.Strings;
 import mindustry.gen.Player;
@@ -40,7 +40,6 @@ public class Database {
         	connection = c;
         	players = new Table<PlayerEntity>("players", PlayerEntity.class);
         	achievements = new Table<AchievementEntity>("achievements", AchievementEntity.class);
-        	Log.info("player: @", players.get("myuuid"));
         } catch (SQLException e) {
         	Log.err(e);
         }
@@ -214,12 +213,9 @@ public class Database {
 		
 		private void loadAchievements() {
 			this.achievements = Database.achievements.query("uuid", uuid);
-			Log.info("@ loaded: @", uuid, achievements);
 		}
 		
 		public boolean achievement(Achievement achievement, int tier) {
-			Log.info("== Grant ==");
-			Log.info("tier: @", tier);
 			final int mapId = AchievementsManager.mapId();
 			@Nullable AchievementEntity entity = achievements.find(e -> e.type == achievement.id && e.map == mapId);
 			if(tier < 1) return false;

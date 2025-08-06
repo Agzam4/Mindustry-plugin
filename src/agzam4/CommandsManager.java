@@ -1437,11 +1437,20 @@ public class CommandsManager {
 			}
 		});
 
-		adminCommand("bot", "[add/remove/list/start/stop/t/p/name] [id/name] [token...]", "Привязать/отвязать телеграм аккаунт", (args, player) -> {
+		adminCommand("bot", "[add/remove/list/start/stop/t/p/name/load] [id/name] [token...]", "Привязать/отвязать телеграм аккаунт", (args, player) -> {
 			if(require(args.length < 1, player, "Мало аргументов")) return;
 			try {
 				args[0] = args[0].toLowerCase();
 
+				if(args[0].equalsIgnoreCase("load")) {
+					try {
+						TelegramBot.init();
+						player.sendMessage("Chats & Users loaded!");
+					} catch (Exception exc) {
+						player.sendMessage("Error: " + exc.getMessage());
+					}
+					return;
+				}
 				if(args[0].equalsIgnoreCase("list")) {
 					Cons2<LongMap<? extends TSender>, String> show = (m, name) -> {
 						if(m.size == 0) player.sendMessage(Strings.format("@: <empty>", name));

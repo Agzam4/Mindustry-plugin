@@ -132,4 +132,8 @@ public class TSender {
 		return uid();
 	}
 
+	public boolean ignore() {
+		return permissions.size == 0;
+	}
+
 }

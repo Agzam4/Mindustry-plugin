@@ -31,6 +31,7 @@ public class TUser extends TSender {
 	}
 	
 	public void onMessage(TSender sender, String message) {
+		if(sender.ignore()) return;
 		if(message.startsWith("/")) {
 			var response = Bots.handler.handleMessage(message, new MessageData() {{
 				user = TUser.this;

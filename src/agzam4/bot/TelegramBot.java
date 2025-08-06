@@ -68,8 +68,11 @@ public class TelegramBot extends TelegramLongPollingBot {
 		} else {
 			Log.info("Token not found");
 		}
-		
-
+		load();
+		Log.info("Bot loaded!");
+	}
+	
+	public static void load() {
 		try {
 			if(botUsersPath.exists()) {
 				for (var json : reader.parse(botUsersPath)) {
@@ -82,7 +85,6 @@ public class TelegramBot extends TelegramLongPollingBot {
 		} catch (Exception e) {
 			Log.err(e);
 		}
-
 		try {
 			if(botChatsPath.exists()) {
 				for (var json : reader.parse(botChatsPath)) {
@@ -96,7 +98,6 @@ public class TelegramBot extends TelegramLongPollingBot {
 		} catch (Exception e) {
 			Log.err(e);
 		}
-		Log.info("Bot loaded!");
 	}
 	
 	public static void save() {
