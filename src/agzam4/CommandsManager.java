@@ -359,9 +359,12 @@ public class CommandsManager {
 			}
 			return true;
 		});
-		// "/chatfilter" command
+		
 		Vars.netServer.admins.addChatFilter((player, text) -> {
-			if(player != null && text != null) Bots.notify(NotifyTag.chatMessage, "<u><b>" + TelegramBot.strip(player.name) + "</b></u>: " + TelegramBot.strip(text));
+			if(player != null && text != null) {
+				// XXX: send runnables to main thread?
+				Bots.notify(NotifyTag.chatMessage, "<u><b>" + TelegramBot.strip(player.name) + "</b></u>: " + TelegramBot.strip(text));
+			}
 			if(chatFilter) {
 				text = "[white]" + text + "[white]";
 				char[] msg = text.toCharArray();
