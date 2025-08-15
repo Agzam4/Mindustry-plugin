@@ -186,7 +186,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 				return;
 			}
 			
-			if(chatId == user.id) {
+			if(chatId == fromId) {
 				user.onMessage(user, text);
 				return;
 			}
@@ -221,93 +221,10 @@ public class TelegramBot extends TelegramLongPollingBot {
 				}
 				user.onMessage(thread, text);
 			}
-			
-			
-			/*
-			
-			Log.info("chatId: @, user: @", chatId, message.getFrom().getId());
-			if(chats.containsKey(chatId)) {
-				TChat chat = chats.get(chatId);
-				
-				
-				
-				
-				
-//				if(tUid == chatId) {
-//					chat.users(message);
-//				}
-				
-				
-				if(!message.isCommand()) {
-					String txt = message.getText();
-					if(txt != null) Call.sendMessage(txt);
-				} else {
-					String txt = message.getText();
-					System.out.println(txt);
-					if(txt != null) {
-						if(txt.equals("/map") || txt.equals("/mapm")) {
-							boolean single = !txt.startsWith("/mapm");
-							BufferedImage screen = takeScreen(0, 0, Vars.world.width(), Vars.world.height(), single);
-							drawData(screen, single, 0, 0);
-							sendMessagePhoto(chatId, screen);
-						} else if(txt.startsWith("/at ")) {
-							String args = txt.substring("/at ".length());
-							Player found = Groups.player.find(p -> p.plainName().equalsIgnoreCase(args));
-							if(found == null) found = Groups.player.find(p -> p.plainName().indexOf(args) != -1);
-							if(found == null) {
-								sendMessageHtml(chatId, "Player <i>" + args + "</i> not found");
-								return;
-							}
-							sendPlayer(chatId, found);
-//						} else if(txt.startsWith("/kick ")) {
-//							String args = txt.substring("/kick ".length());
-//							Player found = Groups.player.find(p -> Strings.stripGlyphs(Strings.stripColors(p.plainName())).equalsIgnoreCase(args) || p.uuid().equals(args));
-//							if(found == null) found = Groups.player.find(p -> ("#" + p.id).equals(args));
-//							if(found == null) {
-//								sendMessageHtml(chatId, "Player <i>" + args + "</i> not found");
-//								return;
-//							}
-//							ExamplePlugin.commandsManager.kick(found, "сервер", "неизвестно");
-						} else if(txt.startsWith("/admin ")) {
-							String[] args = txt.substring("/admin ".length()).split(" ");
-							
-							if(require(args.length != 2 || !(args[0].equals("add") || args[0].equals("remove")), chatId, "Second parameter must be either 'add' or 'remove'.")) return;
-							boolean add = args[0].equals("add");
-							PlayerInfo target;
-							Player playert = Groups.player.find(p -> Strings.stripColors(p.name()).equalsIgnoreCase(Strings.stripColors(args[1])));
-							if(playert != null) {
-								target = playert.getInfo();
-							} else {
-								target = Vars.netServer.admins.getInfoOptional(args[1]);
-								playert = Groups.player.find(p -> p.getInfo() == target);
-							}
-							if(target != null){
-								if(add) Vars.netServer.admins.adminPlayer(target.id, playert == null ? target.adminUsid : playert.usid());
-								else Vars.netServer.admins.unAdminPlayer(target.id);
-								if(playert != null) playert.admin(add);
-								sendMessageMarkdown(chatId, "Изменен статус администратора игрока: " + Game.strip(target.lastName) + " admin: " + add);
-							} else {
-								sendMessageMarkdown(chatId, "Игрока с таким именем или ID найти не удалось. При добавлении администратора по имени убедитесь, что он подключен к Сети; в противном случае используйте его UUID");
-							}
-							Vars.netServer.admins.save();
-						} else if (txt.startsWith("/")) {
-							handler.handleMessage(txt, chatId);
-						}
-					};
-				}
-			} else {
-				sendMessageMarkdown(chatId, "Подтвердите свой аккаунт, зайдя в миндастри и прописав: `/bot add " + chatId + "`");
-			}
-			*/
 		} catch (Exception e) {
 			Log.err(e);
 		}
 	}
-
-//	private boolean require(boolean b, long chatId, String string) {
-//		if(b) sendMessageHtml(chatId, string);
-//		return b;
-//	}
 	
 	public void sendMessageMarkdown(long id, String message) {
 		if(bot == null) return;
