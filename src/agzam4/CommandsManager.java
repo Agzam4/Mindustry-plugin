@@ -2011,7 +2011,7 @@ public class CommandsManager {
 	                        player.sendMessage("[red]Этот игрок защищен метастеклом");
 	                    }else if(found.isLocal()){
 	                        player.sendMessage("[red]Локальные игроки не могут быть выгнаны");
-	                    }else if(found.team() != player.team()){
+	                    }else if(!permission && found.team() != player.team()){
 	                        player.sendMessage("[red]Кикать можно только игроков из вашей команды");
 	                    }else{
 	                    	if(permission) {
