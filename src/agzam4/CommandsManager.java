@@ -24,6 +24,7 @@ import arc.Core;
 import arc.Events;
 import arc.func.*;
 import arc.graphics.Color;
+import arc.graphics.Colors;
 import arc.math.Mathf;
 import arc.math.geom.Bresenham2;
 import arc.math.geom.Point2;
@@ -42,6 +43,7 @@ import mindustry.entities.units.BuildPlan;
 import mindustry.game.Team;
 import mindustry.game.EventType.*;
 import mindustry.gen.*;
+import mindustry.graphics.Pal;
 import mindustry.maps.Map;
 import mindustry.net.Administration.*;
 import mindustry.net.Packets.KickReason;
@@ -359,12 +361,12 @@ public class CommandsManager {
 			}
 			return true;
 		});
-		
 		Vars.netServer.admins.addChatFilter((player, text) -> {
+			long botTime = 0;
 			if(player != null && text != null) {
-				// XXX: send runnables to main thread?
 				Bots.notify(NotifyTag.chatMessage, "<u><b>" + TelegramBot.strip(player.name) + "</b></u>: " + TelegramBot.strip(text));
 			}
+			long start = System.nanoTime();
 			if(chatFilter) {
 				text = "[white]" + text + "[white]";
 				char[] msg = text.toCharArray();
@@ -408,7 +410,7 @@ public class CommandsManager {
 				}
 				text = result.toString();
 			}
-			AgzamPlugin.dataCollect.messageEvent(player, text);
+//			AgzamPlugin.dataCollect.messageEvent(player, text);
 			return text;
 		});
 	}

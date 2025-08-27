@@ -1,8 +1,10 @@
 package agzam4.bot;
 
 import java.awt.image.BufferedImage;
+import java.util.concurrent.CompletableFuture;
 
 import arc.util.CommandHandler;
+import arc.util.Log;
 import arc.util.Strings;
 
 public class Bots {
@@ -29,6 +31,7 @@ public class Bots {
 		
 	}
 
+	// XXX: send runnables to main thread?
 
 	public static void notify(NotifyTag tag, BufferedImage image) {
 		notify(tag.tag, image);
@@ -62,7 +65,9 @@ public class Bots {
 	}
 
 	private static void notify(String tag, String message) {
-		TSender.senders(tag).eachValue(s -> s.message(message));
+		CompletableFuture.runAsync(() -> {
+			TSender.senders(tag).eachValue(s -> s.message(message));
+		});
 	}
 
 	private static void notify(String tag, BufferedImage image) {
