@@ -24,11 +24,11 @@ import arc.Core;
 import arc.Events;
 import arc.func.*;
 import arc.graphics.Color;
-import arc.graphics.Colors;
 import arc.math.Mathf;
 import arc.math.geom.Bresenham2;
 import arc.math.geom.Point2;
 import arc.struct.*;
+import arc.util.ArcRuntimeException;
 import arc.util.CommandHandler.CommandRunner;
 import arc.util.Nullable;
 import arc.util.Strings;
@@ -43,7 +43,6 @@ import mindustry.entities.units.BuildPlan;
 import mindustry.game.Team;
 import mindustry.game.EventType.*;
 import mindustry.gen.*;
-import mindustry.graphics.Pal;
 import mindustry.maps.Map;
 import mindustry.net.Administration.*;
 import mindustry.net.Packets.KickReason;
@@ -362,11 +361,9 @@ public class CommandsManager {
 			return true;
 		});
 		Vars.netServer.admins.addChatFilter((player, text) -> {
-			long botTime = 0;
 			if(player != null && text != null) {
 				Bots.notify(NotifyTag.chatMessage, "<u><b>" + TelegramBot.strip(player.name) + "</b></u>: " + TelegramBot.strip(text));
 			}
-			long start = System.nanoTime();
 			if(chatFilter) {
 				text = "[white]" + text + "[white]";
 				char[] msg = text.toCharArray();
@@ -410,7 +407,6 @@ public class CommandsManager {
 				}
 				text = result.toString();
 			}
-//			AgzamPlugin.dataCollect.messageEvent(player, text);
 			return text;
 		});
 	}
@@ -439,7 +435,7 @@ public class CommandsManager {
 	private static Seq<BaseCommand> serverCommands = new Seq<BaseCommand>();
 	private static Seq<BotCommand> botCommands = new Seq<BotCommand>();
 	
-	enum ReceiverType {
+	public static enum ReceiverType {
 		
 		player,
 		server,
@@ -461,7 +457,7 @@ public class CommandsManager {
 		}
 		
 	}
-
+	
 	public static void playerCommand(String text, String parms, String desc, CommandRunner<Player> run) {
 		playerCommands.add(new PlayerCommand(text, parms, desc, run));
 	}
@@ -634,6 +630,31 @@ public class CommandsManager {
 
 //		registerPlayersCommands(handler);
 //		registerAdminCommands(handler);
+	}
+
+
+	public static PlayerCommand removeClientCommand(String text) {
+		PlayerCommand cmd = playerCommands.find(c -> c.text.equals(text));
+		if(cmd == null) throw new ArcRuntimeException("Command not found");
+		if(cmd.registered) AgzamPlugin.clientHandler.removeCommand(text);
+		cmd.registered = false;
+		return cmd;
+	}
+
+	public static BaseCommand removeServerCommand(String text) {
+		BaseCommand cmd = serverCommands.find(c -> c.text.equals(text));
+		if(cmd == null) throw new ArcRuntimeException("Command not found");
+		if(cmd.registered) AgzamPlugin.serverHandler.removeCommand(text);
+		cmd.registered = false;
+		return cmd;
+	}
+
+	public static BotCommand removeBotCommand(String text) {
+		BotCommand cmd = botCommands.find(c -> c.text.equals(text));
+		if(cmd == null) throw new ArcRuntimeException("Command not found");
+		if(cmd.registered) AgzamPlugin.serverHandler.removeCommand(text);
+		cmd.registered = false;
+		return cmd;
 	}
 	
 	public static void flushServerCommands() {
@@ -2331,65 +2352,68 @@ public class CommandsManager {
 		}
 	}
 	
-	 public static class VoteSession {
-	        Player target;
-	        ObjectIntMap<String> voted = new ObjectIntMap<>();
-	        Timer.Task task;
-	        int votes;
-	        String reason;
+	public static class VoteSession {
+		
+		public Player target;
+		public ObjectIntMap<String> voted = new ObjectIntMap<>();
+		public Timer.Task task;
+		public int votes;
+		public String reason;
 
-	        public VoteSession(Player target, String reason){
-	            this.target = target;
-	            this.reason = reason;
-	            this.task = Timer.schedule(() -> {
-	                if(!checkPass()){
-	                    Call.sendMessage(Strings.format("[lightgray]Голосование провалено. Недостаточно голосов, чтобы кикнуть [orange] @[lightgray].", target.name));
-	                    Bots.notify(NotifyTag.votekick, "Голосование провалено");
-		                currentlyKicking = null;
-	                    task.cancel();
-	                }
-	            }, NetServer.voteDuration);
-	        }
+		public VoteSession() {}
+		
+		public VoteSession(Player target, String reason) {
+			this.target = target;
+			this.reason = reason;
+			this.task = Timer.schedule(() -> {
+				if(!checkPass()){
+					Call.sendMessage(Strings.format("[lightgray]Голосование провалено. Недостаточно голосов, чтобы кикнуть [orange] @[lightgray].", target.name));
+					Bots.notify(NotifyTag.votekick, "Голосование провалено");
+					currentlyKicking = null;
+					task.cancel();
+				}
+			}, NetServer.voteDuration);
+		}
 
-	        public void vote(Player player, int d){
-	            int lastVote = voted.get(player.uuid(), 0) | voted.get(Vars.netServer.admins.getInfo(player.uuid()).lastIP, 0) | voted.get(player.ip(), 0);
-	            votes -= lastVote;
+		public void vote(Player player, int d){
+			int lastVote = voted.get(player.uuid(), 0) | voted.get(Vars.netServer.admins.getInfo(player.uuid()).lastIP, 0) | voted.get(player.ip(), 0);
+			votes -= lastVote;
 
-	            votes += d;
-	            voted.put(player.uuid(), d);
-	            voted.put(Vars.netServer.admins.getInfo(player.uuid()).lastIP, d);
-	            voted.put(player.ip(), d);
+			votes += d;
+			voted.put(player.uuid(), d);
+			voted.put(Vars.netServer.admins.getInfo(player.uuid()).lastIP, d);
+			voted.put(player.ip(), d);
 
-	            Call.sendMessage(Strings.format("[lightgray]@[lightgray] проголосовал за кик[orange] @[lightgray].[accent] (@/@)\n[lightgray]Напиши[orange] /vote <y/n>[] чтобы проголосовать",
-	                player.name, target.name, votes, votesRequired()));
+			Call.sendMessage(Strings.format("[lightgray]@[lightgray] проголосовал за кик[orange] @[lightgray].[accent] (@/@)\n[lightgray]Напиши[orange] /vote <y/n>[] чтобы проголосовать",
+					player.name, target.name, votes, votesRequired()));
 
-	            checkPass();
-	        }
+			checkPass();
+		}
 
-	        public boolean checkPass(){
-	            if(votes >= votesRequired()){
-	                Call.sendMessage(Strings.format("[orange]Голосование принято. [red] @[orange] забанен на @ минут", target.name, (NetServer.kickDuration / 60)));
-	                
-	                Bots.notify(NotifyTag.votekick, 
-	                		Strings.format("Голосование принято. <b><u>@</u></b> забанен на @ минут", TelegramBot.strip(target.name), NetServer.kickDuration / 60),
-	                		Strings.format("Голосование принято. <b><u>@</u></b> забанен на @ минут\nUUID: <code>@</code>\nUSID: <code>@</code>\nIP: <code>@</code>", TelegramBot.strip(target.name), (NetServer.kickDuration / 60), target.uuid(), target.usid(), target.ip())
-	                );
-	                
-	                Groups.player.each(p -> p.uuid().equals(target.uuid()), p -> {
-	                	p.kick(KickReason.vote, NetServer.kickDuration * 1000);
-		                Vars.netServer.admins.handleKicked(p.uuid(), p.ip(), NetServer.kickDuration * 1000);
-	                });
-	                currentlyKicking = null;
-	                task.cancel();
-	                return true;
-	            }
-	            return false;
-	        }
+		public boolean checkPass(){
+			if(votes >= votesRequired()){
+				Call.sendMessage(Strings.format("[orange]Голосование принято. [red] @[orange] забанен на @ минут", target.name, (NetServer.kickDuration / 60)));
 
-	        public int votesRequired(){
-	            return 2 + (Groups.player.size() > 4 ? 1 : 0);
-	        }
-	    }
+				Bots.notify(NotifyTag.votekick, 
+						Strings.format("Голосование принято. <b><u>@</u></b> забанен на @ минут", TelegramBot.strip(target.name), NetServer.kickDuration / 60),
+						Strings.format("Голосование принято. <b><u>@</u></b> забанен на @ минут\nUUID: <code>@</code>\nUSID: <code>@</code>\nIP: <code>@</code>", TelegramBot.strip(target.name), (NetServer.kickDuration / 60), target.uuid(), target.usid(), target.ip())
+						);
+
+				Groups.player.each(p -> p.uuid().equals(target.uuid()), p -> {
+					p.kick(KickReason.vote, NetServer.kickDuration * 1000);
+					Vars.netServer.admins.handleKicked(p.uuid(), p.ip(), NetServer.kickDuration * 1000);
+				});
+				currentlyKicking = null;
+				task.cancel();
+				return true;
+			}
+			return false;
+		}
+
+		public int votesRequired(){
+			return 2 + (Groups.player.size() > 4 ? 1 : 0);
+		}
+	}
 
 	public static void stopSkipmapVoteSession() {
 		for (int i = 0; i < currentlyMapSkipping.length; i++) {
