@@ -459,6 +459,7 @@ public class CommandsManager {
 	}
 	
 	public static void playerCommand(String text, String parms, String desc, CommandRunner<Player> run) {
+		
 		playerCommands.add(new PlayerCommand(text, parms, desc, run));
 	}
 
@@ -636,6 +637,7 @@ public class CommandsManager {
 	public static PlayerCommand removeClientCommand(String text) {
 		PlayerCommand cmd = playerCommands.find(c -> c.text.equals(text));
 		if(cmd == null) throw new ArcRuntimeException("Command not found");
+		playerCommands.remove(cmd);
 		if(cmd.registered) AgzamPlugin.clientHandler.removeCommand(text);
 		cmd.registered = false;
 		return cmd;
@@ -644,6 +646,7 @@ public class CommandsManager {
 	public static BaseCommand removeServerCommand(String text) {
 		BaseCommand cmd = serverCommands.find(c -> c.text.equals(text));
 		if(cmd == null) throw new ArcRuntimeException("Command not found");
+		serverCommands.remove(cmd);
 		if(cmd.registered) AgzamPlugin.serverHandler.removeCommand(text);
 		cmd.registered = false;
 		return cmd;
@@ -652,6 +655,7 @@ public class CommandsManager {
 	public static BotCommand removeBotCommand(String text) {
 		BotCommand cmd = botCommands.find(c -> c.text.equals(text));
 		if(cmd == null) throw new ArcRuntimeException("Command not found");
+		botCommands.remove(cmd);
 		if(cmd.registered) AgzamPlugin.serverHandler.removeCommand(text);
 		cmd.registered = false;
 		return cmd;
