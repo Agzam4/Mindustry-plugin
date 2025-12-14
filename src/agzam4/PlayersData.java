@@ -5,13 +5,13 @@ import arc.struct.ObjectMap;
 import mindustry.Vars;
 import mindustry.io.JsonIO;
 
-public class Players {
+public class PlayersData {
 
-	private static Players instance;
+	private static PlayersData instance;
 	private ObjectMap<String, PlayerData> players;
 	private static Fi save;
 	
-	public Players() {
+	public PlayersData() {
 		players = new ObjectMap<>();
 	}
 	
@@ -19,12 +19,12 @@ public class Players {
 		save = new Fi(Vars.saveDirectory + "/players_data.txt", Vars.saveDirectory.type());
 //		Vars.netServer.admins.getAdmins().forEach(i -> admins.put(i, AdminData.from(i)));
 		load();
-		if(instance == null) instance = new Players();
+		if(instance == null) instance = new PlayersData();
 	}
 
 	public static void load() {
 		if(!save.exists()) return;
-		instance = JsonIO.read(Players.class, save.readString());
+		instance = JsonIO.read(PlayersData.class, save.readString());
 	}
 
 	public static void save() {

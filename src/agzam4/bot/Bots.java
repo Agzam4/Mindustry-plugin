@@ -3,8 +3,8 @@ package agzam4.bot;
 import java.awt.image.BufferedImage;
 import java.util.concurrent.CompletableFuture;
 
+import agzam4.Game;
 import arc.util.CommandHandler;
-import arc.util.Log;
 import arc.util.Strings;
 
 public class Bots {
@@ -29,6 +29,9 @@ public class Bots {
 			tag = Strings.camelToKebab(name());
 		}
 		
+		public String bungle(String s, Object...args) {
+			return Strings.format(Game.bungle("bot.notify." + Strings.camelToKebab(name()) + "." + s), args);
+		}
 	}
 
 	// XXX: send runnables to main thread?

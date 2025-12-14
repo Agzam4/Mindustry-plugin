@@ -19,8 +19,10 @@ import agzam4.bot.TelegramBot;
 import agzam4.database.Database;
 import agzam4.events.EventMap;
 import agzam4.events.ServerEventsManager;
+import agzam4.managers.Kicks;
 import agzam4.net.NetMenu;
 import agzam4.utils.Log;
+import agzam4.votes.SkipmapVoteSession;
 
 import static agzam4.Emoji.*;
 import static mindustry.Vars.*;
@@ -54,7 +56,7 @@ public class AgzamPlugin extends Plugin {
 			Log.err(e);
 		}
     	Admins.init();
-    	Players.init();
+    	PlayersData.init();
     	AchievementsManager.init();
     	NetMenu.init();
     	
@@ -66,6 +68,9 @@ public class AgzamPlugin extends Plugin {
     	EventMap.load();
 
     	CommandsManager.flushBotCommands();
+    	
+    	
+    	Kicks.init();
     	
     	maps = new Maps();
     	
@@ -106,7 +111,7 @@ public class AgzamPlugin extends Plugin {
         		state.map.setHighScore(state.wave);
     		}
     		Call.sendMessage(result.toString());
-    		CommandsManager.stopSkipmapVoteSession();
+    		SkipmapVoteSession.stop();
 			Bots.notify(NotifyTag.round, "<b>Game over</b>: " + state.wave + "/" + state.map.getHightScore());
     	});
 
@@ -115,7 +120,7 @@ public class AgzamPlugin extends Plugin {
     	});
     	
     	Events.on(WorldLoadEndEvent.class, e -> {
-    		CommandsManager.stopSkipmapVoteSession();
+    		SkipmapVoteSession.stop();
     		ServerEventsManager.worldLoadEnd(e);
     		CommandsManager.clearDoors();
 //            Map map = maps.getNextMap(state.rules.mode(), state.map);

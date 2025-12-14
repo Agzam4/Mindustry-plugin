@@ -7,6 +7,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
+
 import agzam4.achievements.AchievementsManager;
 import agzam4.achievements.AchievementsManager.Achievement;
 import agzam4.database.DBFields.AUTOINCREMENT;
@@ -17,9 +19,11 @@ import agzam4.database.SQL.TableColumnInfo;
 import agzam4.utils.Log;
 import arc.func.Cons;
 import arc.func.Func;
+import arc.math.Mathf;
 import arc.struct.Seq;
 import arc.util.Nullable;
 import arc.util.Strings;
+import arc.util.Time;
 import mindustry.gen.Player;
 
 public class Database {
@@ -178,6 +182,32 @@ public class Database {
 		});
 	}
 	
+	public static class KickEntity extends Entity {
+
+		public @FIELD @AUTOINCREMENT @PRIMARY_KEY Integer id;
+		
+		/**
+		 * Initiator of kick
+		 */
+		public @FIELD @DEFAULT(value="none") String player = "none";
+		
+		/**
+		 * Kicked player
+		 */
+		public @FIELD @DEFAULT(value="none") String target = "none";
+		
+		/**
+		 * Reason of kick (grief/spam/...)
+		 */
+		public @FIELD @DEFAULT(value="none") String reason = "none";
+		
+		/**
+		 * Is kick checked by admins
+		 */
+		public @FIELD @DEFAULT(value="false") boolean approved = false;
+		
+	}
+	
 
 	public static class AchievementEntity extends Entity {
 
@@ -192,8 +222,16 @@ public class Database {
 	public static class PlayerEntity extends Entity {
 		
 		public @FIELD @PRIMARY_KEY String uuid;
-		public @FIELD @DEFAULT(value="0") Integer playtime = 0;
-
+		public @FIELD @DEFAULT(value="0") Integer playtime = 0; // minutes
+		public @FIELD @DEFAULT(value="0") Integer truekicks = 0;
+		public @FIELD @DEFAULT(value="0") Integer freekicks = 0;
+		
+		
+		public int rate() {
+			// log(true-kicks + 1) - log(free-kicks + 1) + log(play-time/60 + 1)
+			return (int) Mathf.log2((truekicks + playtime/60f + 2f)/(freekicks+1f));
+		}
+		
 		/**
 		 * Set <MapId, achievementTypes, achievementTiers>
 		 */
@@ -303,6 +341,10 @@ public class Database {
 //			}
 //			return 0;
 //		}
+
+		public int sessionPlaytime() {
+			return (int) TimeUnit.MILLISECONDS.toMinutes(Time.millis() - joinTime);
+		}
 	}
 
 	

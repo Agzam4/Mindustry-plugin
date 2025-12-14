@@ -47,18 +47,24 @@ public class Debug {
 		
 		PropertiesUtils.load(env, Fi.get(".env.properties").reader());
 		
-		String type = env.get("event.name");
+		String[] type = env.get("event.name").split("\n");
 		
 		System.out.println(cd.getPath());
 
 		Fi user = Fi.get(System.getProperty("user.dir"));
-		Fi eventsFileSrc = user.parent().child(type).child("build").child("libs").child(type + ".jar");
-		Fi eventsFileDst = user.child("build").child("libs").child("config").child("events").child(type + ".jar");
+
+		Fi[] eventsFileSrc = new Fi[type.length];
+		Fi[] eventsFileDst = new Fi[type.length];
+		for (int i = 0; i < type.length; i++) {
+			eventsFileSrc[i] = user.parent().child(type[i]).child("build").child("libs").child(type[i] + ".jar");
+			eventsFileDst[i] = user.child("build").child("libs").child("config").child("events").child(type[i] + ".jar");
+			Log.info("Events src: [blue]@[]", eventsFileSrc[i].absolutePath());
+			Log.info("Events trget: [blue]@[]", eventsFileDst[i].absolutePath());
+		}
+		
 		if(!user.exists()) Log.info("Events project not found");
 
 		Log.info("User dir: [blue]@[]", user.absolutePath());
-		Log.info("Events src: [blue]@[]", eventsFileSrc.absolutePath());
-		Log.info("Events trget: [blue]@[]", eventsFileDst.absolutePath());
 		
 		new Thread(() -> {
 			try {
@@ -76,11 +82,13 @@ public class Debug {
 							System.out.println("Other time");
 						}
 					}
-					if(eventsFileSrc.exists()) {
-						eventsFileDst.delete();
-						eventsFileSrc.moveTo(eventsFileDst);
-						runid++;
-						System.out.println("Events update");
+					for (int e = 0; e < eventsFileSrc.length; e++) {
+						if(eventsFileSrc[e].exists()) {
+							eventsFileDst[e].delete();
+							eventsFileSrc[e].moveTo(eventsFileDst[e]);
+							runid++;
+							System.out.println("Events update");
+						}
 					}
 					Threads.sleep(1000);
 				}

@@ -2,7 +2,6 @@ package agzam4;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
 
 import agzam4.achievements.AchievementsManager;
 import agzam4.achievements.AchievementsManager.Achievement;
@@ -18,8 +17,12 @@ import agzam4.bot.TelegramBot;
 import agzam4.database.Database;
 import agzam4.database.Database.PlayerEntity;
 import agzam4.events.*;
+import agzam4.managers.Kicks;
+import agzam4.managers.Players;
 import agzam4.net.NetMenu;
 import agzam4.utils.Log;
+import agzam4.votes.KickVoteSession;
+import agzam4.votes.SkipmapVoteSession;
 import arc.Core;
 import arc.Events;
 import arc.func.*;
@@ -35,7 +38,6 @@ import arc.util.Strings;
 import arc.util.Structs;
 import arc.util.Time;
 import arc.util.Timekeeper;
-import arc.util.Timer;
 import mindustry.Vars;
 import mindustry.content.*;
 import mindustry.core.*;
@@ -45,7 +47,6 @@ import mindustry.game.EventType.*;
 import mindustry.gen.*;
 import mindustry.maps.Map;
 import mindustry.net.Administration.*;
-import mindustry.net.Packets.KickReason;
 import mindustry.type.*;
 import mindustry.world.*;
 import mindustry.world.blocks.environment.*;
@@ -58,10 +59,7 @@ public class CommandsManager {
 
 	private CommandsManager() {}
 	
-	private static ObjectMap<String, Integer> lastkickTime = new ObjectMap<>();
-	
-	public static SkipmapVoteSession[] currentlyMapSkipping = {null};
-    public static @Nullable VoteSession currentlyKicking = null;
+//    public static @Nullable VoteSession currentlyKicking = null;
     
     public static Seq<String> extraStarsUIDD;
 	
@@ -74,9 +72,8 @@ public class CommandsManager {
 	
 	public static boolean needServerRestart;
 	
-//	public static final Seq<Sound> sounds = new Seq<Sound>();
-
-	public static ObjectMap<String, PlayerEntity> joined = new ObjectMap<>(); // UUID, PlayerEntity
+	@Deprecated
+	public static ObjectMap<String, PlayerEntity> joined = Players.getJoined();
 
 	public static void init() {
 		discordLink = Core.settings.getString(AgzamPlugin.name() + "-discord-link", null);
@@ -97,7 +94,6 @@ public class CommandsManager {
 
 		Events.on(GameOverEvent.class, e -> {
 			Brush.brushes.clear();
-			lastkickTime.clear();
 			if(needServerRestart) {
 				Game.stop();
 			}
@@ -106,38 +102,22 @@ public class CommandsManager {
 		Events.on(PlayerLeave.class, e -> {
 			if(e.player == null) return;
 			Brush.brushes.removeAll(b -> b.owner == e.player);
-    		/**
-    		 * Saving PlayerEntity
-    		 */
-			@Nullable PlayerEntity playerEntity = joined.remove(e.player.uuid());
-			if(playerEntity != null) {
-				playerEntity.playtime += (int) TimeUnit.MILLISECONDS.toMinutes(Time.millis() - playerEntity.joinTime);
-				Database.players.put(playerEntity);
-			}
-			Bots.notify(NotifyTag.playerConnection, 
-					Strings.format("<b>@</b> has left <i>(@ players)</i>", TelegramBot.strip(e.player.name), joined.size)
-			);
+			Bots.notify(NotifyTag.playerConnection, NotifyTag.playerConnection.bungle("left", TelegramBot.strip(e.player.name), joined.size));
 			
-			PlayerData data = Players.getData(e.player.uuid());
+			PlayerData data = PlayersData.getData(e.player.uuid());
 			if(data == null || data.disconnectedMessage == null) Call.sendMessage(e.player.coloredName() + "[accent] отключился");
 			else Call.sendMessage("[accent]" + data.disconnectedMessage.replaceAll("@name", e.player.coloredName() + "[accent]"));
 			
 		});
 
     	Events.on(PlayerJoin.class, e -> {
-    		/**
-    		 * Loading PlayerEntity
-    		 */
-			PlayerEntity playerEntity = Database.player(e.player);
-			playerEntity.joinTime = Time.millis();
-    		joined.put(e.player.uuid(), playerEntity);
     		
     		Bots.notify(NotifyTag.playerConnection,
     				Strings.format("<b>@</b>@ has joined <i>(@ players)</i>", TelegramBot.strip(e.player.name), (e.player.admin() ? " (admin)":""), joined.size),
     				Strings.format("<b>@</b>@ has joined <i>(@ players)</i> <code>@</code>", TelegramBot.strip(e.player.name), (e.player.admin() ? " (admin)":""), joined.size, e.player.uuid())
     		);
 			
-    		PlayerData data = Players.getData(e.player.uuid());
+    		PlayerData data = PlayersData.getData(e.player.uuid());
 
     		if(data != null && data.name != null)  e.player.name(data.name);
     		
@@ -1698,8 +1678,8 @@ public class CommandsManager {
 			if(!Admins.has(player, "longname")) {
 				if(name.length() > 100) name = name.substring(0, 100);
 			}
-			Players.data(player.uuid()).name = name.isEmpty() ? null : name;
-			Players.save();
+			PlayersData.data(player.uuid()).name = name.isEmpty() ? null : name;
+			PlayersData.save();
 			if(!name.isEmpty()) player.name(name);
 			player.sendMessage("[gold]Установлено имя: []" + player.coloredName());
 		});
@@ -1713,8 +1693,8 @@ public class CommandsManager {
 			name = name.replaceAll(" ", "_");
 			boolean longname = receiver instanceof Player player ? Admins.has(player, "longname") : true;
 			if(!longname && name.length() > 100) name = name.substring(0, 100);
-			Players.data(p.uuid()).name = name.isEmpty() ? null : name;
-			Players.save();
+			PlayersData.data(p.uuid()).name = name.isEmpty() ? null : name;
+			PlayersData.save();
 			sender.sendMessage("[gold]Установлено имя: []" + p.coloredName() + " [gray]->[] " + name);
 			if(!name.isEmpty()) p.name(name);
 		});
@@ -1729,9 +1709,9 @@ public class CommandsManager {
 			if(!Admins.has(player, "longname")) {
 				if(message.length() > 200) message = message.substring(0, 200);
 			}
-			if(join) Players.data(player.uuid()).connectMessage = message.isEmpty() ? null : message;
-			if(leave) Players.data(player.uuid()).disconnectedMessage = message.isEmpty() ? null : message;
-			Players.save();
+			if(join) PlayersData.data(player.uuid()).connectMessage = message.isEmpty() ? null : message;
+			if(leave) PlayersData.data(player.uuid()).disconnectedMessage = message.isEmpty() ? null : message;
+			PlayersData.save();
 			player.sendMessage("[gold]Установлено " + args[0] + ": []" + message);
 		});
 
@@ -1747,9 +1727,9 @@ public class CommandsManager {
 			String message = args.length == 2 ? "" : args[2];
 			boolean longname = receiver instanceof Player player ? Admins.has(player, "longname") : true;
 			if(!longname && message.length() > 200) message = message.substring(0, 200);
-			if(join) Players.data(p.uuid()).connectMessage = message.isEmpty() ? null : message;
-			if(leave) Players.data(p.uuid()).disconnectedMessage = message.isEmpty() ? null : message;
-			Players.save();
+			if(join) PlayersData.data(p.uuid()).connectMessage = message.isEmpty() ? null : message;
+			if(leave) PlayersData.data(p.uuid()).disconnectedMessage = message.isEmpty() ? null : message;
+			PlayersData.save();
 			sender.sendMessage("[gold]Установлено " + args[0] + ": []" + message);
 		});
 		
@@ -1955,7 +1935,7 @@ public class CommandsManager {
 	            if(found != null) {
 	    			if(require(Admins.has(found, "votekick"), receiver, "Этот игрок защищен пластаном")) return;
 	    			if(require(Admins.has(found, "whitelist"), receiver, "Этот игрок защищен метастеклом")) return;
-        			kick(found, receiver.user.name, reason);
+            		Kicks.kick(receiver.user.name, found, reason);
     				receiver.sendMessage("Игрок забанен");
 	            } else {
 	            	receiver.sendMessage("Игрок " + args[0] + " не найден.");
@@ -1999,7 +1979,7 @@ public class CommandsManager {
 //	            if(require(Groups.player.size() < 3, player, "[red]Для участия в голосовании требуется как минимум 3 игрока.")) return;
 	            if(require(player.isLocal(), player, "[red]Просто кикни их сам, если ты хост")) return;
 	            boolean permission = Admins.has(player, "votekick");
-	            if(require(currentlyKicking != null && !(permission && !player.admin), player, "[red]Голосование уже идет")) return;
+	            if(require(KickVoteSession.current != null && !(permission && !player.admin), player, "[red]Голосование уже идет")) return;
 
 	            if(args.length == 0){
 	                StringBuilder builder = new StringBuilder();
@@ -2042,21 +2022,21 @@ public class CommandsManager {
 	                        player.sendMessage("[red]Кикать можно только игроков из вашей команды");
 	                    }else{
 	                    	if(permission) {
-	                    		kick(found, player.plainName(), reason);
+	                    		Kicks.kick(KickVoteSession.current.kicker, found, reason);
 	                    	} else {
 	                            Timekeeper vtime = cooldowns.get(player.uuid(), () -> new Timekeeper(NetServer.voteCooldown));
 	                            if(!vtime.get()){
 	                                player.sendMessage("[red]Вы должны подождать " + NetServer.voteCooldown/60 + " минут между голосованиями");
 	                                return;
 	                            }
-	                            VoteSession session = new VoteSession(found, reason);
+	                            KickVoteSession session = new KickVoteSession(player, found, reason);
 	                            Bots.notify(NotifyTag.votekick, Strings.format("<code>@</code> started voting for kicking <code>@</code> (<code>#@</code>): <code>@</code>", TelegramBot.strip(player.name), TelegramBot.strip(found.name), found.id, TelegramBot.strip(reason)));
 	                            Bots.notify(NotifyTag.votekick, Images.screenshot(found));
 	                            
 	                            session.vote(player, 1);
 	                            Call.sendMessage(Strings.format("[lightgray]Причина:[orange] @[lightgray].", reason));
 	                            vtime.reset();
-	                            currentlyKicking = session;
+	                            KickVoteSession.current = session;
 	                    	}
 	                    }
 	                }else{
@@ -2070,12 +2050,11 @@ public class CommandsManager {
 		});
 		
 		playerCommand("vote", "<y/n/c>", "Проголосуйте, чтобы выгнать текущего игрока", (arg, player) -> {
-			if(require(currentlyKicking == null, player, "[red]Ни за кого не голосуют")) return;
+			if(require(KickVoteSession.current == null, player, "[red]Ни за кого не голосуют")) return;
             boolean permission = Admins.has(player, "votekick");
 			if(permission && arg[0].equalsIgnoreCase("c")){
 				Call.sendMessage(Strings.format("[lightgray]Голосование отменено администратором[orange] @[lightgray].", player.name));
-				currentlyKicking.task.cancel();
-				currentlyKicking = null;
+				KickVoteSession.current.cancel();
 				return;
 			}
 			
@@ -2088,21 +2067,20 @@ public class CommandsManager {
 			};
 			
 			if(permission && sign > 0) {
-				currentlyKicking.task.cancel();
-        		kick(currentlyKicking.target, player.plainName(), currentlyKicking.reason);
-				currentlyKicking = null;
+        		Kicks.kick(KickVoteSession.current.kicker, KickVoteSession.current.target, KickVoteSession.current.reason);
+				KickVoteSession.current.cancel();
         		return;
 			}
 			
 			//hosts can vote all they want
-			if((currentlyKicking.voted.get(player.uuid(), 2) == sign || currentlyKicking.voted.get(Vars.netServer.admins.getInfo(player.uuid()).lastIP, 2) == sign)){
+			if(KickVoteSession.current.isPlayerVoted(player, sign)) {
 				player.sendMessage(Strings.format("[red]Вы уже проголосовали за @", arg[0].toLowerCase()));
 				return;
 			}
-			if(require(currentlyKicking.target == player, player, "[red]Ты не можешь голосовать на за себя")) return;
-			if(require(currentlyKicking.target.team() != player.team(), player, "[red]Ты не можешь голосовать на за другие команды")) return;
+			if(require(KickVoteSession.current.target == player, player, "[red]Ты не можешь голосовать на за себя")) return;
+			if(require(KickVoteSession.current.target.team() != player.team(), player, "[red]Ты не можешь голосовать на за другие команды")) return;
 			if(require(sign == 0, player, "[red]Голосуйте либо \"y\" (да), либо \"n\" (нет)")) return;
-			currentlyKicking.vote(player, sign);
+			KickVoteSession.current.vote(player, sign);
         });
 		
 		playerCommand("maps", "[all/custom/default/event]", "Показывает список доступных карт. Отображает все карты по умолчанию", (arg, player) -> {
@@ -2251,23 +2229,23 @@ public class CommandsManager {
 
 		playerCommand("skipmap", "Начать голосование за пропуск карты", (arg, player) -> {
 			if(require(player.team() == Team.derelict, player, "[red]Вы не можете использовать эту команду")) return;
-			if(require(currentlyMapSkipping[0] != null, player, "[red]Голосование уже идет: [gold]/smvote <y/n>")) return;
-			SkipmapVoteSession session = new SkipmapVoteSession(currentlyMapSkipping);
+			if(require(SkipmapVoteSession.current != null, player, "[red]Голосование уже идет: [gold]/smvote <y/n>")) return;
+			SkipmapVoteSession session = new SkipmapVoteSession();
 			session.vote(player, 1);
-			currentlyMapSkipping[0] = session;
+//			currentlyMapSkipping[0] = session;
 		});
 
 		playerCommand("smvote", "<y/n>", "Проголосовать за/протов пропуск карты", (arg, player) -> {
 			if(require(player.team() == Team.derelict, player, "[red]Вы не можете использовать эту команду")) return;
-			if(require(currentlyMapSkipping[0] == null, player, "[red]Нет открытого голосования")) return;
+			if(require(SkipmapVoteSession.current == null, player, "[red]Нет открытого голосования")) return;
 			if(require(player.isLocal(), player, "[red]Локальные игроки не могут голосовать")) return;
-			if(require((currentlyMapSkipping[0].voted.contains(player.uuid()) || currentlyMapSkipping[0].voted.contains(Vars.netServer.admins.getInfo(player.uuid()).lastIP)), player, "[red]Ты уже проголосовал. Молчи!")) return;
 			String voteSign = arg[0].toLowerCase();
 			int sign = 0;
 			if(voteSign.equals("y")) sign = +1;
 			if(voteSign.equals("n")) sign = -1;
+			if(require(SkipmapVoteSession.current.isPlayerVoted(player, sign), player, "[red]Ты уже проголосовал. Молчи!")) return;
 			if(require(sign == 0, player, "[red]Голосуйте либо \"y\" (да), либо \"n\" (нет)")) return;
-			currentlyMapSkipping[0].vote(player, sign);
+			SkipmapVoteSession.current.vote(player, sign);
 		});
 
 		playerCommand("pluginfo", "info about pluging", (arg, player) -> {
@@ -2284,22 +2262,6 @@ public class CommandsManager {
 		});
 	}
 
-	public static void kick(Player found, String name, String reason) {
-		int minutes = 5;
-		Integer last = lastkickTime.get(found.uuid());
-		if(last != null) minutes = last;
-		minutes = Math.min(minutes, 60);
-		lastkickTime.put(found.uuid(), minutes*2);
-		Bots.notify(NotifyTag.votekick, Strings.format("Выдан бан на <b>@</b> минут\nПричина: <i>@</i>\nБан выдал: <i>@</i>", minutes, TelegramBot.strip(reason), TelegramBot.strip(name)));
-        Bots.notify(NotifyTag.votekick, Images.screenshot(found));
-		
-        found.kick(Strings.format("Вы были забанены на [red]@[] минут\nПричина: [orange]@[white]\nБан выдал: [orange]@[]\nОбжаловать: @", minutes, reason, name, discordLink), minutes * 60 * 1000);
-		if(discordLink != null) {
-			if(!discordLink.isEmpty()) Call.openURI(found.con, discordLink);
-		}
-		Call.sendMessage(Strings.format("[white]Игрок [orange]@[white] забанен на [orange]@[] минут [lightgray](причина: @)", found.plainName(), minutes, reason));
-	}
-
 	public static boolean require(boolean b, Player player, String string) {
 		if(b) player.sendMessage(string);
 		return b;
@@ -2310,139 +2272,9 @@ public class CommandsManager {
 		return b;
 	}
 
-	public static class SkipmapVoteSession {
-
-		float voteDuration = 3 * 60;
-		ObjectSet<String> voted = new ObjectSet<>();
-		SkipmapVoteSession[] map;
-		Timer.Task task;
-		int votes;
-
-		int votesRequiredSkipmap;
-
-		public SkipmapVoteSession(SkipmapVoteSession[] map){
-			this.map = map;
-			votesRequiredSkipmap = votesRequiredSkipmap();
-			this.task = Timer.schedule(() -> {
-				if(!checkPass()){
-					Call.sendMessage("[lightgray]Голосование закончилось. Недостаточно голосов, чтобы пропустить карту");
-					map[0] = null;
-					task.cancel();
-				}
-			}, voteDuration);
-		}
-
-		void vote(Player player, int d){
-			votes += d;
-			voted.addAll(player.uuid()); // FIXME: , Vars.netServer.admins.getInfo(player.uuid()).lastIP
-			Call.sendMessage(Strings.format("[" + Game.colorToHex(player.color) + "]@[lightgray] проголосовал " + (d > 0 ? "[green]за" : "[red]против") + "[] пропуска карты[accent] (@/@)\n[lightgray]Напишите[orange] /smvote <y/n>[], чтобы проголосовать [green]за[]/[red]против",
-					player.name, votes, votesRequiredSkipmap));
-			checkPass();
-		}
-
-		boolean checkPass(){
-			if(votes >= votesRequiredSkipmap) {
-				Call.sendMessage("[gold]Голосование закончилось. Карта успешно пропущена!");
-				Events.fire(new GameOverEvent(Team.derelict));
-				map[0] = null;
-				task.cancel();
-				return true;
-			}
-			return false;
-		}
-
-		void update() {
-			votesRequiredSkipmap = votesRequiredSkipmap();
-		}
-	}
-	
-	public static class VoteSession {
-		
-		public Player target;
-		public ObjectIntMap<String> voted = new ObjectIntMap<>();
-		public Timer.Task task;
-		public int votes;
-		public String reason;
-
-		public VoteSession() {}
-		
-		public VoteSession(Player target, String reason) {
-			this.target = target;
-			this.reason = reason;
-			this.task = Timer.schedule(() -> {
-				if(!checkPass()){
-					Call.sendMessage(Strings.format("[lightgray]Голосование провалено. Недостаточно голосов, чтобы кикнуть [orange] @[lightgray].", target.name));
-					Bots.notify(NotifyTag.votekick, "Голосование провалено");
-					currentlyKicking = null;
-					task.cancel();
-				}
-			}, NetServer.voteDuration);
-		}
-
-		public void vote(Player player, int d){
-			int lastVote = voted.get(player.uuid(), 0) | voted.get(Vars.netServer.admins.getInfo(player.uuid()).lastIP, 0) | voted.get(player.ip(), 0);
-			votes -= lastVote;
-
-			votes += d;
-			voted.put(player.uuid(), d);
-			voted.put(Vars.netServer.admins.getInfo(player.uuid()).lastIP, d);
-			voted.put(player.ip(), d);
-
-			Call.sendMessage(Strings.format("[lightgray]@[lightgray] проголосовал за кик[orange] @[lightgray].[accent] (@/@)\n[lightgray]Напиши[orange] /vote <y/n>[] чтобы проголосовать",
-					player.name, target.name, votes, votesRequired()));
-
-			checkPass();
-		}
-
-		public boolean checkPass(){
-			if(votes >= votesRequired()){
-				Call.sendMessage(Strings.format("[orange]Голосование принято. [red] @[orange] забанен на @ минут", target.name, (NetServer.kickDuration / 60)));
-
-				Bots.notify(NotifyTag.votekick, 
-						Strings.format("Голосование принято. <b><u>@</u></b> забанен на @ минут", TelegramBot.strip(target.name), NetServer.kickDuration / 60),
-						Strings.format("Голосование принято. <b><u>@</u></b> забанен на @ минут\nUUID: <code>@</code>\nUSID: <code>@</code>\nIP: <code>@</code>", TelegramBot.strip(target.name), (NetServer.kickDuration / 60), target.uuid(), target.usid(), target.ip())
-						);
-
-				Groups.player.each(p -> p.uuid().equals(target.uuid()), p -> {
-					p.kick(KickReason.vote, NetServer.kickDuration * 1000);
-					Vars.netServer.admins.handleKicked(p.uuid(), p.ip(), NetServer.kickDuration * 1000);
-				});
-				currentlyKicking = null;
-				task.cancel();
-				return true;
-			}
-			return false;
-		}
-
-		public int votesRequired(){
-			return 2 + (Groups.player.size() > 4 ? 1 : 0);
-		}
-	}
-
-	public static void stopSkipmapVoteSession() {
-		for (int i = 0; i < currentlyMapSkipping.length; i++) {
-			if(currentlyMapSkipping[i] == null) continue;
-			currentlyMapSkipping[i].task.cancel();
-			currentlyMapSkipping[i].votes = Integer.MIN_VALUE;
-			currentlyMapSkipping[i] = null;
-		}
-	}
-
-	public static int votesRequiredSkipmap(){
-		if(Groups.player.size() == 1) return 1;
-		if(Groups.player.size() == 2) return 2;
-		return (int) Math.ceil(Groups.player.size()*0.45);
-	}
-
 	public static void clearDoors() {
 		doorsCoordinates.clear();
 	}
-
-//	public static Sound sound(int id) {
-//		if(id < 0) return null;
-//		if(id >= sounds.size) return null;
-//		return sounds.get(id);
-//	}
 
 	public static void cleanUpKicks() {
 		Vars.netServer.admins.kickedIPs.copy().each((key,time) -> {
