@@ -2022,7 +2022,7 @@ public class CommandsManager {
 	                        player.sendMessage("[red]Кикать можно только игроков из вашей команды");
 	                    }else{
 	                    	if(permission) {
-	                    		Kicks.kick(KickVoteSession.current.kicker, found, reason);
+	                    		Kicks.kick(player, found, reason);
 	                    	} else {
 	                            Timekeeper vtime = cooldowns.get(player.uuid(), () -> new Timekeeper(NetServer.voteCooldown));
 	                            if(!vtime.get()){
