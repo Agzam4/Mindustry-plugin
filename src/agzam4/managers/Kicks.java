@@ -56,7 +56,7 @@ public class Kicks {
 	public static void kick(String kicker, Player target, String reason, long seconds) {
 		sendDiscord(target.con);
 		target.kick(Strings.format("Вы были забанены на [red]@[] минут\nПричина: [orange]@[white]\nБан выдал: [orange]@[white]\nОбжаловать: @\n[white]Сервер: @", 
-				seconds, reason, kicker, CommandsManager.discordLink, Config.serverName.get()), seconds * 1000);
+				seconds/60, reason, kicker, CommandsManager.discordLink, Config.serverName.get()), seconds * 1000);
 		Vars.netServer.admins.handleKicked(target.uuid(), target.ip(), seconds * 1000);		
 	}
 	
