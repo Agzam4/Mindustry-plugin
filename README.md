@@ -99,6 +99,7 @@ Command can be executed if:
 </details>
 
 <details><summary>helper</summary>
+<a name="helper"></a>
 
 Admins can add "helpers" and grant them permission only for certain commands
 
@@ -116,7 +117,6 @@ Admins can add "helpers" and grant them permission only for certain commands
 </details>
 
 <details><summary>nick</summary>
-
 `/nick [name..]` - sets custom nick for this server
 </details>
 
