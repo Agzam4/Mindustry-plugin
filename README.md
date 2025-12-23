@@ -161,48 +161,55 @@ Enables replacing the words "noob" with "pro"
 `faston` - immediately enables event and sync players
 </details>
 
-### `/team`
-
+<details><summary>team</summary>
 `/team [player] [team]` - change team for player
+</details>
 
-### `/config`
+<details><summary>config</summary>
 
 `/config [name] [set/add] [value...]` - change server config
 
-### `/bans`
+</details>
+<details><summary>bans</summary>
 
 List all banned IPs and IDs
 
-### `/unban`
+</details>
+<details><summary>unban</summary>
 
 `/unban <ip/ID/all>` - Completely unban a person by IP or ID
 
-### `/reloadmaps`
+</details>
+<details><summary>reloadmaps</summary>
 
 Reloads all custom maps
-
-### `/js`
+</details>
+<details><summary>js</summary>
 
 `/js <script...>` - execute js
 
-### `/link`
+</details>
+<details><summary>link</summary>
 
 `/link <url> [player]` - send link for player/all
 
-### `/setdiscord`
+</details>
+<details><summary>setdiscord</summary>
 
 `/setdiscord <link>` - set link for discord
 
-### `/doorscup`
+</details>
+<details><summary>doorscup</summary>
 
 `/doorscup [count]` - set max amount of door on map
+</details>
 
 
 # Building
 
-Gradle Version: 8.14.1
-
-Java Version: 17
+> [!NOTE]
+> Gradle Version: 8.14.1
+> Java Version: 17
 
 Use `build` gradle task for build
 
