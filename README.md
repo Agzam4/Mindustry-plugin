@@ -98,8 +98,8 @@ Command can be executed if:
   - `user` and `group` has permission
 </details>
 
-<details><summary>helper</summary>
 <a name="helper"></a>
+<details><summary>helper</summary>
 
 Admins can add "helpers" and grant them permission only for certain commands
 
