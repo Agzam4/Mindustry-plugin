@@ -8,7 +8,7 @@ Admins can add "helpers" and grant them permission only for certain commands [mo
 ## Admin commands
 
 <details><summary>admin</summary>
-  
+
 `/admin <add/remove> <name>` - add/remove admins
 </details>
 
@@ -21,6 +21,7 @@ Allow to toggle `invincible` and `fast` effects
 </details>
 
 <details><summary>sandbox</summary>
+
 `/sandbox [on/off] [team]` - enables sandbox/infiniteResources for all/team (and sync executor)
 </details>
 
@@ -60,6 +61,7 @@ Allow to toggle `invincible` and `fast` effects
 </details>
 
 <details><summary>etrigger</summary>
+
 `/etrigger <trigger> [args...]` - calls special trigger in event
 </details>
 
@@ -71,8 +73,10 @@ Allow to toggle `invincible` and `fast` effects
 
 Tags mark chats for receiving messages of a certain kind
 
+
 > [!TIP]
 > By defalt important information like uuid, ip and etc not visible, use `!` before tag to receive it (example `!votekick`) 
+
 
 Tags:
 - `event` - events messages
