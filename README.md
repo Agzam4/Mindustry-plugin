@@ -42,7 +42,6 @@ Allow to toggle `invincible` and `fast` effects
 - `/brush [o/overlay] <name/emoji>` - set overlay's mask of brush (`none` for clear)
 - `/brush [f/floor] <name/emoji>` - set floor's mask of brush (`none` for clear)
 
-> [!TIP]
 > Shortcuts of block's names:
 > - `core1` - Core Shard
 > - `core2` - Core Foundation
@@ -74,7 +73,6 @@ Allow to toggle `invincible` and `fast` effects
 Tags mark chats for receiving messages of a certain kind
 
 
-> [!TIP]
 > By defalt important information like uuid, ip and etc not visible, use `!` before tag to receive it (example `!votekick`) 
 
 
@@ -91,7 +89,6 @@ Tags:
 
 `/bot p [tags...]` - system like "helpers" but with bot
 
-> [!TIP]
 > Permission can be for groups and users, use `$` before permission-name to disable using command in dialogs
 
 Command can be executed if:
@@ -136,23 +133,24 @@ Admins can add "helpers" and grant them permission only for certain commands
 `/nextmap <name...>` - allow to set next map
 </details>
 
-### `/runwave`
+<details><summary>runwave</summary>
 
 Runs next wave
 
 Disabled if not all enemies destryoed (`force-runwave` to ignore this rule)
+</details>
 
-### `/fillitems`
+<details><summary>fillitems</summary>
 
 `/fillitems [item] [count]` - add/remove specific items player's team core with 
-
-### `/chatfilter`
+</details>
+<details><summary>chatfilter</summary>
 
 `/chatfilter <on/off>` - joke (or not) command
 
 Enables replacing the words "noob" with "pro" 
-
-### `/event`
+</details>
+<details><summary>event</summary>
 
 `/event [id] [on/off/faston]` - allows to enable/disable certain events
 
@@ -161,6 +159,7 @@ Enables replacing the words "noob" with "pro"
 `off` - Disable event
 
 `faston` - immediately enables event and sync players
+</details>
 
 ### `/team`
 
