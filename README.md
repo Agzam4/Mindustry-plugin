@@ -91,7 +91,7 @@ Command can be executed if:
 - In groups:
   - `user` and `group` has permission
 
-### `/helper`
+<details><summary>`/helper`</summary>
 
 Admins can add "helpers" and grant them permission only for certain commands
 
@@ -106,21 +106,25 @@ Admins can add "helpers" and grant them permission only for certain commands
 > /helper Agzam -nextmap -reloadmaps
 > ```
 > Player with name "Agzam" will be able to use commands `runwave`
+</details>
 
-### `/nick`
+<details><summary>`/nick`</summary>
 
 `/nick [name..]` - sets custom nick for this server
+</details>
 
-
-### `/custom`
+<details><summary>`/custom`</summary>
 
 `/custom <join/leave> [message...]` - sets custom join/leave message for this server (`@name` - will be replaced on player's name)
+</details>
+
 
 ## Server + admins + bot commands
 
-### `/nextmap`
+<details><summary>`/nextmap`</summary>
 
 `/nextmap <name...>` - allow to set next map
+</details>
 
 ### `/runwave`
 
