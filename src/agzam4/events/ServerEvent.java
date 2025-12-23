@@ -1,5 +1,6 @@
 package agzam4.events;
 
+import arc.files.Fi;
 import arc.util.I18NBundle;
 import arc.util.Nullable;
 import arc.util.Strings;
@@ -20,6 +21,7 @@ public abstract class ServerEvent {
 	
 	public I18NBundle bundle;
 	private boolean isRunning;
+	public Fi assets;
 	
 //	protected String color = "white";
 //	public boolean isGenerated;
@@ -30,7 +32,7 @@ public abstract class ServerEvent {
 	public ServerEvent(String name) {
 		this.name = name;
 		net = new EventNet(this);
-		init();
+//		init();
 //		this.tagName = bungle("name");
 //		this.color = bungle("color");
 //		commandName = name.toLowerCase().replaceAll(" ", "_");
