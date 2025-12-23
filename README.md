@@ -7,31 +7,32 @@ Admins can add "helpers" and grant them permission only for certain commands [mo
 
 ## Admin commands
 
-### `/admin`
-
+<details><summary>admin</summary>
+  
 `/admin <add/remove> <name>` - add/remove admins
+</details>
 
-### `/m`
-
+<details><summary>m</summary>
 Players control ui menu (change teams)
 
 Allow to control player team if has permission `team`
 Allow to heal/destroy/clear player's unit
 Allow to toggle `invincible` and `fast` effects
+</details>
 
-
-### `/sandbox`
-
+<details><summary>sandbox</summary>
 `/sandbox [on/off] [team]` - enables sandbox/infiniteResources for all/team (and sync executor)
+</details>
 
-### `/unit`
+<details><summary>unit</summary>
 
 `/unit [type] [t/c]` - spawn unit
 
 - `t` - spawn and sets unit for executor
 - `c` - spawn auto-despawned unit (like from core) and sets unit for executor
+</details>
 
-### `/brush`
+<details><summary>brush</summary>
 
 `/brush [none/block/floor/overlay/info] [block/none]` - allow to draw on map
 
@@ -40,27 +41,29 @@ Allow to toggle `invincible` and `fast` effects
 - `/brush [o/overlay] <name/emoji>` - set overlay's mask of brush (`none` for clear)
 - `/brush [f/floor] <name/emoji>` - set floor's mask of brush (`none` for clear)
 
-Shortcuts of block's names:
-- `core1` - Core Shard
-- `core2` - Core Foundation
-- `core3` - Core Nucleus
-- `core4` - Core Bastion
-- `core5` - Core Citadel
-- `core6` - Core Acropolis
-- `power+` - Power source
-- `power-` - Power void
-- `item+` - Item source
-- `item-` - Item void
-- `liq+` - Liquid source
-- `liq-` - Liquid void
-- `s` - Shield projector
-- `ls` - Large shield projector
+> [!TIP]
+> Shortcuts of block's names:
+> - `core1` - Core Shard
+> - `core2` - Core Foundation
+> - `core3` - Core Nucleus
+> - `core4` - Core Bastion
+> - `core5` - Core Citadel
+> - `core6` - Core Acropolis
+> - `power+` - Power source
+> - `power-` - Power void
+> - `item+` - Item source
+> - `item-` - Item void
+> - `liq+` - Liquid source
+> - `liq-` - Liquid void
+> - `s` - Shield projector
+> - `ls` - Large shield projector
+</details>
 
-### `/etrigger`
-
+<details><summary>etrigger</summary>
 `/etrigger <trigger> [args...]` - calls special trigger in event
+</details>
 
-### `/bot`
+<details><summary>bot</summary>
 
 `/bot [add/remove/list/start/stop/t/p] [id/name] [token...]` - telegram bot control
 
@@ -68,7 +71,8 @@ Shortcuts of block's names:
 
 Tags mark chats for receiving messages of a certain kind
 
-By defalt important information like uuid, ip and etc not visible, use `!` before tag to receive it (example `!votekick`) 
+> [!TIP]
+> By defalt important information like uuid, ip and etc not visible, use `!` before tag to receive it (example `!votekick`) 
 
 Tags:
 - `event` - events messages
@@ -83,15 +87,17 @@ Tags:
 
 `/bot p [tags...]` - system like "helpers" but with bot
 
-Permission can be for groups and users, use `$` before permission-name to disable using command in dialogs
+> [!TIP]
+> Permission can be for groups and users, use `$` before permission-name to disable using command in dialogs
 
 Command can be executed if:
 - In dialogs:
   - `user` has permission (and permission not has `$` before)
 - In groups:
   - `user` and `group` has permission
+</details>
 
-<details><summary>`/helper`</summary>
+<details><summary>helper</summary>
 
 Admins can add "helpers" and grant them permission only for certain commands
 
@@ -108,12 +114,12 @@ Admins can add "helpers" and grant them permission only for certain commands
 > Player with name "Agzam" will be able to use commands `runwave`
 </details>
 
-<details><summary>`/nick`</summary>
+<details><summary>nick</summary>
 
 `/nick [name..]` - sets custom nick for this server
 </details>
 
-<details><summary>`/custom`</summary>
+<details><summary>custom</summary>
 
 `/custom <join/leave> [message...]` - sets custom join/leave message for this server (`@name` - will be replaced on player's name)
 </details>
@@ -121,7 +127,7 @@ Admins can add "helpers" and grant them permission only for certain commands
 
 ## Server + admins + bot commands
 
-<details><summary>`/nextmap`</summary>
+<details><summary>nextmap</summary>
 
 `/nextmap <name...>` - allow to set next map
 </details>
