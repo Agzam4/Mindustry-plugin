@@ -209,6 +209,7 @@ Reloads all custom maps
 
 > [!NOTE]
 > Gradle Version: 8.14.1
+>
 > Java Version: 17
 
 Use `build` gradle task for build
