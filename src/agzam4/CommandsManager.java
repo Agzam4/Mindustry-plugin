@@ -21,6 +21,7 @@ import agzam4.managers.Kicks;
 import agzam4.managers.Players;
 import agzam4.net.NetMenu;
 import agzam4.utils.Log;
+import agzam4.votes.Cooldowns;
 import agzam4.votes.KickVoteSession;
 import agzam4.votes.SkipmapVoteSession;
 import arc.Core;
@@ -1971,7 +1972,8 @@ public class CommandsManager {
 			player.sendMessage(result.toString());
 		});
 		
-        ObjectMap<String, Timekeeper> cooldowns = new ObjectMap<>();
+//        ObjectMap<String, Timekeeper> cooldowns = new ObjectMap<>();
+        Cooldowns<String> cooldowns = new Cooldowns<>(NetServer.voteCooldown);
 		playerCommand("votekick", "[игрок] [причина...]", "Проголосовать, чтобы кикнуть игрока по уважительной причине", (args, player) -> {
 			try {
 				
@@ -2024,8 +2026,8 @@ public class CommandsManager {
 	                    	if(permission) {
 	                    		Kicks.kick(player, found, reason);
 	                    	} else {
-	                            Timekeeper vtime = cooldowns.get(player.uuid(), () -> new Timekeeper(NetServer.voteCooldown));
-	                            if(!vtime.get()){
+	                            var vtime = cooldowns.get(player.uuid());
+	                            if(vtime.cooldown()){
 	                                player.sendMessage("[red]Вы должны подождать " + NetServer.voteCooldown/60 + " минут между голосованиями");
 	                                return;
 	                            }
@@ -2035,7 +2037,10 @@ public class CommandsManager {
 	                            
 	                            session.vote(player, 1);
 	                            Call.sendMessage(Strings.format("[lightgray]Причина:[orange] @[lightgray].", reason));
-	                            vtime.reset();
+	                            
+	                            vtime.start();
+	                            session.passListener = () -> vtime.stop();
+	                            
 	                            KickVoteSession.current = session;
 	                    	}
 	                    }

@@ -19,6 +19,8 @@ public class KickVoteSession extends VoteSession {
 	public Player kicker, target;
 	public String reason;
 	
+	public Runnable passListener = () -> {};
+	
 	public KickVoteSession(Player kicker, Player target, String reason) {
 		super(NetServer.voteDuration);
 		this.kicker = kicker;
@@ -40,9 +42,8 @@ public class KickVoteSession extends VoteSession {
 			Strings.format(bungle("pass.bot"), TelegramBot.strip(target.name), NetServer.kickDuration / 60),
 			Strings.format(bungle("pass.admin.bot"), TelegramBot.strip(target.name), (NetServer.kickDuration / 60), target.uuid(), target.usid(), target.ip())
 		);
-		Groups.player.each(p -> p.uuid().equals(target.uuid()), p -> {
-			Kicks.kick(kicker, p, reason, NetServer.kickDuration);
-		});		
+		Kicks.kick(kicker, target, reason, NetServer.kickDuration);
+		passListener.run();
 	}
 	
 	@Override
