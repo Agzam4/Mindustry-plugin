@@ -63,10 +63,18 @@ public class Players {
 	public static @Nullable PlayerEntity joinedEntity(Player player) {
 		return joined.get(player.uuid());
 	}
+
+	public static @Nullable PlayerEntity joinedEntity(String uuid) {
+		return joined.get(uuid);
+	}
 	
 	@Deprecated
 	public static ObjectMap<String, PlayerEntity> getJoined() {
 		return joined;
+	}
+	
+	public static int joinedAmount() {
+		return joined.size;
 	}
 	
 	private static class PlayerMapSession {
