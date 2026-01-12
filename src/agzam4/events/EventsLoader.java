@@ -93,6 +93,7 @@ public class EventsLoader {
                     				);
                     	}
                     	ServerEvent event = (ServerEvent) main.getDeclaredConstructor().newInstance();
+                    	event.assets = zip.child("assets");
                     	event.bundle = I18NBundle.createEmptyBundle();
                     	
                         Fi bungleFile = bunglesDir.child(event.name + ".properties");
