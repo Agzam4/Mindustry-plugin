@@ -1,11 +1,10 @@
 package agzam4;
 
-import java.lang.reflect.Field;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 import agzam4.achievements.AchievementsManager;
 import agzam4.achievements.AchievementsManager.Achievement;
-import agzam4.admins.AdminData;
 import agzam4.admins.Admins;
 import agzam4.bot.Bots;
 import agzam4.bot.Bots.NotifyTag;
@@ -14,14 +13,30 @@ import agzam4.bot.TSender;
 import agzam4.bot.TUser;
 import agzam4.bot.TUser.MessageData;
 import agzam4.bot.TelegramBot;
+import agzam4.commands.CommandHandler;
+import agzam4.commands.Permissions;
+import agzam4.commands.admin.AdminCommand;
+import agzam4.commands.admin.UnitCommand;
+import agzam4.commands.players.VotekickCommand;
+import agzam4.commands.server.BrushCommand;
+import agzam4.commands.server.ConfigCommand;
+import agzam4.commands.server.EventCommand;
+import agzam4.commands.server.FillitemsCommand;
+import agzam4.commands.server.HelperCommand;
+import agzam4.commands.server.LinkCommand;
+import agzam4.commands.server.NextmapCommand;
+import agzam4.commands.server.RestartCommand;
+import agzam4.commands.server.SetcustomCommand;
+import agzam4.commands.server.SetnickCommand;
+import agzam4.commands.server.UnbanCommand;
 import agzam4.database.Database;
 import agzam4.database.Database.PlayerEntity;
 import agzam4.events.*;
+import agzam4.io.ByteBufferIO;
 import agzam4.managers.Kicks;
 import agzam4.managers.Players;
 import agzam4.net.NetMenu;
 import agzam4.utils.Log;
-import agzam4.votes.Cooldowns;
 import agzam4.votes.KickVoteSession;
 import agzam4.votes.SkipmapVoteSession;
 import arc.Core;
@@ -29,7 +44,6 @@ import arc.Events;
 import arc.func.*;
 import arc.graphics.Color;
 import arc.math.Mathf;
-import arc.math.geom.Bresenham2;
 import arc.math.geom.Point2;
 import arc.struct.*;
 import arc.util.ArcRuntimeException;
@@ -38,7 +52,6 @@ import arc.util.Nullable;
 import arc.util.Strings;
 import arc.util.Structs;
 import arc.util.Time;
-import arc.util.Timekeeper;
 import mindustry.Vars;
 import mindustry.content.*;
 import mindustry.core.*;
@@ -50,10 +63,6 @@ import mindustry.maps.Map;
 import mindustry.net.Administration.*;
 import mindustry.type.*;
 import mindustry.world.*;
-import mindustry.world.blocks.environment.*;
-import mindustry.world.blocks.storage.CoreBlock;
-import mindustry.world.meta.BuildVisibility;
-
 import static agzam4.Emoji.*;
 
 public class CommandsManager {
@@ -73,9 +82,6 @@ public class CommandsManager {
 	
 	public static boolean needServerRestart;
 	
-	@Deprecated
-	public static ObjectMap<String, PlayerEntity> joined = Players.getJoined();
-
 	public static void init() {
 		discordLink = Core.settings.getString(AgzamPlugin.name() + "-discord-link", null);
 		doorsCup = Core.settings.getInt(AgzamPlugin.name() + "-doors-cup", Integer.MAX_VALUE);
@@ -83,18 +89,89 @@ public class CommandsManager {
 		chatFilter = Core.settings.getBool(AgzamPlugin.name() + "-chat-filter", false);
 		extraStarsUIDD = new Seq<>();
 		
+		Vars.netServer.addPacketHandler("", null);
+		
 		doorsCoordinates = new ArrayList<>();
 		
 		registerBotCommands();
 		registerPlayersCommands();
 		registerAdminCommands();
 		
-    	Events.run(Trigger.update, () -> {
-    		Brush.brushes.each(Brush::update);
-    	});
+		Vars.netServer.addBinaryPacketHandler("agzam4.cmd-sug", (player, bs) -> {
+			try {
+				var buffer = ByteBuffer.wrap(bs);
+				
+				byte id = buffer.get();
+				
+				String command = ByteBufferIO.readString(buffer);
+				var completer = commandCompleters.get(command);
+				if(completer == null) return;
+				
+				String[] args = new String[buffer.get()];
+				for (int i = 0; i < args.length; i++) {
+					args[i] = ByteBufferIO.readString(buffer);
+				}
+				var result = completer.complete(args, player, ReceiverType.player);
+				if(result == null) return;
 
+				int maxSize = Byte.MAX_VALUE;
+				int parts = (result.size+maxSize-1)/maxSize;
+				for (int p = 0; p < parts; p++) {
+					int offset = p*maxSize;
+					int size = Math.min(offset+maxSize, result.size) - offset;
+					var res = ByteBuffer.allocate(size * Byte.MAX_VALUE);
+					res.put(id);
+					res.putShort((short) offset);
+					res.put((byte) (size));
+					res.putShort((short) result.size);
+					for (int i = 0; i < size; i++) {
+						ByteBufferIO.writeString(res, result.get(i+offset));
+					}
+					Call.clientBinaryPacketReliable(player.con, "agzam4.cmd-sug", res.array());
+				}
+				
+				
+//				int index = command.indexOf(' ');
+//				if(index == -1) {
+//					var result = completer.complete(emptyStringArray, player, ReceiverType.player);
+//					if(result == null) return;
+//					Call.clientPacketReliable(player.con, "CommandCompleter", result.toString("\n"));
+//					return;
+//				}
+//				Log.info("command: \"@\" @", command.substring(0, index), commandCompleters);
+//				var completer = commandCompleters.get(command.substring(0, index));
+//				Log.info("completer: [gray]@[]", completer);
+//				if(completer == null) return;
+//				int tmp = 1;
+//				for (int i = index+1; i < command.length(); i++) if(command.charAt(i) == ' ') tmp++;
+//				Log.info("args: @", tmp);
+//				String[] args = new String[tmp];
+//				int argId = 0;
+//				tmp = index+1;
+//				for (int i = index+1; i < command.length(); i++) {
+//					if(command.charAt(i) == ' ') {
+//						args[argId++] = command.substring(tmp, i);
+//						Log.info("arg(@): \"@\"", argId-1, args[argId-1]);
+//						tmp = i+1;
+//					}
+//				}
+//				if(tmp <= command.length()) {
+//					args[argId++] = command.substring(tmp);
+//					Log.info("arg(@): \"@\"", argId-1, args[argId-1]);
+//				}
+//
+//				Log.info("args: \"@\"", Arrays.toString(args));
+//				var result = completer.complete(args, player, ReceiverType.player);
+				
+//				Call.serverPacketReliable("CommandCompleter", "fillitems ");
+				
+			
+			} catch (Exception e) {
+				Log.err(e);
+			}
+		});
+		
 		Events.on(GameOverEvent.class, e -> {
-			Brush.brushes.clear();
 			if(needServerRestart) {
 				Game.stop();
 			}
@@ -102,20 +179,18 @@ public class CommandsManager {
 		
 		Events.on(PlayerLeave.class, e -> {
 			if(e.player == null) return;
-			Brush.brushes.removeAll(b -> b.owner == e.player);
-			Bots.notify(NotifyTag.playerConnection, NotifyTag.playerConnection.bungle("left", TelegramBot.strip(e.player.name), joined.size));
+			Bots.notify(NotifyTag.playerConnection, NotifyTag.playerConnection.bungle("left", TelegramBot.strip(e.player.name), Players.joinedAmount()));
 			
 			PlayerData data = PlayersData.getData(e.player.uuid());
 			if(data == null || data.disconnectedMessage == null) Call.sendMessage(e.player.coloredName() + "[accent] отключился");
 			else Call.sendMessage("[accent]" + data.disconnectedMessage.replaceAll("@name", e.player.coloredName() + "[accent]"));
-			
 		});
 
     	Events.on(PlayerJoin.class, e -> {
     		
     		Bots.notify(NotifyTag.playerConnection,
-    				Strings.format("<b>@</b>@ has joined <i>(@ players)</i>", TelegramBot.strip(e.player.name), (e.player.admin() ? " (admin)":""), joined.size),
-    				Strings.format("<b>@</b>@ has joined <i>(@ players)</i> <code>@</code>", TelegramBot.strip(e.player.name), (e.player.admin() ? " (admin)":""), joined.size, e.player.uuid())
+    				Strings.format("<b>@</b>@ has joined <i>(@ players)</i>", TelegramBot.strip(e.player.name), (e.player.admin() ? " (admin)":""), Players.joinedAmount()),
+    				Strings.format("<b>@</b>@ has joined <i>(@ players)</i> <code>@</code>", TelegramBot.strip(e.player.name), (e.player.admin() ? " (admin)":""), Players.joinedAmount(), e.player.uuid())
     		);
 			
     		PlayerData data = PlayersData.getData(e.player.uuid());
@@ -268,17 +343,6 @@ public class CommandsManager {
 //			}
 		});
 
-		// "/brush" command
-		Events.on(TapEvent.class, event -> {
-			Player player = event.player;
-			if(player == null) return;
-			if(event.tile == null) return;
-			if(!player.admin()) return;
-			Brush brush = Brush.get(player);
-			
-			Vars.mods.getScripts().runConsole("var ttile = Vars.world.tile(" + event.tile.pos() + ")");
-			if(brush.info && event.tile.build != null) player.sendMessage("[white]lastAccessed: [gold]" + event.tile.build.lastAccessed);
-		});
 		
 		Vars.netServer.admins.addActionFilter(action -> {
 			if(action.type == ActionType.pickupBlock) {
@@ -415,6 +479,7 @@ public class CommandsManager {
 	private static Seq<PlayerCommand> playerCommands = new Seq<PlayerCommand>();
 	private static Seq<BaseCommand> serverCommands = new Seq<BaseCommand>();
 	private static Seq<BotCommand> botCommands = new Seq<BotCommand>();
+	private static ObjectMap<String, CommandHandler<? super Player>> commandCompleters = ObjectMap.of();
 	
 	public static enum ReceiverType {
 		
@@ -423,16 +488,16 @@ public class CommandsManager {
 		bot,
 		any;
 
-		String bungle(String name) {
+		public String bungle(String name) {
 			return Game.bungleDef("command.response." + name + "." + name(), Game.bungle("command.response." + name));
 		}
 		
-		String format(String name, Object... args) {
+		public String format(String name, Object... args) {
 			return Strings.format(bungle(name), args);
 //			return Game.bungle("command.response." + name + "." + name(), args);
 		}
 
-		String err(String name) {
+		public String err(String name) {
 			if(this == player) return "[red]" + Game.bungle("command.response." + name);
 			return Game.bungle("command.response." + name);
 		}
@@ -456,16 +521,40 @@ public class CommandsManager {
 		playerCommands.add(new PlayerCommand(text, "", desc, run).admin(true));
 	}
 	
-	public static void serverCommand(String text, String desc, Cons4<String[], CommandReceiver, Object, ReceiverType> run) {
+	public static void serverCommand(String text, String desc, Cons4<String[], ResultSender, Object, ReceiverType> run) {
 		playerCommands.add(new PlayerCommand(text, "", desc, (arg, player) -> run.get(arg, player::sendMessage, player, ReceiverType.player)).admin(true));
 		serverCommands.add(new BaseCommand(text, "", desc, (arg) -> run.get(arg, Log::info, null, ReceiverType.server)));
 		botCommands.add(new BotCommand(text, "", desc, (arg, chat) -> run.get(arg, m -> chat.chat.message(m), chat, ReceiverType.bot)));
 	}
 
-	public static void serverCommand(String text, String parms, String desc, Cons4<String[], CommandReceiver, Object, ReceiverType> run) {
+	public static void serverCommand(String text, String parms, String desc, Cons4<String[], ResultSender, Object, ReceiverType> run) {
 		playerCommands.add(new PlayerCommand(text, parms, desc, (arg, player) -> run.get(arg, player::sendMessage, player, ReceiverType.player)).admin(true));
 		serverCommands.add(new BaseCommand(text, parms, desc, (arg) -> run.get(arg, Log::info, null, ReceiverType.server)));
 		botCommands.add(new BotCommand(text, parms, desc, (arg, chat) -> run.get(arg, m -> chat.chat.message(m), chat, ReceiverType.bot)));
+	}
+
+	public static void playerCommand(CommandHandler<Player> run) {
+		commandCompleters.put(run.text, run);
+		playerCommands.add(new PlayerCommand(run.text, run.parms, run.desc, (args, player) -> run.command(args, player::sendMessage, player, ReceiverType.player)));
+	}
+
+	public static void adminCommand(CommandHandler<Player> run) {
+		commandCompleters.put(run.text, run);
+		playerCommands.add(new PlayerCommand(run.text, run.parms, run.desc, (args, player) -> run.command(args, player::sendMessage, player, ReceiverType.player)).admin(true));
+	}
+	
+	public static void serverCommand(CommandHandler<Object> run) {
+		commandCompleters.put(run.text, run);
+		playerCommands.add(new PlayerCommand(run.text, run.parms, run.desc, (arg, player) -> run.command(arg, player::sendMessage, player, ReceiverType.player)).admin(true));
+		serverCommands.add(new BaseCommand(run.text, run.parms, run.desc, (arg) -> run.command(arg, Log::info, null, ReceiverType.server)));
+		botCommands.add(new BotCommand(run.text, run.parms, run.desc, (arg, chat) -> run.command(arg, m -> chat.chat.message(m), chat, ReceiverType.bot)));
+	}
+	
+	public static void serverCommand(String text, String parms, String desc, CommandHandler<Object> run) {
+		commandCompleters.put(text, run);
+		playerCommands.add(new PlayerCommand(text, parms, desc, (arg, player) -> run.command(arg, player::sendMessage, player, ReceiverType.player)).admin(true));
+		serverCommands.add(new BaseCommand(text, parms, desc, (arg) -> run.command(arg, Log::info, null, ReceiverType.server)));
+		botCommands.add(new BotCommand(text, parms, desc, (arg, chat) -> run.command(arg, m -> chat.chat.message(m), chat, ReceiverType.bot)));
 	}
 
 	public static void botCommand(String text, String desc, Cons2<String[], MessageData> run) {
@@ -476,7 +565,7 @@ public class CommandsManager {
 		botCommands.add(new BotCommand(text, parms, desc, (arg, chat) -> run.get(arg, chat)));
 	}
 	
-	public static interface CommandReceiver {
+	public static interface ResultSender {
 		void sendMessage(String message);
 	}
 	
@@ -534,10 +623,10 @@ public class CommandsManager {
 		
 	}
 	
-	static class PlayerCommand {
+	public static class PlayerCommand {
 		
-		private final String text, parms, desc;
-		private boolean admin = false;
+		public final String text, parms, desc;
+		public boolean admin = false;
 		private CommandRunner<Player> run;
 		private boolean registered;
 
@@ -664,29 +753,23 @@ public class CommandsManager {
 
 
 	public static void registerAdminCommands() {
-		adminCommand("admin", "<add/remove> <name>", "Добавить/удалить админа", (arg, player) -> {
-			if(require(arg.length != 2 || !(arg[0].equals("add") || arg[0].equals("remove")), player, "[red]Second parameter must be either 'add' or 'remove'.")) return;
-			boolean add = arg[0].equals("add");
-			PlayerInfo target;
-			Player playert = Groups.player.find(p -> Strings.stripColors(p.name()).equalsIgnoreCase(Strings.stripColors(arg[1])));
-			if(playert != null) {
-				target = playert.getInfo();
-			} else {
-				target = Vars.netServer.admins.getInfoOptional(arg[1]);
-				playert = Groups.player.find(p -> p.getInfo() == target);
-			}
-			if(require(!add && playert.uuid() == player.uuid(), player, "[red] Вы не можете снять свой статус")) return;
-			if(target != null){
-				if(add) Vars.netServer.admins.adminPlayer(target.id, playert == null ? target.adminUsid : playert.usid());
-				else Vars.netServer.admins.unAdminPlayer(target.id);
-				if(playert != null) playert.admin(add);
-				player.sendMessage("[gold]Изменен статус администратора игрока: [" + Game.colorToHex(playert.color) + "]" + Strings.stripColors(target.lastName));
-			} else {
-				player.sendMessage("[red]Игрока с таким именем или ID найти не удалось. При добавлении администратора по имени убедитесь, что он подключен к Сети; в противном случае используйте его UUID");
-			}
-			Vars.netServer.admins.save();
-		});
+		adminCommand(new AdminCommand());
+		adminCommand(new UnitCommand());
+		adminCommand(new BrushCommand());
+		adminCommand(new agzam4.commands.admin.BotCommand());
+		
+		serverCommand(new ConfigCommand());
+		serverCommand(new FillitemsCommand());
+		serverCommand(new NextmapCommand());
+		serverCommand(new EventCommand());
+		serverCommand(new RestartCommand());
+		serverCommand(new SetcustomCommand());
+		serverCommand(new UnbanCommand());
+		serverCommand(new LinkCommand());
+		serverCommand(new HelperCommand());
+		serverCommand(new SetnickCommand());
 
+		
 		adminCommand("m", "", "Открыть меню", (args, admin) -> {
 			 var players = new NetMenu("[white]" + Config.serverName.get().toString());
 
@@ -744,225 +827,6 @@ public class CommandsManager {
 			 }
 			 players.show(admin);
     	});
-		
-		serverCommand("restart", "[on/off/force]", "Перезагрузить сервер", (args, sender, receiver, type) -> {
-			if(require(args.length != 1, sender, "Перезапуск: [lightgray]" + needServerRestart)) return;
-			if(args[0].equalsIgnoreCase("force")) {
-				Game.stop();
-				return;
-			}
-			if(args[0].equalsIgnoreCase("on")) {
-				needServerRestart = true;
-				sender.sendMessage("Сервер будет перезапущен на следующей карте");
-				return;
-			}
-			if(args[0].equalsIgnoreCase("off")) {
-				if(require(!needServerRestart, sender, "Перезапуск итак отменен")) return;
-				needServerRestart = false;
-				sender.sendMessage("Перезапуск отменен");
-				return;
-			}
-		});
-		
-		serverCommand("nextmap", "[название...]", "Устанавливает следущую карту", (arg, sender, receiver, type) -> {
-			if(arg.length == 0) {
-				StringBuilder maps = new StringBuilder("Карты:");
-				int id = 0;
-				for(Map map : Vars.maps.all()){
-					id++;
-					String mapName = Strings.stripColors(map.name());
-					if(type == ReceiverType.bot) {
-						maps.append(Strings.format("\n<code>#@</code> <i>@</i> <code>@</code> <i>(@x@, рекорд: @)</i>", 
-								id, map.custom ? "Кастомная" : "Дефолтная", mapName, map.width, map.height, map.getHightScore()));
-					} else {
-						maps.append(Strings.format("\n[gold]#@ @ [white]| @ [white](@x@, рекорд: @)", 
-								id, map.custom ? "Кастомная" : "Дефолтная", mapName, map.width, map.height, map.getHightScore()));
-					}
-				}
-				sender.sendMessage(maps.toString());
-				return;
-			}
-			
-            Map res = Vars.maps.all().find(map -> map.plainName().replace('_', ' ').equalsIgnoreCase(Game.strip(arg[0]).replace('_', ' ')));
-            boolean canEventmaps = receiver instanceof Player player ? Admins.has(player, "eventmaps") : true;
-            if(arg[0].startsWith("$") && canEventmaps) {
-				try {
-					EventMap em = EventMap.maps.get(Integer.parseInt(arg[0].substring(1))-1);
-					em.setNextMapOverride();
-					sender.sendMessage(type.format("nextmap.set-event", em.map().plainName()));
-				} catch (Exception e) {
-					sender.sendMessage(e.getMessage());
-				}
-            	return;
-            }
-            if(res == null && arg[0].startsWith("#")) {
-				try {
-					res = Vars.maps.all().get(Integer.parseInt(arg[0].substring(1))-1);
-				} catch (Exception e) {
-					sender.sendMessage(e.getMessage());
-				}
-			}
-            if(res != null){
-            	Vars.maps.setNextMapOverride(res);
-            	ServerEventsManager.setNextMapEvents(null);
-                sender.sendMessage(type.format("nextmap.set", res.plainName()));
-            }else{
-            	sender.sendMessage(type.err("nextmap.not-found"));
-            }
-        });
-
-		serverCommand("runwave", "Запускает волну", (arg, sender, receiver, type) -> {
-			boolean force = receiver instanceof Player player ? Admins.has(player, "force-runwave") : true;
-			if(require(!force && Vars.state.enemies > 0, sender, type.bungle("runwave.enemies"))) return;
-			Vars.logic.runWave();
-			sender.sendMessage(type.bungle("runwave.ready"));
-        });
-		
-		serverCommand("fillitems", "[item] [count]", "Заполните ядро предметами", (arg, sender, receiver, type) -> {
-			try {
-				if(arg.length == 0) {
-					StringBuilder names = new StringBuilder();
-					Vars.content.items().each(i -> {
-						if(names.length() != 0) names.append(", ");
-						if(type == ReceiverType.player) names.append("[white]" + i.emoji() + " " + Game.getColoredLocalizedItemName(i));
-						if(type == ReceiverType.bot) names.append("<code>" + Game.contentName(i) + "</code>");
-						if(type == ReceiverType.server) names.append(Game.contentName(i));
-					});
-					sender.sendMessage(type.format("fillitems.names", names));
-					return;
-				}
-				int count = arg.length > 1 ? Integer.parseInt(arg[1]) : 0;
-				
-				
-				String itemname = arg[0].toLowerCase();
-				
-
-				if(itemname.equals("all")) {
-					Team team = receiver instanceof Player p ? p.team() : Vars.state.rules.defaultTeam;
-					if(require(team.cores().size == 0, sender, type.err("fillitems.no-core"))) return;
-					Vars.content.items().each(i -> team.cores().get(0).items.set(i, 9999999));
-					return;
-				}
-				
-				Item item = Vars.content.items().find(i -> itemname.equalsIgnoreCase(i.name) || itemname.equalsIgnoreCase(Game.contentName(i)));
-				if(require(item == null, sender, type.err("fillitems.no-item"))) return;
-				Team team = receiver instanceof Player p ? p.team() : Vars.state.rules.defaultTeam;
-				if(require(team.cores().size == 0, sender, type.err("fillitems.no-core"))) return;
-
-				team.cores().get(0).items.add(item, count);
-				sender.sendMessage(type.format("fillitems.added", count, item.name));
-			} catch (Exception e) {
-				sender.sendMessage(e.getMessage());
-			}
-		});
-		
-		serverCommand("chatfilter", "<on/off>", "Включить/выключить фильтр чата", (arg, sender, receiver, type) -> {
-			if(require(arg.length == 0, sender, "[red]Недостаточно аргументов")) return;
-			if(arg[0].equals("on")) {
-				chatFilter = true;
-				Core.settings.put(AgzamPlugin.name() + "-chat-filter", chatFilter);
-				sender.sendMessage("[green]Чат фильтр включен");
-			}else if(arg[0].equals("off")) {
-				chatFilter = false;
-				Core.settings.put(AgzamPlugin.name() + "-chat-filter", chatFilter);
-				sender.sendMessage("[red]Чат фильтр выключен");
-			}else {
-				sender.sendMessage("Неверный аргумент, используйте [gold]on/off");
-				return;
-			}
-		});
-
-		serverCommand("dct", "[time]", "Установить интервал (секунд/10) обновлений данных", (arg, sender, receiver, type) -> {
-			if(require(arg.length == 0, sender, "Интервал обновлений: " + AgzamPlugin.dataCollect.getSleepTime() + " секунд/10")) return;
-			if(arg.length == 1) {
-				long count = 0;
-				try {
-					count = Long.parseLong(arg[0]);
-				} catch (Exception e) {
-					sender.sendMessage("[red]Вводить можно только числа!");
-				}
-				count *= 1_00;
-
-				if(count <= 0) {
-					sender.sendMessage("[red]Интервал не может быть меньше 1!");
-				}
-				AgzamPlugin.dataCollect.setSleepTime(count);
-				sender.sendMessage("Установлен интервал: " + count + " ms");
-				return;
-			}
-		});
-		
-		serverCommand("event", "[id] [on/off/faston]", "Включить/выключить событие", (arg, sender, receiver, type) -> {
-			if(arg.length == 0) {
-				StringBuilder msg = new StringBuilder();
-				for (int i = 0; i < ServerEventsManager.events.size; i++) {
-					if(i != 0) msg.append('\n');
-					ServerEvent event = ServerEventsManager.events.get(i);
-					if(type == ReceiverType.player) {
-						msg.append(event.isRunning() ? "[lime]" + Iconc.ok + " " : "[scarlet] " + Iconc.cancel + " ");
-						msg.append(event.name);
-						msg.append(' ');
-					} else if(type == ReceiverType.bot) {
-						msg.append(event.isRunning() ? "\u2714 " : "\u274c ");
-						msg.append("<code>");
-						msg.append(event.name);
-						msg.append("</code>");
-					} else {
-						msg.append(event.isRunning() ? "V " : "X ");
-						msg.append("");
-						msg.append(event.name);
-						msg.append("");
-					}
-				}
-				sender.sendMessage(msg.toString());
-				return;
-			}
-			if(arg.length == 1) {
-				ServerEvent event = ServerEventsManager.events.find(e -> arg[0].equals(e.name));
-				if(require(event == null, sender, "Событие не найдено, [blue]/event[] для списка событий")) return;
-				sender.sendMessage("Событие " + event.name + "[white] имеет значение: " + event.isRunning());
-				return;
-			}
-			if(arg.length == 2) {
-				boolean isOn = false;
-				boolean isFast = false;
-				if(arg[1].equals("on")) {
-					isOn = true;
-				} else if(arg[1].equals("off")) {
-					isOn = false;
-				} else if(arg[1].equals("faston")) {
-					isOn = true;
-					isFast = true;
-				} else {
-					sender.sendMessage("Неверный аргумент, используйте [gold]on/off[]");
-					return;
-				}
-				ServerEvent event = ServerEventsManager.events.find(e -> arg[0].equals(e.name));
-				if(require(event == null, sender, "[red]Событие не найдено, [gold]/event [red] для списка событий")) return;
-
-				boolean running = event.isRunning();
-				boolean await = ServerEventsManager.activeEvents.contains(event);
-				
-				if(require(running && isOn, sender, "[red]Событие уже запущено")) return;
-				if(require(await && isOn, sender, "[red]Событие начнется на следующей карте")) return;
-				if(require(!await && !isOn, sender, "[red]Событие итак не запущено")) return;
-
-				if(isOn) {
-					if(isFast) {
-						ServerEventsManager.fastRunEvent(event.name);
-						sender.sendMessage("[white]Событие резко запущено!");
-					} else {
-						ServerEventsManager.runEvent(event.name);
-						sender.sendMessage("[green]Событие запущено!");
-					}
-				} else {
-					ServerEventsManager.stopEvent(event.name);
-					sender.sendMessage("[red]Событие остановлено!");
-				}
-
-				return;
-			}
-		});
 
 		serverCommand("team", "[player] [team]", "Установить команду для игрока", (arg, sender, receiver, type) -> {
 			if(arg.length < 1) {
@@ -1024,51 +888,139 @@ public class CommandsManager {
 			}
 		});
 
-		serverCommand("config", "[name] [set/add] [value...]", "Конфигурация сервера", (arg, sender, receiver, type) -> {
-			if(arg.length == 0){
-				sender.sendMessage("All config values:");
-				for(Config c : Config.all){
-					sender.sendMessage("[gold]" + c.name + "[lightgray](" + c.description + ")[white]:\n> " + c.get() + "\n");
-				}
+		serverCommand("runwave", "Запускает волну", (arg, sender, receiver, type) -> {
+			boolean force = receiver instanceof Player player ? Admins.has(player, Permissions.forceRunwave) : true;
+			if(require(!force && Vars.state.enemies > 0, sender, type.bungle("runwave.enemies"))) return;
+			Vars.logic.runWave();
+			sender.sendMessage(type.bungle("runwave.ready"));
+        });
+		
+		serverCommand("chatfilter", "<on/off>", "Включить/выключить фильтр чата", (arg, sender, receiver, type) -> {
+			if(require(arg.length == 0, sender, "[red]Недостаточно аргументов")) return;
+			if(arg[0].equals("on")) {
+				chatFilter = true;
+				Core.settings.put(AgzamPlugin.name() + "-chat-filter", chatFilter);
+				sender.sendMessage("[green]Чат фильтр включен");
+			}else if(arg[0].equals("off")) {
+				chatFilter = false;
+				Core.settings.put(AgzamPlugin.name() + "-chat-filter", chatFilter);
+				sender.sendMessage("[red]Чат фильтр выключен");
+			}else {
+				sender.sendMessage("Неверный аргумент, используйте [gold]on/off");
 				return;
 			}
-			Config c = Config.all.find(conf -> conf.name.equalsIgnoreCase(arg[0]));
-			if(c != null){
-				if(arg.length == 1) {
-					sender.sendMessage(c.name + " is currently " + c.get());
-				}else if(arg.length > 2) {
-					if(arg[2].equals("default")){
-						c.set(c.defaultValue);
-					}else if(c.isBool()){
-						c.set(arg[2].equals("on") || arg[2].equals("true"));
-					}else if(c.isNum()){
-						try{
-							c.set(Integer.parseInt(arg[2]));
-						}catch(NumberFormatException e){
-							sender.sendMessage("[red]Not a valid number: " + arg[2]);
-							return;
-						}
-					}else if(c.isString()) {
-						if(arg.length > 2) {
-							if(arg[1].equals("add")) {
-								c.set(c.get().toString() + arg[2].replace("\\n", "\n"));
-							} else if(arg[1].equals("set")) {
-								c.set(arg[2].replace("\\n", "\n"));
-							} else {
-								sender.sendMessage("[red]Only [gold]add/set");
-								return;
-							}
-						} else {
-							sender.sendMessage("[red]Add [gold]add/set [red]attribute");
-						}
-					}
-					sender.sendMessage("[gold]" + c.name + "[gray] set to [white]" + c.get());
-					Core.settings.forceSave();
-				} else {
-					sender.sendMessage("[red]Need more attributes");
+		});
+
+		serverCommand("dct", "[time]", "Установить интервал (секунд/10) обновлений данных", (arg, sender, receiver, type) -> {
+			if(require(arg.length == 0, sender, "Интервал обновлений: " + AgzamPlugin.dataCollect.getSleepTime() + " секунд/10")) return;
+			if(arg.length == 1) {
+				long count = 0;
+				try {
+					count = Long.parseLong(arg[0]);
+				} catch (Exception e) {
+					sender.sendMessage("[red]Вводить можно только числа!");
 				}
-			}else{
-				sender.sendMessage("[red]Unknown config: '" + arg[0] + "'. Run the command with no arguments to get a list of valid configs.");
+				count *= 1_00;
+
+				if(count <= 0) {
+					sender.sendMessage("[red]Интервал не может быть меньше 1!");
+				}
+				AgzamPlugin.dataCollect.setSleepTime(count);
+				sender.sendMessage("Установлен интервал: " + count + " ms");
+				return;
+			}
+		});
+
+		serverCommand("bans", "List all banned IPs and IDs", (arg, sender, receiver, type) -> {
+			sender.sendMessage("Banned players [ID]:");
+			
+			Vars.netServer.admins.playerInfo.each((key, info) -> {
+				if(info == null) return;
+				if(info.banned) {
+					sender.sendMessage("> " + key + " - banned");
+				}
+				if(Time.millis() < info.lastKicked) {
+					sender.sendMessage("> " + key + " - kicked [lightgray](" + (info.lastKicked - Time.millis())/1000/60 + " minutes)");
+				}
+			});
+			sender.sendMessage("Banned players [IP]:");
+			Vars.netServer.admins.kickedIPs.each((key, time) -> {
+				if(Time.millis() < time) {
+					sender.sendMessage("> " + key + " - kicked [lightgray](" + (time - Time.millis())/1000/60 + " minutes)");
+				}
+			});
+			sender.sendMessage("Dos players [IP]:");
+			Vars.netServer.admins.dosBlacklist.each((value) -> {
+				sender.sendMessage("> " + value + " - banned");
+			});
+		});
+
+		serverCommand("reloadmaps", "Перезагрузить карты", (arg, sender, receiver, type) -> {
+			int beforeMaps = Vars.maps.all().size;
+			Vars.maps.reload();
+			if (Vars.maps.all().size > beforeMaps) {
+				sender.sendMessage("[gold]" + (Vars.maps.all().size - beforeMaps) + " новых карт было найдено");
+			} else if (Vars.maps.all().size < beforeMaps) {
+				sender.sendMessage("[gold]" + (beforeMaps - Vars.maps.all().size) + " карт было удалено");
+			} else {
+				sender.sendMessage("[gold]Карты перезагружены");
+			}
+			beforeMaps = EventMap.maps.size;
+			EventMap.reload();
+			if (EventMap.maps.size > beforeMaps) {
+				sender.sendMessage("[gold]" + (EventMap.maps.size - beforeMaps) + " ивентных новых карт было найдено");
+			} else if (EventMap.maps.size < beforeMaps) {
+				sender.sendMessage("[gold]" + (beforeMaps - EventMap.maps.size) + " ивентных карт было удалено");
+			} else {
+				sender.sendMessage("[gold]Ивентные карты перезагружены");
+			}
+			AchievementsManager.updateMaps();
+		});
+
+		serverCommand("js", "<script...>", "Запустить JS", (arg, sender, receiver, type) -> {
+			if(type == ReceiverType.bot) {
+				Core.app.post(() -> {
+					sender.sendMessage(type.format("js", Vars.mods.getScripts().runConsole(arg[0])));
+				});
+			} else {
+				sender.sendMessage(type.format("js", Vars.mods.getScripts().runConsole(arg[0])));
+			}
+		});
+
+		serverCommand("setdiscord", "<link>", "\ue80d Сервера", (arg, sender, receiver, type) -> {
+			if(arg.length != 1) return;
+			discordLink = arg[0];
+			Core.settings.put(AgzamPlugin.name() + "-discord-link", discordLink);
+			sender.sendMessage(type.bungle("setdiscord"));
+		});
+
+		serverCommand("threads", "[filter]", "Конфикурация сервера", (args, sender, receiver, type) -> {
+			StringBuilder message = new StringBuilder("Threads");
+			Func<String, Byte> filter = (keyword) -> {
+				if(Structs.contains(args, keyword) || Structs.contains(args, "+" + keyword)) return 1;
+				if(Structs.contains(args, "-" + keyword)) return -1;
+				return 0;
+			};
+			byte daemon = filter.get("daemon");
+			
+			Thread.getAllStackTraces().keySet().forEach(t -> {
+				if(daemon == 1 & !t.isDaemon()) return;
+				if(daemon == -1 & t.isDaemon()) return;
+				
+				message.append(Strings.format("\n@: (@) @", t.getName(), t.isDaemon() ? "Daemon" : "", t.getState()));
+			});
+			sender.sendMessage(message.toString());
+		});
+
+		serverCommand("doorscup", "[count]", "Устанавливает лимит дверей", (arg, sender, receiver, type) -> {
+			if(require(arg.length == 0, sender, type.format("doorscup.doors", doorsCoordinates.size(), doorsCup))) return;
+			try {
+				int lastDoorsCup = doorsCup;
+				doorsCup = Integer.parseInt(arg[0]);
+				Core.settings.put(AgzamPlugin.name() + "-doors-cup", doorsCup);
+				sender.sendMessage(type.format("doorscup.set", lastDoorsCup, doorsCup));
+			} catch (Exception e) {
+				sender.sendMessage(e.getMessage());
 			}
 		});
 
@@ -1111,168 +1063,6 @@ public class CommandsManager {
 			}
 		});
 
-		adminCommand("unit", "[type] [t/c]", "Создает юнита, list для списка", (arg, player) -> {
-			String unitType = UnitTypes.gamma.name;
-			Field[] fields = UnitTypes.class.getFields();
-			if(arg.length > 0) {
-				if(arg[0].equals("list")) {
-					StringBuilder unitTypes = new StringBuilder("Типы юнитов");
-					for (int i = 0; i < fields.length; i++) {
-						String name = fields[i].getName();
-						if(name.equals(UnitTypes.block.name)) continue;
-
-						unitTypes.append(fields[i].getName());
-						if(i+1 != fields.length) {
-							unitTypes.append(", ");
-						}
-					}
-					player.sendMessage(unitTypes.toString());
-					return;
-				}
-				unitType = arg[0];
-			}
-			try {
-				for (int i = 0; i < fields.length; i++) {
-					if(fields[i].getName().equals(unitType)) {
-						UnitType ut = (UnitType) fields[i].get(UnitTypes.class);
-						if(ut == null) continue;
-						if(ut.name.equals(UnitTypes.block.name)) {
-							continue;
-						}
-						Unit u = ut.spawn(player.team(), player.mouseX, player.mouseY);
-						if(arg.length > 1) {
-							if(arg[1].equals("true") || arg[1].equals("y") || arg[1].equals("t") || arg[1].equals("yes")) {
-								player.unit(u);
-							}
-							if(arg[1].equals("c") || arg[1].equals("core")) {
-								player.unit(u);
-								u.spawnedByCore(true);
-							}
-						}
-						player.sendMessage("Готово!"); 
-
-						if(!Vars.net.client()){
-							u.add();
-						}
-						return;
-					}
-				}
-				player.sendMessage("[red]Юнит не найден [gold]/unit list");
-			} catch (IllegalArgumentException | IllegalAccessException e) {
-				player.sendMessage(e.getLocalizedMessage());
-			}
-		});
-
-		serverCommand("bans", "List all banned IPs and IDs", (arg, sender, receiver, type) -> {
-			sender.sendMessage("Banned players [ID]:");
-			
-			Vars.netServer.admins.playerInfo.each((key, info) -> {
-				if(info == null) return;
-				if(info.banned) {
-					sender.sendMessage("> " + key + " - banned");
-				}
-				if(Time.millis() < info.lastKicked) {
-					sender.sendMessage("> " + key + " - kicked [lightgray](" + (info.lastKicked - Time.millis())/1000/60 + " minutes)");
-				}
-			});
-			sender.sendMessage("Banned players [IP]:");
-			Vars.netServer.admins.kickedIPs.each((key, time) -> {
-				if(Time.millis() < time) {
-					sender.sendMessage("> " + key + " - kicked [lightgray](" + (time - Time.millis())/1000/60 + " minutes)");
-				}
-			});
-			sender.sendMessage("Dos players [IP]:");
-			Vars.netServer.admins.dosBlacklist.each((value) -> {
-				sender.sendMessage("> " + value + " - banned");
-			});
-		});
-
-		serverCommand("unban", "<ip/ID/all>", "Completely unban a person by IP or ID.", (arg, sender, receiver, type) -> {
-			if(require(arg.length == 0, sender, "[red]<ip/ID/all> is missed")) return;
-			if(arg[0].equalsIgnoreCase("all")) {
-				sender.sendMessage("Unbanned players [ID]:");
-				Vars.netServer.admins.playerInfo.each((key, info) -> {
-					if(info == null) return;
-					info.banned = false;
-					if(Time.millis() < info.lastKicked) {
-						info.lastKicked = Time.millis();
-					}
-				});
-				sender.sendMessage("Unbanned all IPs");
-				Vars.netServer.admins.kickedIPs.clear();
-				Vars.netServer.admins.dosBlacklist.clear();
-				return;
-			}
-			if(Vars.netServer.admins.dosBlacklist.remove(arg[0])) {
-				sender.sendMessage("Unbanned dos player: " + arg[0]);
-				return;
-			}
-			PlayerInfo info = Vars.netServer.admins.playerInfo.get(arg[0]);
-			Long ip = Vars.netServer.admins.kickedIPs.remove(arg[0]);
-			
-			if(require(info == null && ip == null, sender, "player/ip not found")) return;
-			if(info != null) {
-				info.banned = false;
-				if(Time.millis() < info.lastKicked) {
-					info.lastKicked = Time.millis();
-				}
-				sender.sendMessage("Unbanned player: " + info.lastName);
-			}
-			if(ip != null) sender.sendMessage("Unbanned IP: " + arg[0]);
-		});
-
-		serverCommand("reloadmaps", "Перезагрузить карты", (arg, sender, receiver, type) -> {
-			int beforeMaps = Vars.maps.all().size;
-			Vars.maps.reload();
-			if (Vars.maps.all().size > beforeMaps) {
-				sender.sendMessage("[gold]" + (Vars.maps.all().size - beforeMaps) + " новых карт было найдено");
-			} else if (Vars.maps.all().size < beforeMaps) {
-				sender.sendMessage("[gold]" + (beforeMaps - Vars.maps.all().size) + " карт было удалено");
-			} else {
-				sender.sendMessage("[gold]Карты перезагружены");
-			}
-			beforeMaps = EventMap.maps.size;
-			EventMap.reload();
-			if (EventMap.maps.size > beforeMaps) {
-				sender.sendMessage("[gold]" + (EventMap.maps.size - beforeMaps) + " ивентных новых карт было найдено");
-			} else if (EventMap.maps.size < beforeMaps) {
-				sender.sendMessage("[gold]" + (beforeMaps - EventMap.maps.size) + " ивентных карт было удалено");
-			} else {
-				sender.sendMessage("[gold]Ивентные карты перезагружены");
-			}
-			AchievementsManager.updateMaps();
-		});
-
-		serverCommand("js", "<script...>", "Запустить JS", (arg, sender, receiver, type) -> {
-			if(type == ReceiverType.bot) {
-				Core.app.post(() -> {
-					sender.sendMessage(type.format("js", Vars.mods.getScripts().runConsole(arg[0])));
-				});
-			} else {
-				sender.sendMessage(type.format("js", Vars.mods.getScripts().runConsole(arg[0])));
-			}
-		});
-
-		serverCommand("link", "<link> [player]", "Отправить ссылку всем/игроку", (arg, sender, receiver, type) -> {
-			if(arg.length == 1) {
-				Call.openURI(arg[0]);
-			} else if(arg.length == 2) {
-				Player targetPlayer = Groups.player.find(p -> Strings.stripColors(p.name()).equalsIgnoreCase(Strings.stripColors(arg[1])));
-				if(targetPlayer != null) {
-					Call.openURI(targetPlayer.con, arg[0]);
-					sender.sendMessage("[gold]Готово!");
-				} else {
-					sender.sendMessage("[red]Игрок не найден");
-				}
-			}
-		});
-
-		serverCommand("setdiscord", "<link>", "\ue80d Сервера", (arg, sender, receiver, type) -> {
-			if(arg.length != 1) return;
-			discordLink = arg[0];
-			Core.settings.put(AgzamPlugin.name() + "-discord-link", discordLink);
-			sender.sendMessage(type.bungle("setdiscord"));
-		});
 
 //		adminCommand("pardon", "<ID> [index]", "Прощает выбор игрока по ID и позволяет ему присоединиться снова.", (arg, player) -> {
 //			int index = 0;
@@ -1302,98 +1092,6 @@ public class CommandsManager {
 //			}
 //		});
 
-		serverCommand("doorscup", "[count]", "Устанавливает лимит дверей", (arg, sender, receiver, type) -> {
-			if(require(arg.length == 0, sender, type.format("doorscup.doors", doorsCoordinates.size(), doorsCup))) return;
-			try {
-				int lastDoorsCup = doorsCup;
-				doorsCup = Integer.parseInt(arg[0]);
-				Core.settings.put(AgzamPlugin.name() + "-doors-cup", doorsCup);
-				sender.sendMessage(type.format("doorscup.set", lastDoorsCup, doorsCup));
-			} catch (Exception e) {
-				sender.sendMessage(e.getMessage());
-			}
-		});
-
-		adminCommand("brush", "[none/block/floor/overlay/info] [block/none]", "Устанваливает кисточку", (arg, player) -> {
-			Brush brush = Brush.get(player);
-			if(arg.length == 0) {
-				player.sendMessage(Strings.format("Кисточка: [@,@,@]", brush.floor, brush.overlay, brush.block));
-			} else if(arg.length == 1) {
-				if(arg[0].equalsIgnoreCase("none")) {
-					brush.block = null;
-					brush.floor = null;
-					brush.overlay = null;
-					brush.info = false;
-					player.sendMessage("[gold]Кисть отчищена");
-				} else if(arg[0].equalsIgnoreCase("block")) {
-					if(brush.block == null) player.sendMessage("[gold]К кисти не привязан блок");
-					else player.sendMessage("[gold]К кисти привязан блок: " + brush.block.emoji() + " [lightgray]" + brush.block);
-				} else if(arg[0].equalsIgnoreCase("floor")) {
-					if(brush.floor == null) player.sendMessage("[gold]К кисти не привязана поверхность");
-					else player.sendMessage("[gold]К кисти привязан блок: " + brush.floor.emoji() + " [lightgray]" + brush.floor);
-				} else if(arg[0].equalsIgnoreCase("overlay")) {
-					if(brush.overlay == null) player.sendMessage("[gold]К кисти не привязано покрытие");
-					else player.sendMessage("[gold]К кисти привязан блок: " + brush.overlay.emoji() + " [lightgray]" + brush.overlay);
-				} else if(arg[0].equalsIgnoreCase("info")) {
-					brush.info  = true;
-					player.sendMessage("[gold]готово!");
-				} else {
-					player.sendMessage("[red]На первом месте только аргумены [lightgray]none/block/floor/overlay");
-				}
-			} else if(arg.length == 2) {
-				String blockname = arg[1];
-				if(blockname.equals("core1")) blockname = "coreShard";
-				if(blockname.equals("core2")) blockname = "coreFoundation";
-				if(blockname.equals("core3")) blockname = "coreNucleus";
-				if(blockname.equals("core4")) blockname = "coreBastion";
-				if(blockname.equals("core5")) blockname = "coreCitadel";
-				if(blockname.equals("core6")) blockname = "coreAcropolis";
-				if(blockname.equals("power+")) blockname = "powerSource";
-				if(blockname.equals("power-")) blockname = "powerVoid";
-				if(blockname.equals("item+")) blockname = "itemSource";
-				if(blockname.equals("item-")) blockname = "itemVoid";
-				if(blockname.equals("liq+")) blockname = "liquidSource";
-				if(blockname.equals("liq-")) blockname = "liquidVoid";
-				if(blockname.equals("s")) blockname = "shieldProjector";
-				if(blockname.equals("ls")) blockname = "largeShieldProjector";
-				
-				if(arg[0].equalsIgnoreCase("block") || arg[0].equalsIgnoreCase("b")) {
-					if(arg[1].equals("none")) {
-						brush.block = null;
-						player.sendMessage("[gold]Блок отвязан");
-						return;
-					}
-					@Nullable Block find = Game.findBlock(blockname);
-
-					if(require(find == null, player, "[red]Блок не найден")) return;
-					if(require(!(find.canBeBuilt() || find.buildVisibility == BuildVisibility.hidden) && !Admins.has(player, "brush-sandbox"), player, "[red]Блок недоступен в текущем режиме игры")) return;
-					brush.block = find;
-					player.sendMessage("[gold]Поверхность привязана!");
-				} else if(arg[0].equalsIgnoreCase("floor") || arg[0].equalsIgnoreCase("f")) {
-					if(arg[1].equals("none")) {
-						brush.floor = null;
-						player.sendMessage("[gold]Поверхность отвязана");
-						return;
-					}
-					@Nullable Block find = Game.findBlock(blockname);
-					if(require(find == null, player, "[red]Поверхность не найдена")) return;
-					if(require(!(find instanceof Floor), player, "[red]Это не поверхность")) return;
-					brush.floor = find;
-					player.sendMessage("[gold]Поверхность привязана!");
-				} else if(arg[0].equalsIgnoreCase("overlay") || arg[0].equalsIgnoreCase("o")) {
-					if(arg[1].equals("none")) {
-						brush.overlay = null;
-						player.sendMessage("[gold]Покрытие отвязано");
-						return;
-					}
-					@Nullable Block find = Game.findBlock(blockname);
-					if(require(find == null, player, "[red]Поверхность не найдена")) return;
-					if(require(!(find instanceof OverlayFloor) && find != Blocks.air, player, "[red]Это не поверхность")) return;
-					brush.overlay = find;
-					player.sendMessage("[gold]Поверхность привязана!");
-				}
-			}
-		});
 
 		adminCommand("etrigger", "<trigger> [args...]", "Устанваливает кисточку", (args, player) -> {
 			ServerEventsManager.trigger(player, args);
@@ -1448,235 +1146,60 @@ public class CommandsManager {
 			}
 		});
 
-		adminCommand("bot", "[add/remove/list/start/stop/t/p/name/load] [id/name] [token...]", "Привязать/отвязать телеграм аккаунт", (args, player) -> {
-			if(require(args.length < 1, player, "Мало аргументов")) return;
-			try {
-				args[0] = args[0].toLowerCase();
 
-				if(args[0].equalsIgnoreCase("load")) {
-					try {
-						TelegramBot.init();
-						player.sendMessage("Chats & Users loaded!");
-					} catch (Exception exc) {
-						player.sendMessage("Error: " + exc.getMessage());
-					}
-					return;
-				}
-				if(args[0].equalsIgnoreCase("list")) {
-					Cons2<LongMap<? extends TSender>, String> show = (m, name) -> {
-						if(m.size == 0) player.sendMessage(Strings.format("@: <empty>", name));
-						else {
-							player.sendMessage(Strings.format("@:", name));
-							m.eachValue(e -> {
-								player.sendMessage("> " + e);
-							});
-						}
-					};
-					show.get(TelegramBot.users, "Пользователи");
-					show.get(TelegramBot.chats, "Чаты");
-				}
-				
-				if(args[0].equals("add") || args[0].equals("remove") || args[0].equals("t") || args[0].equals("p") || args[0].equals("name")) {
-					if(require(args.length < 2, player, "Должно быть 2 аргумента: " + args[0] + " <id>")) return;
-
-					boolean isUser = args[1].startsWith("u-");
-					boolean isChat = args[1].startsWith("c-");
-					
-					LongMap<? extends TSender> senders = null;
-					if(isChat) senders = TelegramBot.chats;
-					if(isUser) senders = TelegramBot.users;
-					
-					if(require(senders == null, player, "Неверный Id")) return;
-					if(require(!isUser && !isChat, player, "Неверный Id")) return;
-
-					String[] idData = args[1].split("/");
-					Integer threadId = idData.length >= 2 ? Integer.parseUnsignedInt(idData[1], Character.MAX_RADIX) : null;
-					long id = Long.parseUnsignedLong(idData[0].substring(2), Character.MAX_RADIX);
-
-					if(args[0].equals("name")) {
-						if(require(!isUser, player, "Это не пользователь")) return;
-						var user = TelegramBot.users.get(id);
-						if(require(user == null, player, "Пользователь не найден")) return;
-						if(require(args.length < 3, player, "Имя пользователя: " + user.name)) return;
-						user.name = args[2];
-						player.sendMessage("Установлено имя: " + user.name);
-						return;
-					}
-					
-					if(args[0].equals("add")) {
-						if(isUser) {
-							if(TelegramBot.users.containsKey(id)) {
-								player.sendMessage("Пользователь [gold]" + id + "[] уже был добавлен!");
-							} else {
-								TelegramBot.users.put(id, new TUser(id));
-								TelegramBot.save();
-								player.sendMessage("Пользователь [gold]" + id + "[] добавлен!");
-							}
-							return;
-						}
-						if(isChat) {
-							if(threadId != null) {
-								TChat chat = TelegramBot.chats.get(id);
-								if(chat == null) {
-									chat = new TChat(id);
-									player.sendMessage("Чат [gold]" + id + "[] добавлен!");
-									TelegramBot.chats.put(id, chat);
-								}
-								TChat thread = new TChat(id);
-								thread.thread = threadId;
-								
-								chat.thread(thread);
-								player.sendMessage(Strings.format("Тема [gold]@/@[] добавлена!", id, threadId));
-								
-								TelegramBot.save();
-								return;
-							}
-							
-							if(TelegramBot.chats.containsKey(id)) {
-								player.sendMessage("Чат [gold]" + id + "[] уже был добавлен!");
-							} else {
-								TelegramBot.chats.put(id, new TChat(id));
-								TelegramBot.save();
-								player.sendMessage("Чат [gold]" + id + "[] добавлен!");
-							}
-							return;
-						}
-						return;
-					}
-					if(args[0].equals("remove")) {
-						if(threadId == null) {
-							if(senders.remove(id) == null) player.sendMessage("[lightgray]" + id + "[red] не найден!");
-							else player.sendMessage("[lightgray]" + id + "[gold] убран!");
-						} else {
-							var sender = senders.get(id);
-							if(require(sender == null, player, "Чат не найден")) return;
-							if(sender instanceof TChat chat) {
-								if(chat.threads.remove(threadId) == null) player.sendMessage("Тема [lightgray]" + id + "[red] не найдена!");
-								else player.sendMessage("Тема [lightgray]" + id + "[gold] убрана!");
-								TelegramBot.save();
-								return;
-							}
-							player.sendMessage("Это не чат");
-							return;
-						}
-						TelegramBot.save();
-						return;
-					}
-
-					boolean t = args[0].equals("t");
-					boolean p = args[0].equals("p");
-					
-					if(t || p) {
-						TSender sender = senders.get(id);
-						if(require(sender == null, player, "Id не найден")) return;
-
-						if(threadId != null) {
-							if(!(sender instanceof TChat chat)) {
-								player.sendMessage("Это не чат");
-								return;
-							}
-							sender = chat.threads.get(threadId);
-							if(require(sender == null, player, "Тема не найдена")) return;
-						}
-						
-						if(args.length >= 3) {
-							for (var a : args[2].split(" ")) {
-								boolean add = true;
-								if(a.startsWith("+")) a = a.substring(1);
-								if(a.startsWith("-")) {
-									add = false;
-									a = a.substring(1);
-								}
-								if(t) {
-									if(add) sender.addTag(a);
-									else sender.removeTag(a);
-								}
-								if(p) {
-									if(add) sender.addPermission(a);
-									else sender.removePermission(a);
-								}
-							}
-						}
-						player.sendMessage("[gold]Объект []" + sender.fuid() + ":");
-						player.sendMessage("[gold]Разрешения: []" + sender.permissionsString(" "));
-						player.sendMessage("[gold]Теги: []" + sender.tagsString(" "));
-						TelegramBot.save();
-						return;
-					}
-					
-					return;
-				}
-				if(args[0].equals("start")) {
-					if(require(args.length != 3, player, "Должно быть 3 аргумента: start <name> <token>")) return;
-					TelegramBot.run(args[1], args[2]);
-					player.sendMessage("[gold]Бот запущен! [gray](" + args[1] + " " + args[2] + ")");
-					return;
-				}
-				if(args[0].equals("stop")) {
-					TelegramBot.stop();
-					player.sendMessage("Бот остановлен!");
-					return;
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-				player.sendMessage("[red]" + e.getMessage());
-			}
-		});
-		
-
-		serverCommand("helper", "<add/remove/refresh> [args...]", "Добавить помошника / разрешения", (args, sender, receiver, type) -> {
-			int code = 0;
-			if(args[0].equalsIgnoreCase("add")) code = 1;
-			else if(args[0].equalsIgnoreCase("remove")) code = -1;
-			else if(args[0].equalsIgnoreCase("refresh")) code = 2;
-			if(code == 0) {
-				Player found = Groups.player.find(p -> p.uuid().equals(args[0]));
-	            if(found == null) found = Groups.player.find(p -> p.name.equals(args[0]));
-				if(require(found == null, sender, "[red]UIID не найден")) return;
-	            
-				AdminData data = Admins.adminData(found.getInfo());
-				if(require(data == null, sender, "[red]Игрок не помошник")) return;
-				if(args.length == 1) {
-					if(data.permissionsCount() == 0) sender.sendMessage(Strings.format("Игрок [gold]@[] имеет разрешения: [lightgray]<empty>", found.plainName()));
-					else sender.sendMessage(Strings.format("Игрок [gold]@[] имеет разрешения: [gold]@", found.plainName(), data.permissionsAsString(' ')));
-					return;
-				}
-				String[] keys = args[1].split(" ");
-				for (int i = 0; i < keys.length; i++) {
-					String arg = keys[i];
-					if(arg.length() < 2) continue;
-					Log.info("Argumet: \"@\" with char \"@\" and value \"@\"", arg, arg.charAt(0), arg.substring(1));
-					if(arg.charAt(0) == '+') data.add(arg.substring(1));
-					else if(arg.charAt(0) == '-') data.remove(arg.substring(1));
-				}
-				if(data.permissionsCount() == 0) sender.sendMessage(Strings.format("Игрок [gold]@[] имеет разрешения: [lightgray]<empty>", found.plainName()));
-				else sender.sendMessage(Strings.format("Игрок [gold]@[] имеет разрешения: [gold]@", found.plainName(), data.permissionsAsString(' ')));
-				Admins.save();
-				return;
-			} else {
-				if(require(args.length < 2, sender, "[red]Слишком мало аргументов")) return;
-
-	            Player found = Groups.player.find(p -> p.uuid().equals(args[1]));
-	            if(found == null) found = Groups.player.find(p -> p.name.equals(args[1]));
-				if(require(found == null, sender, "[red]Игрок не найден")) return;
-				if(code == 2) {
-					if(Admins.refresh(found)) sender.sendMessage("Игрок [gold]" + found.plainName() + "[] успешно обновлен!");
-					else sender.sendMessage("[red]Игрок [gold]" + found.plainName() + "[] уже обновлен!");
-				} if(code == 1) {
-					if(Admins.add(found)) sender.sendMessage("Игрок [gold]" + found.plainName() + "[] успешно добавлен!");
-					else sender.sendMessage("[red]Игрок [gold]" + found.plainName() + "[] уже добавлен!");
-				} else if(code == -1) {
-					if(Admins.remove(found)) sender.sendMessage("Игрок [gold]" + found.plainName() + "[] успешно удален!");
-					else sender.sendMessage("[red]Игрок [gold]" + found.plainName() + "[] не найден!");
-				}
-				Admins.save();
-			}
-		});
+//		serverCommand("helper", "<add/remove/refresh> [args...]", "Добавить помошника / разрешения", (args, sender, receiver, type) -> {
+//			int code = 0;
+//			if(args[0].equalsIgnoreCase("add")) code = 1;
+//			else if(args[0].equalsIgnoreCase("remove")) code = -1;
+//			else if(args[0].equalsIgnoreCase("refresh")) code = 2;
+//			if(code == 0) {
+//				Player found = Groups.player.find(p -> p.uuid().equals(args[0]));
+//	            if(found == null) found = Groups.player.find(p -> p.name.equals(args[0]));
+//				if(require(found == null, sender, "[red]UIID не найден")) return;
+//	            
+//				AdminData data = Admins.adminData(found.getInfo());
+//				if(require(data == null, sender, "[red]Игрок не помошник")) return;
+//				if(args.length == 1) {
+//					if(data.permissionsCount() == 0) sender.sendMessage(Strings.format("Игрок [gold]@[] имеет разрешения: [lightgray]<empty>", found.plainName()));
+//					else sender.sendMessage(Strings.format("Игрок [gold]@[] имеет разрешения: [gold]@", found.plainName(), data.permissionsAsString(' ')));
+//					return;
+//				}
+//				String[] keys = args[1].split(" ");
+//				for (int i = 0; i < keys.length; i++) {
+//					String arg = keys[i];
+//					if(arg.length() < 2) continue;
+//					Log.info("Argumet: \"@\" with char \"@\" and value \"@\"", arg, arg.charAt(0), arg.substring(1));
+//					if(arg.charAt(0) == '+') data.add(arg.substring(1));
+//					else if(arg.charAt(0) == '-') data.remove(arg.substring(1));
+//				}
+//				if(data.permissionsCount() == 0) sender.sendMessage(Strings.format("Игрок [gold]@[] имеет разрешения: [lightgray]<empty>", found.plainName()));
+//				else sender.sendMessage(Strings.format("Игрок [gold]@[] имеет разрешения: [gold]@", found.plainName(), data.permissionsAsString(' ')));
+//				Admins.save();
+//				return;
+//			} else {
+//				if(require(args.length < 2, sender, "[red]Слишком мало аргументов")) return;
+//
+//	            Player found = Groups.player.find(p -> p.uuid().equals(args[1]));
+//	            if(found == null) found = Groups.player.find(p -> p.name.equals(args[1]));
+//				if(require(found == null, sender, "[red]Игрок не найден")) return;
+//				if(code == 2) {
+//					if(Admins.refresh(found)) sender.sendMessage("Игрок [gold]" + found.plainName() + "[] успешно обновлен!");
+//					else sender.sendMessage("[red]Игрок [gold]" + found.plainName() + "[] уже обновлен!");
+//				} if(code == 1) {
+//					if(Admins.add(found)) sender.sendMessage("Игрок [gold]" + found.plainName() + "[] успешно добавлен!");
+//					else sender.sendMessage("[red]Игрок [gold]" + found.plainName() + "[] уже добавлен!");
+//				} else if(code == -1) {
+//					if(Admins.remove(found)) sender.sendMessage("Игрок [gold]" + found.plainName() + "[] успешно удален!");
+//					else sender.sendMessage("[red]Игрок [gold]" + found.plainName() + "[] не найден!");
+//				}
+//				Admins.save();
+//			}
+//		});
 
 		adminCommand("nick", "[ник...]", "Установить никнейм на сервере", (args, player) -> {
 			String name = args.length == 0 ? "" : args[0];
 			name = name.replaceAll(" ", "_");
-			if(!Admins.has(player, "longname")) {
+			if(!Admins.has(player, Permissions.longname)) {
 				if(name.length() > 100) name = name.substring(0, 100);
 			}
 			PlayersData.data(player.uuid()).name = name.isEmpty() ? null : name;
@@ -1685,20 +1208,6 @@ public class CommandsManager {
 			player.sendMessage("[gold]Установлено имя: []" + player.coloredName());
 		});
 
-		serverCommand("setnick", "<player> [ник...]", "Установить никнейм на сервере", (args, sender, receiver, type) -> {
-			if(args.length == 0) return;
-			Player p = Game.findPlayer(args[0]);
-			if(require(p == null, sender, "[red]Игрок не найден")) return;
-
-			String name = args.length == 1 ? "" : args[1];
-			name = name.replaceAll(" ", "_");
-			boolean longname = receiver instanceof Player player ? Admins.has(player, "longname") : true;
-			if(!longname && name.length() > 100) name = name.substring(0, 100);
-			PlayersData.data(p.uuid()).name = name.isEmpty() ? null : name;
-			PlayersData.save();
-			sender.sendMessage("[gold]Установлено имя: []" + p.coloredName() + " [gray]->[] " + name);
-			if(!name.isEmpty()) p.name(name);
-		});
 
 		adminCommand("custom", "<join/leave> [сообщение...]", "Установить сообщение подключения/отключения [lightgray]([coral]@name[] - для имени)", (args, player) -> {
 			if(args.length == 0) return;
@@ -1707,7 +1216,7 @@ public class CommandsManager {
 			if(require(!join && !leave, player, "[red]Доступно только join/leave")) return;
 			
 			String message = args.length == 1 ? "" : args[1];
-			if(!Admins.has(player, "longname")) {
+			if(!Admins.has(player, Permissions.longname)) {
 				if(message.length() > 200) message = message.substring(0, 200);
 			}
 			if(join) PlayersData.data(player.uuid()).connectMessage = message.isEmpty() ? null : message;
@@ -1716,42 +1225,6 @@ public class CommandsManager {
 			player.sendMessage("[gold]Установлено " + args[0] + ": []" + message);
 		});
 
-		serverCommand("setcustom", "<player> <join/leave> [сообщение...]", "Установить сообщение подключения/отключения [lightgray]([coral]@name[] - для имени)", (args, sender, receiver, type) -> {
-			if(args.length == 0) return;
-			Player p = Game.findPlayer(args[0]);
-			if(require(p == null, sender, "[red]Игрок не найден")) return;
-			
-			boolean join = args[1].equalsIgnoreCase("join");
-			boolean leave = args[1].equalsIgnoreCase("leave");
-			if(require(!join && !leave, sender, "[red]Доступно только join/leave")) return;
-			
-			String message = args.length == 2 ? "" : args[2];
-			boolean longname = receiver instanceof Player player ? Admins.has(player, "longname") : true;
-			if(!longname && message.length() > 200) message = message.substring(0, 200);
-			if(join) PlayersData.data(p.uuid()).connectMessage = message.isEmpty() ? null : message;
-			if(leave) PlayersData.data(p.uuid()).disconnectedMessage = message.isEmpty() ? null : message;
-			PlayersData.save();
-			sender.sendMessage("[gold]Установлено " + args[0] + ": []" + message);
-		});
-		
-
-		serverCommand("threads", "[filter]", "Конфикурация сервера", (args, sender, receiver, type) -> {
-			StringBuilder message = new StringBuilder("Threads");
-			Func<String, Byte> filter = (keyword) -> {
-				if(Structs.contains(args, keyword) || Structs.contains(args, "+" + keyword)) return 1;
-				if(Structs.contains(args, "-" + keyword)) return -1;
-				return 0;
-			};
-			byte daemon = filter.get("daemon");
-			
-			Thread.getAllStackTraces().keySet().forEach(t -> {
-				if(daemon == 1 & !t.isDaemon()) return;
-				if(daemon == -1 & t.isDaemon()) return;
-				
-				message.append(Strings.format("\n@: (@) @", t.getName(), t.isDaemon() ? "Daemon" : "", t.getState()));
-			});
-			sender.sendMessage(message.toString());
-		});
 	}
 	
 	static String stopcode = generateStopCode();
@@ -1797,7 +1270,7 @@ public class CommandsManager {
 			
 			String uuid = args[0];
 			
-			PlayerEntity entity = joined.get(uuid);
+			PlayerEntity entity = Players.joinedEntity(uuid);
 			boolean online = true;
 			if(entity == null) {
 				online = false;
@@ -1935,7 +1408,7 @@ public class CommandsManager {
 	            }
 	            if(found != null) {
 	    			if(require(Admins.has(found, "votekick"), receiver, "Этот игрок защищен пластаном")) return;
-	    			if(require(Admins.has(found, "whitelist"), receiver, "Этот игрок защищен метастеклом")) return;
+	    			if(require(Admins.has(found, Permissions.whitelist), receiver, "Этот игрок защищен метастеклом")) return;
             		Kicks.kick(receiver.user.name, found, reason);
     				receiver.sendMessage("Игрок забанен");
 	            } else {
@@ -1972,87 +1445,7 @@ public class CommandsManager {
 			player.sendMessage(result.toString());
 		});
 		
-//        ObjectMap<String, Timekeeper> cooldowns = new ObjectMap<>();
-        Cooldowns<String> cooldowns = new Cooldowns<>(NetServer.voteCooldown);
-		playerCommand("votekick", "[игрок] [причина...]", "Проголосовать, чтобы кикнуть игрока по уважительной причине", (args, player) -> {
-			try {
-				
-	            if(require(!Config.enableVotekick.bool(), player, "[red]Голосование на этом сервере отключено")) return;
-//	            if(require(Groups.player.size() < 3, player, "[red]Для участия в голосовании требуется как минимум 3 игрока.")) return;
-	            if(require(player.isLocal(), player, "[red]Просто кикни их сам, если ты хост")) return;
-	            boolean permission = Admins.has(player, "votekick");
-	            if(require(KickVoteSession.current != null && !(permission && !player.admin), player, "[red]Голосование уже идет")) return;
-
-	            if(args.length == 0){
-	                StringBuilder builder = new StringBuilder();
-	                builder.append("[orange]Игроки для кика: \n");
-
-	                Groups.player.each(p -> !p.admin && p.con != null && p != player, p -> {
-	                    builder.append("[lightgray] ").append(p.name).append("[accent] (#").append(p.id()).append(")\n");
-	                });
-	                player.sendMessage(builder.toString());
-	            }else if(args.length == 1){
-	                player.sendMessage("[orange]Для кика игрока вам нужна веская причина. Укажите причину после имени игрока");
-	            }else{
-	            	String reason = args[1];
-	            	if(reason.equalsIgnoreCase("g") || reason.equalsIgnoreCase("г")) reason = "гриф";
-	            	if(reason.equalsIgnoreCase("f") || reason.equalsIgnoreCase("ф")) reason = "фрикик";
-	            	
-	                Player found;
-	                if(args[0].length() > 1 && args[0].startsWith("#") && Strings.canParseInt(args[0].substring(1))){
-	                    int id = Strings.parseInt(args[0].substring(1));
-	                    found = Groups.player.find(p -> p.id() == id);
-	                }else{
-	                    found = Groups.player.find(p -> p.name.equalsIgnoreCase(args[0]));
-	                    if(found == null) found = Groups.player.find(p -> p.name.equalsIgnoreCase(args[0]));
-	                    if(found == null) found = Groups.player.find(p -> Strings.stripGlyphs(p.name).equalsIgnoreCase(Strings.stripGlyphs(args[0])));
-	                    if(found == null) found = Groups.player.find(p -> Strings.stripColors(p.name).equalsIgnoreCase(Strings.stripColors(args[0])));
-	                    if(found == null) found = Groups.player.find(p -> Strings.stripColors(Strings.stripGlyphs(p.name)).equalsIgnoreCase(Strings.stripColors(Strings.stripGlyphs(args[0]))));
-	                }
-	                if(found != null){
-	                    if(found == player){
-	                        player.sendMessage("[red]Ты не можешь голосовать за то, чтобы кикнуть себя");
-	                    }else if(found.admin){
-	                        player.sendMessage("[red]Хо-хо-хо, ты действительно ожидал, что сможешь выгнать администратора?");
-	                    }else if(Admins.has(found, "votekick")){
-	                        player.sendMessage("[red]Этот игрок защищен пластаном");
-	                    }else if(Admins.has(found, "whitelist")){
-	                        player.sendMessage("[red]Этот игрок защищен метастеклом");
-	                    }else if(found.isLocal()){
-	                        player.sendMessage("[red]Локальные игроки не могут быть выгнаны");
-	                    }else if(!permission && found.team() != player.team()){
-	                        player.sendMessage("[red]Кикать можно только игроков из вашей команды");
-	                    }else{
-	                    	if(permission) {
-	                    		Kicks.kick(player, found, reason);
-	                    	} else {
-	                            var vtime = cooldowns.get(player.uuid());
-	                            if(vtime.cooldown()){
-	                                player.sendMessage("[red]Вы должны подождать " + NetServer.voteCooldown/60 + " минут между голосованиями");
-	                                return;
-	                            }
-	                            KickVoteSession session = new KickVoteSession(player, found, reason);
-	                            Bots.notify(NotifyTag.votekick, Strings.format("<code>@</code> started voting for kicking <code>@</code> (<code>#@</code>): <code>@</code>", TelegramBot.strip(player.name), TelegramBot.strip(found.name), found.id, TelegramBot.strip(reason)));
-	                            Bots.notify(NotifyTag.votekick, Images.screenshot(found));
-	                            
-	                            session.vote(player, 1);
-	                            Call.sendMessage(Strings.format("[lightgray]Причина:[orange] @[lightgray].", reason));
-	                            
-	                            vtime.start();
-	                            session.passListener = () -> vtime.stop();
-	                            
-	                            KickVoteSession.current = session;
-	                    	}
-	                    }
-	                }else{
-	                    player.sendMessage("[red]Игрок[orange]'" + args[0] + "'[red] не найден.");
-	                }
-	            }
-			} catch (Exception e) {
-				Log.err(e);
-				player.sendMessage("[red]" + e.getLocalizedMessage());
-			}
-		});
+		playerCommand(new VotekickCommand());
 		
 		playerCommand("vote", "<y/n/c>", "Проголосуйте, чтобы выгнать текущего игрока", (arg, player) -> {
 			if(require(KickVoteSession.current == null, player, "[red]Ни за кого не голосуют")) return;
@@ -2272,7 +1665,7 @@ public class CommandsManager {
 		return b;
 	}
 
-	public static boolean require(boolean b, CommandReceiver receiver, String string) {
+	public static boolean require(boolean b, ResultSender receiver, String string) {
 		if(b) receiver.sendMessage(string);
 		return b;
 	}
@@ -2287,89 +1680,15 @@ public class CommandsManager {
 			Vars.netServer.admins.kickedIPs.remove(key);
 		});
 	}
-	
-	private static class Brush {
-		
-
-		private static Seq<Brush> brushes = Seq.with();
-
-		private final Player owner;
-		private Block block, floor, overlay;
-		private int brushLastX = -1, brushLastY = -1;
-		public boolean info = false;
-		
-		public Brush(Player owner) {
-			this.owner = owner;
-		}
-		
-		private void update() {
-    		if(owner == null) return;
-    		if(!owner.shooting()) {
-    			brushLastY = brushLastX = -1;
-    			return;
-    		}
-    		
-    		if(block == null && floor == null && overlay == null) return;
-    		
-    		int tileX = World.toTile(owner.mouseX());
-    		int tileY = World.toTile(owner.mouseY());
-    		if(brushLastX == tileX && brushLastY == tileY) return;
-
-    		if(brushLastX == -1 || brushLastY == -1) {
-        		brushLastX = tileX;
-        		brushLastY = tileY;
-        		if(brushLastX == -1 || brushLastY == -1) return;
-        		paintTile(Vars.world.tile(tileX, tileY), false);
-    			return;
-    		}
-    		
-    		int x0 = brushLastX;
-    		int y0 = brushLastY;
-    		int x1 = tileX;
-    		int y1 = tileY;
-    		
-    		brushLastX = tileX;
-    		brushLastY = tileY;
-    		
-    		if(x0 == -1 || y0 == -1 || x1 == -1 || y1 == -1) return;
-    		
-    		Bresenham2.line(x0, y0, x1, y1, (x,y) -> paintTile(Vars.world.tile(x, y), x != x0 || y != y0));
-		}
-
-		public static Brush get(Player player) {
-			var brush = brushes.find(b -> b.owner == player);
-			if(brush == null) {
-				brush = new Brush(player);
-				brushes.add(brush);
-			}
-			return brush;
-		}
-
-		private void paintTile(@Nullable Tile tile, boolean saveCores) {
-			if(tile == null) return;
-			if(block != null) {
-				if(!(saveCores && tile.block() instanceof CoreBlock)) {
-					tile.setNet(block, owner.team(), 0);
-				}
-			}
-			if(floor != null) {
-				if(overlay != null) {
-					tile.setFloorNet(floor, overlay);
-				} else {
-					tile.setFloorNet(floor, tile.overlay());
-				}
-			} else {
-				if(overlay != null) {
-					tile.setFloorNet(tile.floor(), overlay);
-				}
-			}		
-		}
-	}
 
 	public static void flushCommands() {
     	CommandsManager.flushBotCommands();
     	CommandsManager.flushServerCommands();
     	CommandsManager.flushClientCommands();		
+	}
+
+	public static Seq<PlayerCommand> playerCommands() {
+		return playerCommands;
 	}
 	
 }

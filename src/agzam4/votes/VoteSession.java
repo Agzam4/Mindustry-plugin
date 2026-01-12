@@ -84,4 +84,5 @@ public abstract class VoteSession {
 		if(Groups.player.size() <= 2) return totalScale();
 		return Math.max(1, (int) Math.ceil(totalScale()*percent));
 	}
+	
 }

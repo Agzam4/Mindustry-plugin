@@ -13,6 +13,7 @@ import arc.graphics.Color;
 import arc.math.Mathf;
 import arc.math.geom.Position;
 import arc.struct.ObjectMap;
+import arc.struct.Seq;
 import arc.util.I18NBundle;
 import arc.util.Log;
 import arc.util.Nullable;
@@ -268,12 +269,22 @@ public class Game {
 	public static @Nullable Player findPlayer(final String s) {
 		Player found = Groups.player.find(p -> p.uuid().equals(s));
         if(found != null) return found;
+        
+        found = Groups.player.find(p -> p.name.equals(s));
+        if(found != null) return found;
+        
         String str = strip(s);
         found = Groups.player.find(p -> p.name.equals(s));	
         if(found != null) return found;
         found = Groups.player.find(p -> strip(p.name).equals(str));	
         if(found != null) return found;
         return Groups.player.find(p -> strip(p.name).replaceAll(" ", "_").equals(str));		
+	}
+
+	public static Seq<String> playersNames() {
+		Seq<String> names = new Seq<String>(Groups.player.size());
+		Groups.player.each(p -> names.add(p.name));
+		return names;
 	}
 
 	public static @Nullable Block findBlock(String name) {

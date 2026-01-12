@@ -1,6 +1,6 @@
 package agzam4.bot;
 
-import agzam4.CommandsManager.CommandReceiver;
+import agzam4.CommandsManager.ResultSender;
 import agzam4.utils.Log;
 
 import java.io.IOException;
@@ -80,7 +80,7 @@ public class TUser extends TSender {
 	}
 
 	
-	public static class MessageData implements CommandReceiver {
+	public static class MessageData implements ResultSender {
 		
 		public TUser user;
 		public TSender chat;
