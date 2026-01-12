@@ -1,5 +1,6 @@
 package agzam4.admins;
 
+import agzam4.commands.Permissions;
 import arc.files.Fi;
 import arc.struct.ObjectMap;
 import arc.util.Nullable;
@@ -35,6 +36,10 @@ public class Admins {
 		if(data == null) return false;
 		if(!player.usid().equals(data.usid)) return false;
 		return data.has(string);
+	}
+	
+	public static boolean has(Player player, Permissions permissions) {
+		return has(player, permissions.name);
 	}
 
 	/**
