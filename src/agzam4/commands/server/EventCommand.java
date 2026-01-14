@@ -91,7 +91,7 @@ public class EventCommand extends CommandHandler<Object> {
 
 	
 	@Override
-	public Seq<String> complete(String[] args, Object receiver, ReceiverType type) {
+	public Seq<?> complete(String[] args, Object receiver, ReceiverType type) {
 		if(args.length == 0) return ServerEventsManager.events.map(e -> e.name);
 		if(args.length == 1) {
 			ServerEvent event = ServerEventsManager.events.find(e -> args[0].equals(e.name));

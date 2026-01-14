@@ -33,7 +33,7 @@ public class LinkCommand extends CommandHandler<Object> {
 	}
 
 	@Override
-	public Seq<String> complete(String[] args, Object receiver, ReceiverType type) {
+	public Seq<?> complete(String[] args, Object receiver, ReceiverType type) {
 		if(args.length == 1) return Game.playersNames();
 		return super.complete(args, receiver, type);
 	}

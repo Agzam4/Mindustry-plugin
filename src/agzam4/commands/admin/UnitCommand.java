@@ -48,7 +48,7 @@ public class UnitCommand extends CommandHandler<Player> {
 	}
 	
 	@Override
-	public Seq<String> complete(String[] args, Player receiver, ReceiverType type) {
+	public Seq<?> complete(String[] args, Player receiver, ReceiverType type) {
 		if(args.length == 0) return Vars.content.units().select(u -> u != UnitTypes.block).map(u -> u.name);
 		if(args.length == 1) return Seq.with("c", "t");
 		return super.complete(args, receiver, type);

@@ -53,7 +53,7 @@ public class UnbanCommand extends CommandHandler<Object> {
 	}
 	
 	@Override
-	public Seq<String> complete(String[] args, Object receiver, ReceiverType type) {
+	public Seq<?> complete(String[] args, Object receiver, ReceiverType type) {
 		if(args.length == 0) return banned();
 		return super.complete(args, receiver, type);
 	}

@@ -43,7 +43,7 @@ public class AdminCommand extends CommandHandler<Player> {
 	}
 
 	@Override
-	public Seq<String> complete(String[] args, Player receiver, ReceiverType type) {
+	public Seq<?> complete(String[] args, Player receiver, ReceiverType type) {
 		if(args.length == 0) return Seq.with("add", "remove");
 		if(args.length == 1) return Game.playersNames();
 		return super.complete(args, receiver, type);

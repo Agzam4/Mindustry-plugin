@@ -126,7 +126,7 @@ public class CommandsManager {
 					res.put((byte) (size));
 					res.putShort((short) result.size);
 					for (int i = 0; i < size; i++) {
-						ByteBufferIO.writeString(res, result.get(i+offset));
+						ByteBufferIO.writeString(res, result.get(i+offset).toString());
 					}
 					Call.clientBinaryPacketReliable(player.con, "agzam4.cmd-sug", res.array());
 				}

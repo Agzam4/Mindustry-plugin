@@ -17,7 +17,7 @@ public abstract class CommandHandler<T> {
 	
 	public abstract void command(String[] args, ResultSender sender, T receiver, ReceiverType type);
 
-	public @Nullable Seq<String> complete(String[] args, T receiver, ReceiverType type) {
+	public @Nullable Seq<?> complete(String[] args, T receiver, ReceiverType type) {
 		return null;
 	}
 	
@@ -25,4 +25,5 @@ public abstract class CommandHandler<T> {
 		if(b) receiver.sendMessage(string);
 		return b;
 	}
+	
 }

@@ -111,7 +111,7 @@ public class VotekickCommand extends CommandHandler<Player> {
 	}
 
 	@Override
-	public Seq<String> complete(String[] args, Player receiver, ReceiverType type) {
+	public Seq<?> complete(String[] args, Player receiver, ReceiverType type) {
 		if(args.length == 0) return Game.playersNames();
 		if(args.length == 1) return Seq.with("гриф", "фрикикер", "подрыв");
 		if(args.length == 2 && (args[1].equalsIgnoreCase("гриф") || args[1].equalsIgnoreCase("подрыв"))) return Seq.with("юнитов", "энергии", "взрывами", "логикой", "конвееров", "реакторов");

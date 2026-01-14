@@ -211,7 +211,7 @@ public class BrushCommand extends CommandHandler<Player> {
 	}
 
 	@Override
-	public Seq<String> complete(String[] args, Player receiver, ReceiverType type) {
+	public Seq<?> complete(String[] args, Player receiver, ReceiverType type) {
 		if(args.length == 0) return Seq.with("none очистить все слои", "block", "floor", "overlay", "info");
 		Seq<String> seq = Seq.with("air", "none");
 		if(args[0].equalsIgnoreCase("b") || args[0].equalsIgnoreCase("block")) {

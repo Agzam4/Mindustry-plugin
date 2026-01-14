@@ -64,7 +64,7 @@ public class ConfigCommand extends CommandHandler<Object> {
 	}
 	
 	@Override
-	public Seq<String> complete(String[] args, Object receiver, ReceiverType type) {
+	public Seq<?> complete(String[] args, Object receiver, ReceiverType type) {
 		if(args.length == 0) return Config.all.map(c -> c.key);
 		if(args.length > 0) {
 			Config c = Config.all.find(conf -> conf.name.equalsIgnoreCase(args[0]));
