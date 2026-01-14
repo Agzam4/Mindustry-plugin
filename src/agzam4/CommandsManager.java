@@ -28,6 +28,7 @@ import agzam4.commands.server.NextmapCommand;
 import agzam4.commands.server.RestartCommand;
 import agzam4.commands.server.SetcustomCommand;
 import agzam4.commands.server.SetnickCommand;
+import agzam4.commands.server.TeamCommand;
 import agzam4.commands.server.UnbanCommand;
 import agzam4.database.Database;
 import agzam4.database.Database.PlayerEntity;
@@ -828,65 +829,7 @@ public class CommandsManager {
 			 players.show(admin);
     	});
 
-		serverCommand("team", "[player] [team]", "Установить команду для игрока", (arg, sender, receiver, type) -> {
-			if(arg.length < 1) {
-				StringBuilder teams = new StringBuilder();
-				for (int i = 0; i < Team.baseTeams.length; i++) {
-					teams.append(Team.baseTeams[i].name);
-					teams.append(", ");
-				}
-				for (int i = 0; i < Team.all.length; i++) {
-					teams.append(Team.all[i].name);
-					if(i != Team.all.length - 1) teams.append(", ");
-				}
-				sender.sendMessage("Команды:\n" + teams.toString());
-			}
-			if(arg.length == 1) {
-				Player targetPlayer = Groups.player.find(p -> Strings.stripColors(p.name()).equalsIgnoreCase(Strings.stripColors(arg[0])));
-				if(targetPlayer == null) {
-					sender.sendMessage("[red]Игрок не найден");
-					return;
-				}
-				sender.sendMessage("Игрок состоить в команде: " +  targetPlayer.team().name);
-				return;
-			}
-			if(arg.length == 2) {
-				Player targetPlayer = Groups.player.find(p -> Strings.stripColors(p.name()).equalsIgnoreCase(Strings.stripColors(arg[0])));
-				if(targetPlayer == null) {
-					sender.sendMessage("[red]Игрок не найден");
-					return;
-				}
-				sender.sendMessage("Игрок состоить в команде: " +  targetPlayer.team().name);
-
-				Team team = null;
-				String targetTeam = arg[1].toLowerCase();
-				for (int i = 0; i < Team.baseTeams.length; i++) {
-					if(Team.baseTeams[i].name.equals(targetTeam.toLowerCase())) {
-						team = Team.baseTeams[i];
-					}
-				}
-				for (int i = 0; i < Team.all.length; i++) {
-					if(Team.all[i].name.equals(targetTeam.toLowerCase())) {
-						team = Team.all[i];
-					}
-				}
-				if(team == null) {
-					sender.sendMessage("[red]Команда не найдена");
-				} else {
-					targetPlayer.team(team);
-					if(team.name.equals(Team.crux.name)) {
-						Log.info("crux");
-						targetPlayer.unit().healTime(.01f);
-						targetPlayer.unit().healthMultiplier(100);
-						targetPlayer.unit().maxHealth(1000f);
-						targetPlayer.unit().apply(StatusEffects.invincible, Float.MAX_VALUE);
-					}
-					sender.sendMessage("Игрок " + targetPlayer.name() + " отправлен в команду [#" + team.color + "]" + team.name);
-					targetPlayer.sendMessage("Вы отправлены в команду [#" + team.color + "]" + team.name);
-				}
-				return;
-			}
-		});
+		serverCommand(new TeamCommand());
 
 		serverCommand("runwave", "Запускает волну", (arg, sender, receiver, type) -> {
 			boolean force = receiver instanceof Player player ? Admins.has(player, Permissions.forceRunwave) : true;
