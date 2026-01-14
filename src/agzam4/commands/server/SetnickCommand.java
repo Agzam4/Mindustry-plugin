@@ -35,7 +35,7 @@ public class SetnickCommand extends CommandHandler<Object> {
 
 	@Override
 	public Seq<?> complete(String[] args, Object receiver, ReceiverType type) {
-		if(args.length == 0) return Game.playersNames();
+		if(args.length == 0) return completePlayers();
 		return super.complete(args, receiver, type);
 	}
 }

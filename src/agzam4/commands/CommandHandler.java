@@ -4,6 +4,8 @@ import agzam4.CommandsManager.ResultSender;
 import agzam4.CommandsManager.ReceiverType;
 import arc.struct.Seq;
 import arc.util.Nullable;
+import mindustry.Vars;
+import mindustry.gen.Groups;
 
 public abstract class CommandHandler<T> {
 
@@ -24,6 +26,16 @@ public abstract class CommandHandler<T> {
 	public static boolean require(boolean b, ResultSender receiver, String string) {
 		if(b) receiver.sendMessage(string);
 		return b;
+	}
+
+	public static Seq<String> completePlayers() {
+		Seq<String> names = new Seq<String>(Groups.player.size());
+		Groups.player.each(p -> names.add(p.name));
+		return names;
+	}
+	
+	public static Seq<String> completeTeams() {
+		return Vars.state.teams.present.map(d -> d.team.name);
 	}
 	
 }

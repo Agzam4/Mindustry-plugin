@@ -4,6 +4,7 @@ import agzam4.CommandsManager.ReceiverType;
 import agzam4.CommandsManager.ResultSender;
 import agzam4.commands.CommandHandler;
 import agzam4.utils.Log;
+import arc.struct.Seq;
 import arc.util.Strings;
 import mindustry.content.StatusEffects;
 import mindustry.game.Team;
@@ -76,7 +77,14 @@ public class TeamCommand extends CommandHandler<Object> {
 			}
 			return;
 		}
-			
 	}
+	
+	@Override
+	public Seq<?> complete(String[] args, Object receiver, ReceiverType type) {
+		if(args.length == 0) return completePlayers();
+		if(args.length == 1) return completeTeams();
+		return super.complete(args, receiver, type);
+	}
+
 
 }

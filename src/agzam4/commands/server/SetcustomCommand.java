@@ -37,7 +37,7 @@ public class SetcustomCommand extends CommandHandler<Object> {
 
 	@Override
 	public Seq<String> complete(String[] args, Object receiver, ReceiverType type) {
-		if(args.length == 0) return Game.playersNames();
+		if(args.length == 0) return completePlayers();
 		if(args.length == 1) return Seq.with("join", "leave");
 		return Seq.with("@name");
 	}

@@ -281,6 +281,7 @@ public class Game {
         return Groups.player.find(p -> strip(p.name).replaceAll(" ", "_").equals(str));		
 	}
 
+	@Deprecated
 	public static Seq<String> playersNames() {
 		Seq<String> names = new Seq<String>(Groups.player.size());
 		Groups.player.each(p -> names.add(p.name));

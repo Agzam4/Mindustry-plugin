@@ -74,9 +74,9 @@ public class HelperCommand extends CommandHandler<Object> {
 
 	@Override
 	public Seq<String> complete(String[] args, Object receiver, ReceiverType type) {
-		if(args.length == 0) return Game.playersNames().addAll("add ", "remove", "refresh");
+		if(args.length == 0) return completePlayers().addAll("add ", "remove", "refresh");
 		if(args.length == 1) {
-			if(args[0].equals("add") || args[0].equals("remove") || args[0].equals("refresh")) return Game.playersNames();
+			if(args[0].equals("add") || args[0].equals("remove") || args[0].equals("refresh")) return completePlayers();
 		}
         Player found = Game.findPlayer(args[0]);
         if(found == null) return null;

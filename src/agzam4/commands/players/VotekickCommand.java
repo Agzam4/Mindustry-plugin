@@ -3,7 +3,6 @@ package agzam4.commands.players;
 import agzam4.Images;
 import agzam4.CommandsManager.ReceiverType;
 import agzam4.CommandsManager.ResultSender;
-import agzam4.Game;
 import agzam4.admins.Admins;
 import agzam4.bot.Bots;
 import agzam4.bot.TelegramBot;
@@ -112,7 +111,7 @@ public class VotekickCommand extends CommandHandler<Player> {
 
 	@Override
 	public Seq<?> complete(String[] args, Player receiver, ReceiverType type) {
-		if(args.length == 0) return Game.playersNames();
+		if(args.length == 0) return completePlayers();
 		if(args.length == 1) return Seq.with("гриф", "фрикикер", "подрыв");
 		if(args.length == 2 && (args[1].equalsIgnoreCase("гриф") || args[1].equalsIgnoreCase("подрыв"))) return Seq.with("юнитов", "энергии", "взрывами", "логикой", "конвееров", "реакторов");
 		return super.complete(args, receiver, type);
