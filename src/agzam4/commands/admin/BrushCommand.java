@@ -1,4 +1,4 @@
-package agzam4.commands.server;
+package agzam4.commands.admin;
 
 import agzam4.Game;
 import agzam4.CommandsManager.ResultSender;
