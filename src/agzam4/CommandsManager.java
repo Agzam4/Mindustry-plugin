@@ -1,8 +1,6 @@
 package agzam4;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-
 import agzam4.achievements.AchievementsManager;
 import agzam4.achievements.AchievementsManager.Achievement;
 import agzam4.admins.Admins;
@@ -22,24 +20,20 @@ import agzam4.io.ByteBufferIO;
 import agzam4.managers.Kicks;
 import agzam4.managers.Players;
 import agzam4.utils.Log;
-import arc.Core;
 import arc.Events;
 import arc.func.*;
 import arc.graphics.Color;
 import arc.math.Mathf;
-import arc.math.geom.Point2;
 import arc.struct.*;
 import arc.util.ArcRuntimeException;
 import arc.util.CommandHandler.CommandRunner;
 import arc.util.Nullable;
 import arc.util.Strings;
-import arc.util.Structs;
 import arc.util.Time;
 import mindustry.Vars;
 import mindustry.content.*;
 import mindustry.core.*;
 import mindustry.ctype.MappableContent;
-import mindustry.entities.units.BuildPlan;
 import mindustry.game.Team;
 import mindustry.game.EventType.*;
 import mindustry.gen.*;
@@ -57,20 +51,14 @@ public class CommandsManager {
     
     public static Seq<String> extraStarsUIDD;
 	
-	public static int doorsCup = 100; 		// Max doors limit "/doorscup" to change
-
-	private static ArrayList<Integer> doorsCoordinates;
 	private static Player lastThoriumReactorPlayer;
 	
 	public static boolean needServerRestart;
 	
 	public static void init() {
-		doorsCup = Core.settings.getInt(AgzamPlugin.name() + "-doors-cup", Integer.MAX_VALUE);
 		extraStarsUIDD = new Seq<>();
 		
 		Vars.netServer.addPacketHandler("", null);
-		
-		doorsCoordinates = new ArrayList<>();
 		
 		registerBotCommands();
 		registerPlayersCommands();
@@ -227,109 +215,6 @@ public class CommandsManager {
 			}
     	});
 		
-		Events.on(BuildSelectEvent.class, event -> { 
-			Unit builder = event.builder;
-			if(builder == null) return;
-			BuildPlan buildPlan = builder.buildPlan();
-			if(buildPlan == null) return;
-			Block block = buildPlan.block;
-			
-			if(block == Blocks.door || block == Blocks.doorLarge || block == Blocks.blastDoor) {
-
-				Tile door = event.tile;
-				if(door == null) return;
-				int center = Point2.pack(door.centerX(), door.centerY());
-				for (int i = 0; i < doorsCoordinates.size(); i++) {
-					int pos = doorsCoordinates.get(i);
-					if(center == pos) {
-						doorsCoordinates.remove(i);
-						break;
-					}
-				}
-				if(!event.breaking) {
-					doorsCoordinates.add(Point2.pack(event.tile.centerX(), event.tile.centerY()));
-				}
-				if(event.tile != null)
-					updateDoors(event.tile);
-			}
-		});
-
-		/**
-		 * Destroy (by explosion, or enemy and etc.)
-		 */
-    	Events.on(BlockDestroyEvent.class, event -> {
-    		if(event.tile == null) return;
-    		if(event.tile.block() == null) return;
-    		Block block = event.tile.block();
-    		
-    		if(block == Blocks.door || block == Blocks.doorLarge || block == Blocks.blastDoor) {
-    			updateDoors(event.tile);
-    		}
-    	});
-
-		/**
-		 * Info message about builder, that building thoriumReactor
-		 */
-		Events.on(BlockBuildBeginEvent.class, event -> {
-			Unit builder = event.unit;
-			if(builder == null) return;
-			BuildPlan buildPlan = builder.buildPlan();
-			if(buildPlan == null) return;
-			Block block = buildPlan.block;
-			
-			if(!event.breaking) {
-				if(block == Blocks.door || block == Blocks.doorLarge || block == Blocks.blastDoor) {
-					if(doorsCoordinates.size() >= doorsCup) {
-						event.tile.setNet(Blocks.air);
-						Player player = builder.getPlayer();
-						if(player != null) {
-							builder.clearBuilding();
-							if(builder.plans != null) builder.plans.clear();
-							player.clearUnit();
-							Log.info(player.plainName() + " exceeded the limit of doors");
-							player.sendMessage("[red]Достигнут максимальный лимит дверей!");
-							return;
-						}
-						return;
-					}
-				}
-			}
-		});
-		
-		Events.on(BlockBuildEndEvent.class, event -> {
-			Unit builder = event.unit;
-			if(builder == null) return;
-			BuildPlan buildPlan = builder.buildPlan();
-			if(buildPlan == null) return;
-//			if(builder.isPlayer()) {
-//				Player player = builder.getPlayer();
-//				if(player == null) return;
-//				if(player.admin()) {
-//					if(player != brushOwner) return;
-//					if(adminSandbox) {
-//						if(brushBlock != null || brushFloor != null || brushOverlay != null) {
-//							Tile tile = event.tile;
-//							if(brushBlock != null) {
-//								tile.setNet(brushBlock, player.team(), 0);
-//							}
-//							if(brushFloor != null) {
-//								if(brushOverlay != null) {
-//									tile.setFloorNet(brushFloor, brushOverlay);
-//								} else {
-//									tile.setFloorNet(brushFloor);
-//								}
-//							} else {
-//								if(brushOverlay != null) {
-//									tile.setFloorNet(tile.floor(), brushOverlay);
-//								}
-//							}
-//						}
-//					}
-//				}
-//			}
-		});
-
-		
 		Vars.netServer.admins.addActionFilter(action -> {
 			if(action.type == ActionType.pickupBlock) {
 				if(action.tile == null) return true;
@@ -440,26 +325,6 @@ public class CommandsManager {
 			}
 			return text;
 		});
-	}
-
-	private static void updateDoors(Tile tile) {
-		for (int i = 0; i < doorsCoordinates.size(); i++) {
-			int pos = doorsCoordinates.get(i);
-			Tile door = Vars.world.tile(pos);
-			if(door == tile) continue;
-			if((door.block() != Blocks.door && door.block() != Blocks.doorLarge && door.block() != Blocks.blastDoor) || door == null) {
-				doorsCoordinates.remove(i);
-				i--;
-				if(i < 0) i = 0;
-			} else {
-				int center = Point2.pack(door.centerX(), door.centerY());
-				if(center != pos) {
-					doorsCoordinates.remove(i);
-					i--;
-					if(i < 0) i = 0;
-				}
-			}
-		}		
 	}
 
 	private static Seq<PlayerCommand> playerCommands = new Seq<PlayerCommand>();
@@ -772,18 +637,7 @@ public class CommandsManager {
 		serverCommand(new JsCommand());
 		serverCommand(new SetdiscordCommand());
 		serverCommand(new ThreadsCommand());
-
-		serverCommand("doorscup", "[count]", "Устанавливает лимит дверей", (arg, sender, receiver, type) -> {
-			if(require(arg.length == 0, sender, type.format("doorscup.doors", doorsCoordinates.size(), doorsCup))) return;
-			try {
-				int lastDoorsCup = doorsCup;
-				doorsCup = Integer.parseInt(arg[0]);
-				Core.settings.put(AgzamPlugin.name() + "-doors-cup", doorsCup);
-				sender.sendMessage(type.format("doorscup.set", lastDoorsCup, doorsCup));
-			} catch (Exception e) {
-				sender.sendMessage(e.getMessage());
-			}
-		});
+		serverCommand(new DoorscapCommand());
 
 		adminCommand("sandbox", "[on/off] [team]", "Бесконечные ресурсы", (arg, player) -> {
 			if(require(arg.length == 0, player, "[gold]infiniteResources: [gray]" + Vars.state.rules.infiniteResources)) return;
@@ -1167,9 +1021,9 @@ public class CommandsManager {
 		return b;
 	}
 
-	public static void clearDoors() {
-		doorsCoordinates.clear();
-	}
+//	public static void clearDoors() {
+//		doorsCoordinates.clear();
+//	}
 
 	public static void cleanUpKicks() {
 		Vars.netServer.admins.kickedIPs.copy().each((key,time) -> {

@@ -15,6 +15,7 @@ import agzam4.achievements.*;
 import agzam4.admins.Admins;
 import agzam4.bot.Bots;
 import agzam4.bot.Bots.NotifyTag;
+import agzam4.commands.Server;
 import agzam4.bot.TelegramBot;
 import agzam4.database.Database;
 import agzam4.events.EventMap;
@@ -41,7 +42,6 @@ public class AgzamPlugin extends Plugin {
     
     @Override
     public void init() {
-//    	Blocks
     	plugin = Vars.mods.getMod("agzam4plugin");
     	Log.init();
     	Log.info("init");
@@ -52,6 +52,7 @@ public class AgzamPlugin extends Plugin {
 			Threads.sleep(10_000);
 			Core.app.exit();
 		}
+    	Server.init();
     	Game.init();
     	try {
         	TelegramBot.init();
@@ -127,7 +128,6 @@ public class AgzamPlugin extends Plugin {
     	Events.on(WorldLoadEndEvent.class, e -> {
     		SkipmapVoteSession.stop();
     		ServerEventsManager.worldLoadEnd(e);
-    		CommandsManager.clearDoors();
 //            Map map = maps.getNextMap(state.rules.mode(), state.map);
     		Timer.schedule(() -> {
     			Bots.notify(NotifyTag.round, Strings.format("<b>Next map is:</b> <code>@</code>", TelegramBot.strip(state.map.plainName())));
