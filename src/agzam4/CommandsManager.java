@@ -756,6 +756,7 @@ public class CommandsManager {
 		adminCommand(new agzam4.commands.admin.BotCommand());
 		adminCommand(new NickCommand());
 		adminCommand(new MCommand());
+		adminCommand(new CustomCommand());
 		
 		serverCommand(new ConfigCommand());
 		serverCommand(new FillitemsCommand());
@@ -1013,22 +1014,6 @@ public class CommandsManager {
 //			}
 //		});
 
-
-		adminCommand("custom", "<join/leave> [сообщение...]", "Установить сообщение подключения/отключения [lightgray]([coral]@name[] - для имени)", (args, player) -> {
-			if(args.length == 0) return;
-			boolean join = args[0].equalsIgnoreCase("join");
-			boolean leave = args[0].equalsIgnoreCase("leave");
-			if(require(!join && !leave, player, "[red]Доступно только join/leave")) return;
-			
-			String message = args.length == 1 ? "" : args[1];
-			if(!Admins.has(player, Permissions.longname)) {
-				if(message.length() > 200) message = message.substring(0, 200);
-			}
-			if(join) PlayersData.data(player.uuid()).connectMessage = message.isEmpty() ? null : message;
-			if(leave) PlayersData.data(player.uuid()).disconnectedMessage = message.isEmpty() ? null : message;
-			PlayersData.save();
-			player.sendMessage("[gold]Установлено " + args[0] + ": []" + message);
-		});
 
 	}
 	
