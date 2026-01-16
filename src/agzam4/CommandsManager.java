@@ -46,19 +46,11 @@ public class CommandsManager {
 	
 	private static Server server = new Server();
 	
-//    public static @Nullable VoteSession currentlyKicking = null;
-    
-    public static Seq<String> extraStarsUIDD;
-	
 	private static Player lastThoriumReactorPlayer;
 	
 	public static boolean needServerRestart;
 	
 	public static void init() {
-		extraStarsUIDD = new Seq<>();
-		
-		Vars.netServer.addPacketHandler("", null);
-		
 		registerBotCommands();
 		registerPlayersCommands();
 		registerAdminCommands();
@@ -102,43 +94,6 @@ public class CommandsManager {
 					}
 					Call.clientBinaryPacketReliable(player.con, "agzam4.cmd-sug", res.array());
 				}
-				
-				
-//				int index = command.indexOf(' ');
-//				if(index == -1) {
-//					var result = completer.complete(emptyStringArray, player, ReceiverType.player);
-//					if(result == null) return;
-//					Call.clientPacketReliable(player.con, "CommandCompleter", result.toString("\n"));
-//					return;
-//				}
-//				Log.info("command: \"@\" @", command.substring(0, index), commandCompleters);
-//				var completer = commandCompleters.get(command.substring(0, index));
-//				Log.info("completer: [gray]@[]", completer);
-//				if(completer == null) return;
-//				int tmp = 1;
-//				for (int i = index+1; i < command.length(); i++) if(command.charAt(i) == ' ') tmp++;
-//				Log.info("args: @", tmp);
-//				String[] args = new String[tmp];
-//				int argId = 0;
-//				tmp = index+1;
-//				for (int i = index+1; i < command.length(); i++) {
-//					if(command.charAt(i) == ' ') {
-//						args[argId++] = command.substring(tmp, i);
-//						Log.info("arg(@): \"@\"", argId-1, args[argId-1]);
-//						tmp = i+1;
-//					}
-//				}
-//				if(tmp <= command.length()) {
-//					args[argId++] = command.substring(tmp);
-//					Log.info("arg(@): \"@\"", argId-1, args[argId-1]);
-//				}
-//
-//				Log.info("args: \"@\"", Arrays.toString(args));
-//				var result = completer.complete(args, player, ReceiverType.player);
-				
-//				Call.serverPacketReliable("CommandCompleter", "fillitems ");
-				
-			
 			} catch (Exception e) {
 				Log.err(e);
 			}
@@ -184,10 +139,8 @@ public class CommandsManager {
 				int startCount = (int) Math.ceil(rate*5);
 				StringBuilder stars = new StringBuilder();
 				Color color = Color.HSVtoRGB(rate*120, 100, 100);
-				int index = CommandsManager.extraStarsUIDD.indexOf(e.player.uuid());
-				if(index != -1) {
-					color = Color.magenta;
-				}
+				boolean extrastar = Server.extrastarUids.contains(e.player.uuid());
+				if(extrastar) color = Color.magenta;
 				stars.append("[#");
 				stars.append(color.toString());
 				stars.append("]");
@@ -200,14 +153,8 @@ public class CommandsManager {
 				stars.append("[#");
 				stars.append(color2.toString());
 				stars.append("]");
-				for (float j = 0; j < count; j++) {
-					stars.append('\ue809');
-				}
-				
-				if(index != -1) {
-					stars.append("[magenta]\ue813");
-				}
-				
+				for (float j = 0; j < count; j++) stars.append('\ue809');
+				if(extrastar) stars.append("[magenta]\ue813");
 				Call.sendMessage("Игрок " + e.player.name() + "[white] имеет рейтинг " + stars.toString());
 			} else {
 				Call.sendMessage("Игрок " + e.player.name() + "[white] в первый раз на этом сервере!");
@@ -355,7 +302,6 @@ public class CommandsManager {
 	}
 	
 	public static void playerCommand(String text, String parms, String desc, CommandRunner<Player> run) {
-		
 		playerCommands.add(new PlayerCommand(text, parms, desc, run));
 	}
 
@@ -617,6 +563,7 @@ public class CommandsManager {
 		adminCommand(new NickCommand());
 		adminCommand(new MCommand());
 		adminCommand(new CustomCommand());
+		adminCommand("etrigger", "<trigger> [args...]", "Устанваливает кисточку", (args, player) -> ServerEventsManager.trigger(player, args));
 		
 		serverCommand(new ConfigCommand());
 		serverCommand(new FillitemsCommand());
@@ -638,6 +585,8 @@ public class CommandsManager {
 		serverCommand(new ThreadsCommand());
 		serverCommand(new DoorscapCommand());
 		serverCommand(new SandboxCommand());
+		serverCommand(new ExtrastarCommand());
+
 
 //		adminCommand("pardon", "<ID> [index]", "Прощает выбор игрока по ID и позволяет ему присоединиться снова.", (arg, player) -> {
 //			int index = 0;
@@ -666,59 +615,6 @@ public class CommandsManager {
 //				player.sendMessage("[red]That ID can't be found");
 //			}
 //		});
-
-		adminCommand("etrigger", "<trigger> [args...]", "Устанваливает кисточку", (args, player) -> {
-			ServerEventsManager.trigger(player, args);
-		});
-
-		adminCommand("extrastar", "[add/remove] [uidd/name]", "", (args, player) -> {
-			if(args.length == 0) {
-				if(extraStarsUIDD.isEmpty()) {
-					player.sendMessage("[gold]Нет игроков");
-				} else {
-					StringBuilder sb = new StringBuilder("[gold]Игроки с дополнительными звездами:[white]");
-					for (int i = 0; i < extraStarsUIDD.size; i++) {
-						String uidd = extraStarsUIDD.get(i);
-						String name = Vars.netServer.admins.getInfo(uidd).lastName;
-						sb.append("\n" + uidd + " (" + name + ")");
-					}
-					player.sendMessage(sb.toString());
-				}
-			} else if(args.length == 2) {
-				Player playert = Groups.player.find(p -> Strings.stripColors(p.name()).equalsIgnoreCase(Strings.stripColors(args[1])));
-				if(playert != null) args[1] = playert.uuid();
-
-				if(args[0].equalsIgnoreCase("add")) {
-					if(!extraStarsUIDD.contains(args[1])) {
-						PlayerInfo info = Vars.netServer.admins.getInfo(args[1]);
-						if(info == null) {
-							player.sendMessage("[red]Игрок не найден");
-						} else {
-							extraStarsUIDD.add(args[1]);
-							player.sendMessage("[gold]Игрок []" + info.lastName + " [gold]добавлен");
-						}
-					} else {
-						player.sendMessage("[red]Игрок уже есть");
-					}
-				} else if(args[0].equalsIgnoreCase("remove")) {
-					if(extraStarsUIDD.contains(args[1])) {
-						PlayerInfo info = Vars.netServer.admins.getInfo(args[1]);
-						if(info == null) {
-							player.sendMessage("[red]Игрок не найден");
-						} else {
-							extraStarsUIDD.remove(args[1]);
-							player.sendMessage("[gold]Игрок []" + info.lastName + " [gold]убран");
-						}
-					} else {
-						player.sendMessage("[red]UIDD не найден");
-					}
-				} else {
-					player.sendMessage("[red]Только add/remove");
-				}
-			} else {
-				player.sendMessage("[red]Неверные аргументы");
-			}
-		});
 	}
 	
 	static String stopcode = generateStopCode();
@@ -802,8 +698,6 @@ public class CommandsManager {
 				entity.eachAchievements(a -> {
 					msg.append(Strings.format("\n@ @ on @", Achievement.values()[a.type], a.tier, AchievementsManager.mapsIds.findKey(a.map, false)));
 				});
-				
-				
 			}
 			
 			receiver.sendMessage(msg.toString());
