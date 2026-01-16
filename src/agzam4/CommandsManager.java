@@ -53,6 +53,7 @@ import arc.util.Time;
 import mindustry.Vars;
 import mindustry.content.*;
 import mindustry.core.*;
+import mindustry.ctype.MappableContent;
 import mindustry.entities.units.BuildPlan;
 import mindustry.game.Team;
 import mindustry.game.EventType.*;
@@ -123,7 +124,14 @@ public class CommandsManager {
 					res.put((byte) (size));
 					res.putShort((short) result.size);
 					for (int i = 0; i < size; i++) {
-						ByteBufferIO.writeString(res, result.get(i+offset).toString());
+						var obj = result.get(i+offset);
+						if(obj instanceof MappableContent content) {
+							res.put((byte) content.getContentType().ordinal());
+							res.putShort(content.id);
+						} else {
+							res.put((byte) -1);
+							ByteBufferIO.writeString(res, obj.toString());
+						}
 					}
 					Call.clientBinaryPacketReliable(player.con, "agzam4.cmd-sug", res.array());
 				}
