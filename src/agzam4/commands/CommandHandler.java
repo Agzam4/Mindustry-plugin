@@ -9,7 +9,7 @@ import mindustry.gen.Groups;
 
 public abstract class CommandHandler<T> {
 
-	public String text = name(), parms, desc;
+	public String text = name(), parms = "", desc = "";
 	
 	private String name() {
 		String name = getClass().getSimpleName().toLowerCase();
