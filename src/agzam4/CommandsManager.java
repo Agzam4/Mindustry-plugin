@@ -21,6 +21,7 @@ import agzam4.commands.server.EventCommand;
 import agzam4.commands.server.FillitemsCommand;
 import agzam4.commands.server.HelperCommand;
 import agzam4.commands.server.LinkCommand;
+import agzam4.commands.server.MapinfoCommand;
 import agzam4.commands.server.NextmapCommand;
 import agzam4.commands.server.RestartCommand;
 import agzam4.commands.server.SetcustomCommand;
@@ -774,7 +775,7 @@ public class CommandsManager {
 		serverCommand(new LinkCommand());
 		serverCommand(new HelperCommand());
 		serverCommand(new SetnickCommand());
-
+		serverCommand(new MapinfoCommand());
 		
 		adminCommand("m", "", "Открыть меню", (args, admin) -> {
 			 var players = new NetMenu("[white]" + Config.serverName.get().toString());
@@ -1485,93 +1486,6 @@ public class CommandsManager {
 			}
 		});
 		
-		playerCommand("mapinfo", "", "Показывает статистику ресурсов карты", (arg, player) -> {
-			final Item itemDrops[] = new Item[] {
-					Items.copper,
-					Items.lead,
-					Items.scrap,
-					Items.sand,
-					Items.coal,
-					Items.titanium,
-					Items.thorium
-			};
-			final Liquid liquidDrops[] = new Liquid[] {
-					Liquids.water,
-					Liquids.oil,
-					Liquids.slag,
-					Liquids.cryofluid
-			};
-			int counter[] = new int[itemDrops.length];
-			int lcounter[] = new int[liquidDrops.length];
-			int summaryCounter = 0;
-			int typesCounter = 0;
-			for(int x = 0; x < Vars.world.width(); x++){
-				for(int y = 0; y < Vars.world.height(); y++) {
-					if(Vars.world.tile(x, y).block() != Blocks.air) continue;
-					Item floor = Vars.world.tile(x, y).floor().itemDrop;
-					Item overlay = Vars.world.tile(x, y).overlay().itemDrop;
-					Liquid lfloor = Vars.world.tile(x, y).floor().liquidDrop;
-					Liquid loverlay = Vars.world.tile(x, y).overlay().liquidDrop;
-					for (int i = 0; i < counter.length; i++) {
-						if(itemDrops[i] == overlay || itemDrops[i] == floor) {
-							if(counter[i] == 0) {
-								typesCounter++;
-							}
-							counter[i]++;
-							summaryCounter++;
-						}
-					}
-					for (int i = 0; i < liquidDrops.length; i++) {
-						if(liquidDrops[i] == loverlay || liquidDrops[i] == lfloor) {
-							lcounter[i]++;
-						}
-					}
-				}
-			}
-			StringBuilder worldInfo = new StringBuilder();
-			if(summaryCounter == 0) return;
-			worldInfo.append("Информация о карте:\n");
-			worldInfo.append("[gold]Название: [lightgray]" + Vars.state.map.name() + "\n");
-			worldInfo.append("[gold]Рекорд: [lightgray]" + Vars.state.map.getHightScore() + "\n");
-			worldInfo.append("[white]Ресурсы:\n");
-			for (int i = 0; i < counter.length; i++) {
-				float cv = ((float)counter[i])*typesCounter/summaryCounter/3f;
-				if(cv > 1/3f) cv = 1/3f;
-				Log.info("cv: @", cv);
-				int percent = (int) Math.ceil(counter[i]*100d/summaryCounter);
-				Color c = Color.HSVtoRGB(cv*360f, 80, 100);
-				worldInfo.append(oreBlocksEmoji[i]);
-				worldInfo.append('[');
-				worldInfo.append('#');
-				worldInfo.append(c.toString());
-				worldInfo.append("] ");
-				if(counter[i] > 0) {
-					worldInfo.append(counter[i]);
-					worldInfo.append(" (");
-					worldInfo.append(percent);
-					worldInfo.append("%)");
-				} else {
-					worldInfo.append("-");
-				}
-				worldInfo.append("\n[white]");
-			}
-
-			worldInfo.append("Жидкости:");
-			boolean isLFound = false;
-			for (int i = 0; i < lcounter.length; i++) {
-				if(lcounter[i] > 0) {
-					worldInfo.append("\n[white]");
-					worldInfo.append(liquidsEmoji[i]);
-					worldInfo.append("[lightgray]: ");
-					worldInfo.append(counter[i]);
-					isLFound = true;
-				}
-			}
-			if(!isLFound) {
-				worldInfo.append(" [red]нет");
-			}
-			player.sendMessage(worldInfo.toString());
-		});
 
 		playerCommand("skipmap", "Начать голосование за пропуск карты", (arg, player) -> {
 			if(require(player.team() == Team.derelict, player, "[red]Вы не можете использовать эту команду")) return;
