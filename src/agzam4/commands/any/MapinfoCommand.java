@@ -1,4 +1,4 @@
-package agzam4.commands.server;
+package agzam4.commands.any;
 
 import static agzam4.Emoji.liquidsEmoji;
 import static agzam4.Emoji.oreBlocksEmoji;

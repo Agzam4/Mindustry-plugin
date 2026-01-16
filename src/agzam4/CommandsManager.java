@@ -15,13 +15,13 @@ import agzam4.commands.Permissions;
 import agzam4.commands.admin.AdminCommand;
 import agzam4.commands.admin.BrushCommand;
 import agzam4.commands.admin.UnitCommand;
+import agzam4.commands.any.MapinfoCommand;
 import agzam4.commands.players.VotekickCommand;
 import agzam4.commands.server.ConfigCommand;
 import agzam4.commands.server.EventCommand;
 import agzam4.commands.server.FillitemsCommand;
 import agzam4.commands.server.HelperCommand;
 import agzam4.commands.server.LinkCommand;
-import agzam4.commands.server.MapinfoCommand;
 import agzam4.commands.server.NextmapCommand;
 import agzam4.commands.server.RestartCommand;
 import agzam4.commands.server.SetcustomCommand;
@@ -544,6 +544,13 @@ public class CommandsManager {
 		commandCompleters.put(run.text, run);
 		playerCommands.add(new PlayerCommand(run.text, run.parms, run.desc, (args, player) -> run.command(args, player::sendMessage, player, ReceiverType.player)));
 	}
+	
+	public static void anyCommand(CommandHandler<Object> run) {
+		commandCompleters.put(run.text, run);
+		playerCommands.add(new PlayerCommand(run.text, run.parms, run.desc, (arg, player) -> run.command(arg, player::sendMessage, player, ReceiverType.player)));
+		serverCommands.add(new BaseCommand(run.text, run.parms, run.desc, (arg) -> run.command(arg, Log::info, null, ReceiverType.server)));
+		botCommands.add(new BotCommand(run.text, run.parms, run.desc, (arg, chat) -> run.command(arg, m -> chat.chat.message(m), chat, ReceiverType.bot)));
+	}
 
 	public static void adminCommand(CommandHandler<Player> run) {
 		commandCompleters.put(run.text, run);
@@ -775,7 +782,6 @@ public class CommandsManager {
 		serverCommand(new LinkCommand());
 		serverCommand(new HelperCommand());
 		serverCommand(new SetnickCommand());
-		serverCommand(new MapinfoCommand());
 		
 		adminCommand("m", "", "Открыть меню", (args, admin) -> {
 			 var players = new NetMenu("[white]" + Config.serverName.get().toString());
@@ -1395,6 +1401,8 @@ public class CommandsManager {
 		});
 		
 		playerCommand(new VotekickCommand());
+		
+		anyCommand(new MapinfoCommand());
 		
 		playerCommand("vote", "<y/n/c>", "Проголосуйте, чтобы выгнать текущего игрока", (arg, player) -> {
 			if(require(KickVoteSession.current == null, player, "[red]Ни за кого не голосуют")) return;
