@@ -34,7 +34,6 @@ import mindustry.Vars;
 import mindustry.content.*;
 import mindustry.core.*;
 import mindustry.ctype.MappableContent;
-import mindustry.game.Team;
 import mindustry.game.EventType.*;
 import mindustry.gen.*;
 import mindustry.net.Administration.*;
@@ -638,46 +637,7 @@ public class CommandsManager {
 		serverCommand(new SetdiscordCommand());
 		serverCommand(new ThreadsCommand());
 		serverCommand(new DoorscapCommand());
-
-		adminCommand("sandbox", "[on/off] [team]", "Бесконечные ресурсы", (arg, player) -> {
-			if(require(arg.length == 0, player, "[gold]infiniteResources: [gray]" + Vars.state.rules.infiniteResources)) return;
-			Team team = null;
-			if(arg.length == 2) {
-				String targetTeam = arg[1].toLowerCase();
-				for (int i = 0; i < Team.baseTeams.length; i++) {
-					if(Team.baseTeams[i].name.equals(targetTeam.toLowerCase())) {
-						team = Team.baseTeams[i];
-					}
-				}
-				for (int i = 0; i < Team.all.length; i++) {
-					if(Team.all[i].name.equals(targetTeam.toLowerCase())) {
-						team = Team.all[i];
-					}
-				}
-			}
-			if(arg[0].equals("on")) {
-				if(team == null) {
-					Vars.state.rules.infiniteResources = true;
-					player.sendMessage("[green]Включено!");
-				} else {
-					team.rules().infiniteResources = true;
-					player.sendMessage("[green]Включено для команды [#" + team.color + "]" + team.name);
-				}
-				Call.setRules(player.con, Vars.state.rules);
-			}else if(arg[0].equals("off")) {
-				if(team == null) {
-					Vars.state.rules.infiniteResources = false;
-					player.sendMessage("[red]Выключено!");
-				} else {
-					team.rules().infiniteResources = false;
-					player.sendMessage("[red]Выключено для команды [#" + team.color + "]" + team.name);
-				}
-				Call.setRules(player.con, Vars.state.rules);
-			} else {
-				player.sendMessage("[red]Только on/off");
-			}
-		});
-
+		serverCommand(new SandboxCommand());
 
 //		adminCommand("pardon", "<ID> [index]", "Прощает выбор игрока по ID и позволяет ему присоединиться снова.", (arg, player) -> {
 //			int index = 0;
@@ -706,7 +666,6 @@ public class CommandsManager {
 //				player.sendMessage("[red]That ID can't be found");
 //			}
 //		});
-
 
 		adminCommand("etrigger", "<trigger> [args...]", "Устанваливает кисточку", (args, player) -> {
 			ServerEventsManager.trigger(player, args);
