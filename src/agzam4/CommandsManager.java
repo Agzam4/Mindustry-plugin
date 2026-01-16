@@ -58,7 +58,6 @@ public class CommandsManager {
     
     public static Seq<String> extraStarsUIDD;
 	
-	public static boolean chatFilter;		
 	public static String discordLink = "";	// Link on discord "/setdiscord" to change
 	public static int doorsCup = 100; 		// Max doors limit "/doorscup" to change
 
@@ -71,7 +70,6 @@ public class CommandsManager {
 		discordLink = Core.settings.getString(AgzamPlugin.name() + "-discord-link", null);
 		doorsCup = Core.settings.getInt(AgzamPlugin.name() + "-doors-cup", Integer.MAX_VALUE);
 		discordLink = Core.settings.getString(AgzamPlugin.name() + "-discord-link", null);
-		chatFilter = Core.settings.getBool(AgzamPlugin.name() + "-chat-filter", false);
 		extraStarsUIDD = new Seq<>();
 		
 		Vars.netServer.addPacketHandler("", null);
@@ -401,7 +399,7 @@ public class CommandsManager {
 			if(player != null && text != null) {
 				Bots.notify(NotifyTag.chatMessage, "<u><b>" + TelegramBot.strip(player.name) + "</b></u>: " + TelegramBot.strip(text));
 			}
-			if(chatFilter) {
+			if(ChatfilterCommand.chatFilter) {
 				text = "[white]" + text + "[white]";
 				char[] msg = text.toCharArray();
 
@@ -773,23 +771,7 @@ public class CommandsManager {
 		serverCommand(new ReloadmapsCommand());
 		serverCommand(new RunwaveCommand());
 		serverCommand(new BansCommand());
-		
-
-		serverCommand("chatfilter", "<on/off>", "Включить/выключить фильтр чата", (arg, sender, receiver, type) -> {
-			if(require(arg.length == 0, sender, "[red]Недостаточно аргументов")) return;
-			if(arg[0].equals("on")) {
-				chatFilter = true;
-				Core.settings.put(AgzamPlugin.name() + "-chat-filter", chatFilter);
-				sender.sendMessage("[green]Чат фильтр включен");
-			}else if(arg[0].equals("off")) {
-				chatFilter = false;
-				Core.settings.put(AgzamPlugin.name() + "-chat-filter", chatFilter);
-				sender.sendMessage("[red]Чат фильтр выключен");
-			}else {
-				sender.sendMessage("Неверный аргумент, используйте [gold]on/off");
-				return;
-			}
-		});
+		serverCommand(new ChatfilterCommand());
 
 		serverCommand("dct", "[time]", "Установить интервал (секунд/10) обновлений данных", (arg, sender, receiver, type) -> {
 			if(require(arg.length == 0, sender, "Интервал обновлений: " + AgzamPlugin.dataCollect.getSleepTime() + " секунд/10")) return;
