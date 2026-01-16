@@ -16,6 +16,7 @@ import agzam4.commands.admin.AdminCommand;
 import agzam4.commands.admin.BrushCommand;
 import agzam4.commands.admin.UnitCommand;
 import agzam4.commands.any.MapinfoCommand;
+import agzam4.commands.any.MapsCommand;
 import agzam4.commands.players.VotekickCommand;
 import agzam4.commands.server.ConfigCommand;
 import agzam4.commands.server.EventCommand;
@@ -1403,6 +1404,7 @@ public class CommandsManager {
 		playerCommand(new VotekickCommand());
 		
 		anyCommand(new MapinfoCommand());
+		anyCommand(new MapsCommand());
 		
 		playerCommand("vote", "<y/n/c>", "Проголосуйте, чтобы выгнать текущего игрока", (arg, player) -> {
 			if(require(KickVoteSession.current == null, player, "[red]Ни за кого не голосуют")) return;
@@ -1438,44 +1440,6 @@ public class CommandsManager {
 			KickVoteSession.current.vote(player, sign);
         });
 		
-		playerCommand("maps", "[all/custom/default/event]", "Показывает список доступных карт. Отображает все карты по умолчанию", (arg, player) -> {
-			String types = "all";
-			if(arg.length == 0) types = Vars.maps.getShuffleMode().name();
-			else types = arg[0];
-			if(types.startsWith("event")) {
-				int id = 0;
-				for(EventMap map : EventMap.maps){
-					id++;
-					String mapName = Strings.stripColors(map.map().name());
-					player.sendMessage(Strings.format("[gold]$@ @ [white]| @ [white](@x@, рекорд: @)", 
-							id, map.events(), mapName, map.map().width, map.map().height, map.map().getHightScore()));
-				}
-				return;
-			}
-			boolean custom  = types.equals("custom") || types.equals("c") || types.equals("all");
-			boolean def     = types.equals("default") || types.equals("all");
-			if(!Vars.maps.all().isEmpty()) {
-				Seq<Map> all = new Seq<>();
-				if(custom) all.addAll(Vars.maps.customMaps());
-				if(def) all.addAll(Vars.maps.defaultMaps());
-				if(all.isEmpty()){
-					player.sendMessage("Кастомные карт нет на этом сервере, используйте [gold]all []аргумет.");
-				}else{
-					player.sendMessage("[white]Maps:");
-					int id = 0;
-					for(Map map : Vars.maps.all()){
-						id++;
-						if((def && !map.custom) || (custom && map.custom)) {
-							String mapName = Strings.stripColors(map.name());
-							player.sendMessage(Strings.format("[gold]#@ @ [white]| @ [white](@x@, рекорд: @)", 
-									id, map.custom ? "Кастомная" : "Дефолтная", mapName, map.width, map.height, map.getHightScore()));
-						}
-					}
-				}
-			} else {
-				player.sendMessage("Карты не найдены");
-			}
-		});
 
 		playerCommand("a", "<сообщение...>", "Сообщение администраторам", (args, player) -> {
             String raw = "[#" + Color.scarlet.toString() + "]" + Iconc.admin + " " + player.coloredName() + ":[red] " + args[0];
