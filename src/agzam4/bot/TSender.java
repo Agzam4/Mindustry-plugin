@@ -87,6 +87,13 @@ public class TSender {
 //		return value & hasPermission(permission);
 //	}
 
+	public boolean hasPermissionKey(String key) {
+		return permissions.contains(key);
+	}
+	public boolean hasChatPermissionKey(String key) {
+		return permissions.contains("$" + key);
+	}
+	
 	public boolean hasPermission(String permission) {
 		return permissions.contains(permission) || permissions.contains("all");
 	}

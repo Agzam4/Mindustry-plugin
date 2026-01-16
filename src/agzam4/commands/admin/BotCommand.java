@@ -1,5 +1,6 @@
 package agzam4.commands.admin;
 
+import agzam4.CommandsManager;
 import agzam4.CommandsManager.ReceiverType;
 import agzam4.CommandsManager.ResultSender;
 import agzam4.bot.Bots.NotifyTag;
@@ -8,8 +9,10 @@ import agzam4.bot.TSender;
 import agzam4.bot.TUser;
 import agzam4.bot.TelegramBot;
 import agzam4.commands.CommandHandler;
+import agzam4.commands.Permissions;
 import arc.func.Cons2;
 import arc.struct.LongMap;
+import arc.struct.ObjectSet;
 import arc.struct.Seq;
 import arc.util.Strings;
 import mindustry.gen.Player;
@@ -177,6 +180,7 @@ public class BotCommand extends CommandHandler<Player> {
 					TelegramBot.save();
 					return;
 				}
+				player.sendMessage("[red]Ошибка: []" + args[0] + " " + args.length);
 				
 				return;
 			}
@@ -212,11 +216,66 @@ public class BotCommand extends CommandHandler<Player> {
 				"load загрузить из файла"
 		);
 		if(args.length == 1 && args[0].equalsIgnoreCase("start")) return Seq.with("@ имя бота в формате @name_bot");
-		if(args.length == 2 && args[0].equalsIgnoreCase("t")) return new Seq<>(NotifyTag.values()).map(t -> t.tag);
-		if(args.length == 2 && args[0].equalsIgnoreCase("p")) return new Seq<>(NotifyTag.values()).map(t -> t.tag); // TODO
-		
-		
+		if(args.length == 1 && (args[0].equalsIgnoreCase("t") || args[0].equalsIgnoreCase("p") || args[0].equalsIgnoreCase("remove"))) {
+			Seq<String> list = new Seq<String>(TelegramBot.chats.size + TelegramBot.users.size);
+			TelegramBot.chats.eachValue(v -> {
+				list.add("c-" + v.fuid());
+				v.threads.forEach(e -> {
+					list.add("c-" + e.value.fuid());
+				});
+			});
+			TelegramBot.users.eachValue(v -> list.add("u-" + v.fuid()));
+			return list;
+		}
+		if(args.length >= 2 && (args[0].equalsIgnoreCase("t") || args[0].equalsIgnoreCase("p"))) {
+			TSender sender = sender(args[1]);
+			if(sender == null) return null;
+			ObjectSet<String> set = new ObjectSet<String>(args.length-1);
+			for (int i = 1; i < args.length; i++) {
+				if(args[i].length() < 2) continue;
+				set.add(args[i].substring(1));
+			}
+
+			Seq<String> list = new Seq<String>();
+			if(args[0].equalsIgnoreCase("t")) {
+				for (int i = 0; i < NotifyTag.values().length; i++) {
+					var tag = NotifyTag.values()[i];
+					if(!set.contains(tag.tag)) list.add(tag.tag + " no confidential info");
+					if(!set.contains(tag.tag)) list.add("!" + tag.tag);
+				}
+				return list;
+			} else {
+				if(!set.contains("all")) list.add((sender.hasPermissionKey("all") ? "-" : "+") + "all");
+				if(!set.contains("$all")) list.add((sender.hasChatPermissionKey("all") ? "-" : "+") + "$all" + " chat only usage");
+				
+				for (var p : Permissions.values()) {
+					if(!set.contains(p.name)) list.add((sender.hasPermissionKey(p.name) ? "-" : "+") + p.name);
+					if(!set.contains(p.name)) list.add((sender.hasChatPermissionKey(p.name) ? "-$" : "+$") + p.name + " chat only usage");
+				}
+				CommandsManager.botCommands().each(c -> {
+					if(!set.contains(c.text)) list.add((sender.hasPermissionKey(c.text) ? "-" : "+") + c.text);
+					if(!set.contains(c.text)) list.add((sender.hasChatPermissionKey(c.text) ? "-$" : "+$") + c.text + " chat only usage");
+				});
+				return list;
+			}
+		}
 		return super.complete(args, receiver, type);
+	}
+
+	private TSender sender(String string) {
+		boolean isUser = string.startsWith("u-");
+		boolean isChat = string.startsWith("c-");
+		
+		LongMap<? extends TSender> senders = null;
+		if(isChat) senders = TelegramBot.chats;
+		if(isUser) senders = TelegramBot.users;
+		
+		if(senders == null) return null;
+		if(!isUser && !isChat) return null;
+
+		String[] idData = string.split("/");
+		long id = Long.parseUnsignedLong(idData[0].substring(2), Character.MAX_RADIX);
+		return senders.get(id);
 	}
 
 }

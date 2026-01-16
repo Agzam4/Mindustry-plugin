@@ -567,10 +567,10 @@ public class CommandsManager {
 		void sendMessage(String message);
 	}
 	
-	static class BotCommand {
+	public static class BotCommand {
 
 		private boolean registered;
-		private final String text, parms, desc;
+		public final String text, parms, desc;
 		private CommandRunner<MessageData> run;
 
 		public BotCommand(String text, String parms, String desc, CommandRunner<MessageData> run) {
@@ -1631,4 +1631,7 @@ public class CommandsManager {
 		return playerCommands;
 	}
 	
+	public static Seq<BotCommand> botCommands() {
+		return botCommands;
+	}
 }
