@@ -4,6 +4,7 @@ import agzam4.CommandsManager;
 import agzam4.Images;
 import agzam4.bot.Bots;
 import agzam4.bot.TelegramBot;
+import agzam4.commands.Server;
 import agzam4.bot.Bots.NotifyTag;
 import arc.Events;
 import arc.struct.ObjectMap;
@@ -46,7 +47,7 @@ public class Kicks {
 	}
 
 	public static void sendDiscord(NetConnection con) {
-		if(CommandsManager.discordLink != null && !CommandsManager.discordLink.isEmpty()) Call.openURI(con, CommandsManager.discordLink);
+		if(Server.discordLink != null && !Server.discordLink.isEmpty()) Call.openURI(con, Server.discordLink);
 	}
 
 	public static void kick(Player kicker, Player target, String reason, long seconds) {
@@ -56,7 +57,7 @@ public class Kicks {
 	public static void kick(String kicker, Player target, String reason, long seconds) {
 		sendDiscord(target.con);
 		target.kick(Strings.format("Вы были забанены на [red]@[] минут\nПричина: [orange]@[white]\nБан выдал: [orange]@[white]\nОбжаловать: @\n[white]Сервер: @", 
-				seconds/60, reason, kicker, CommandsManager.discordLink, Config.serverName.get()), seconds * 1000);
+				seconds/60, reason, kicker, Server.discordLink, Config.serverName.get()), seconds * 1000);
 		Vars.netServer.admins.handleKicked(target.uuid(), target.ip(), seconds * 1000);		
 	}
 	
