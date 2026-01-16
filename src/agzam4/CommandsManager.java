@@ -58,7 +58,6 @@ public class CommandsManager {
     
     public static Seq<String> extraStarsUIDD;
 	
-	public static String discordLink = "";	// Link on discord "/setdiscord" to change
 	public static int doorsCup = 100; 		// Max doors limit "/doorscup" to change
 
 	private static ArrayList<Integer> doorsCoordinates;
@@ -67,9 +66,7 @@ public class CommandsManager {
 	public static boolean needServerRestart;
 	
 	public static void init() {
-		discordLink = Core.settings.getString(AgzamPlugin.name() + "-discord-link", null);
 		doorsCup = Core.settings.getInt(AgzamPlugin.name() + "-doors-cup", Integer.MAX_VALUE);
-		discordLink = Core.settings.getString(AgzamPlugin.name() + "-discord-link", null);
 		extraStarsUIDD = new Seq<>();
 		
 		Vars.netServer.addPacketHandler("", null);
@@ -774,13 +771,7 @@ public class CommandsManager {
 		serverCommand(new BansCommand());
 		serverCommand(new ChatfilterCommand());
 		serverCommand(new JsCommand());
-
-		serverCommand("setdiscord", "<link>", "\ue80d Сервера", (arg, sender, receiver, type) -> {
-			if(arg.length != 1) return;
-			discordLink = arg[0];
-			Core.settings.put(AgzamPlugin.name() + "-discord-link", discordLink);
-			sender.sendMessage(type.bungle("setdiscord"));
-		});
+		serverCommand(new SetdiscordCommand());
 
 		serverCommand("threads", "[filter]", "Конфикурация сервера", (args, sender, receiver, type) -> {
 			StringBuilder message = new StringBuilder("Threads");
@@ -1154,6 +1145,7 @@ public class CommandsManager {
 		});
 		
 		playerCommand(new VotekickCommand());
+		playerCommand(new DiscordCommand());
 		
 		anyCommand(new MapinfoCommand());
 		anyCommand(new MapsCommand());
@@ -1164,18 +1156,6 @@ public class CommandsManager {
             Groups.player.each(p -> Admins.has(p, "a"), a -> a.sendMessage(raw, player, args[0]));
 		});
 
-		playerCommand("discord", "", "\ue80d Сервера", (arg, player) -> {
-			if(discordLink == null) {
-				player.sendMessage("[red]\ue80d Ссылка отсутствует");
-			} else {
-				if(discordLink.isEmpty()) {
-					player.sendMessage("[red]\ue80d Ссылка отсутствует");
-				} else {
-					Call.openURI(player.con, discordLink);
-				}
-			}
-		});
-		
 
 		playerCommand("skipmap", "Начать голосование за пропуск карты", (arg, player) -> {
 			if(require(player.team() == Team.derelict, player, "[red]Вы не можете использовать эту команду")) return;
