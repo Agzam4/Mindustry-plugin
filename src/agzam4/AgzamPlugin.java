@@ -24,7 +24,6 @@ import agzam4.managers.Kicks;
 import agzam4.net.NetMenu;
 import agzam4.utils.Log;
 import agzam4.votes.SkipmapVoteSession;
-import agzam4.webui.WebServer;
 
 import static agzam4.Emoji.*;
 import static mindustry.Vars.*;
@@ -63,8 +62,6 @@ public class AgzamPlugin extends Plugin {
     	PlayersData.init();
     	AchievementsManager.init();
     	NetMenu.init();
-    	
-    	WebServer.init();
     	
     	achievementsManager = new AchievementsManager();
     	CommandsManager.init();
