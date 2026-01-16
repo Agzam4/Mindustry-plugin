@@ -774,27 +774,6 @@ public class CommandsManager {
 		serverCommand(new BansCommand());
 		serverCommand(new ChatfilterCommand());
 
-		serverCommand("dct", "[time]", "Установить интервал (секунд/10) обновлений данных", (arg, sender, receiver, type) -> {
-			if(require(arg.length == 0, sender, "Интервал обновлений: " + AgzamPlugin.dataCollect.getSleepTime() + " секунд/10")) return;
-			if(arg.length == 1) {
-				long count = 0;
-				try {
-					count = Long.parseLong(arg[0]);
-				} catch (Exception e) {
-					sender.sendMessage("[red]Вводить можно только числа!");
-				}
-				count *= 1_00;
-
-				if(count <= 0) {
-					sender.sendMessage("[red]Интервал не может быть меньше 1!");
-				}
-				AgzamPlugin.dataCollect.setSleepTime(count);
-				sender.sendMessage("Установлен интервал: " + count + " ms");
-				return;
-			}
-		});
-
-
 		serverCommand("js", "<script...>", "Запустить JS", (arg, sender, receiver, type) -> {
 			if(type == ReceiverType.bot) {
 				Core.app.post(() -> {
@@ -963,58 +942,6 @@ public class CommandsManager {
 				player.sendMessage("[red]Неверные аргументы");
 			}
 		});
-
-
-//		serverCommand("helper", "<add/remove/refresh> [args...]", "Добавить помошника / разрешения", (args, sender, receiver, type) -> {
-//			int code = 0;
-//			if(args[0].equalsIgnoreCase("add")) code = 1;
-//			else if(args[0].equalsIgnoreCase("remove")) code = -1;
-//			else if(args[0].equalsIgnoreCase("refresh")) code = 2;
-//			if(code == 0) {
-//				Player found = Groups.player.find(p -> p.uuid().equals(args[0]));
-//	            if(found == null) found = Groups.player.find(p -> p.name.equals(args[0]));
-//				if(require(found == null, sender, "[red]UIID не найден")) return;
-//	            
-//				AdminData data = Admins.adminData(found.getInfo());
-//				if(require(data == null, sender, "[red]Игрок не помошник")) return;
-//				if(args.length == 1) {
-//					if(data.permissionsCount() == 0) sender.sendMessage(Strings.format("Игрок [gold]@[] имеет разрешения: [lightgray]<empty>", found.plainName()));
-//					else sender.sendMessage(Strings.format("Игрок [gold]@[] имеет разрешения: [gold]@", found.plainName(), data.permissionsAsString(' ')));
-//					return;
-//				}
-//				String[] keys = args[1].split(" ");
-//				for (int i = 0; i < keys.length; i++) {
-//					String arg = keys[i];
-//					if(arg.length() < 2) continue;
-//					Log.info("Argumet: \"@\" with char \"@\" and value \"@\"", arg, arg.charAt(0), arg.substring(1));
-//					if(arg.charAt(0) == '+') data.add(arg.substring(1));
-//					else if(arg.charAt(0) == '-') data.remove(arg.substring(1));
-//				}
-//				if(data.permissionsCount() == 0) sender.sendMessage(Strings.format("Игрок [gold]@[] имеет разрешения: [lightgray]<empty>", found.plainName()));
-//				else sender.sendMessage(Strings.format("Игрок [gold]@[] имеет разрешения: [gold]@", found.plainName(), data.permissionsAsString(' ')));
-//				Admins.save();
-//				return;
-//			} else {
-//				if(require(args.length < 2, sender, "[red]Слишком мало аргументов")) return;
-//
-//	            Player found = Groups.player.find(p -> p.uuid().equals(args[1]));
-//	            if(found == null) found = Groups.player.find(p -> p.name.equals(args[1]));
-//				if(require(found == null, sender, "[red]Игрок не найден")) return;
-//				if(code == 2) {
-//					if(Admins.refresh(found)) sender.sendMessage("Игрок [gold]" + found.plainName() + "[] успешно обновлен!");
-//					else sender.sendMessage("[red]Игрок [gold]" + found.plainName() + "[] уже обновлен!");
-//				} if(code == 1) {
-//					if(Admins.add(found)) sender.sendMessage("Игрок [gold]" + found.plainName() + "[] успешно добавлен!");
-//					else sender.sendMessage("[red]Игрок [gold]" + found.plainName() + "[] уже добавлен!");
-//				} else if(code == -1) {
-//					if(Admins.remove(found)) sender.sendMessage("Игрок [gold]" + found.plainName() + "[] успешно удален!");
-//					else sender.sendMessage("[red]Игрок [gold]" + found.plainName() + "[] не найден!");
-//				}
-//				Admins.save();
-//			}
-//		});
-
-
 	}
 	
 	static String stopcode = generateStopCode();
