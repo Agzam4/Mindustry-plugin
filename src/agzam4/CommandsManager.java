@@ -771,24 +771,7 @@ public class CommandsManager {
 		serverCommand(new ChatfilterCommand());
 		serverCommand(new JsCommand());
 		serverCommand(new SetdiscordCommand());
-
-		serverCommand("threads", "[filter]", "Конфикурация сервера", (args, sender, receiver, type) -> {
-			StringBuilder message = new StringBuilder("Threads");
-			Func<String, Byte> filter = (keyword) -> {
-				if(Structs.contains(args, keyword) || Structs.contains(args, "+" + keyword)) return 1;
-				if(Structs.contains(args, "-" + keyword)) return -1;
-				return 0;
-			};
-			byte daemon = filter.get("daemon");
-			
-			Thread.getAllStackTraces().keySet().forEach(t -> {
-				if(daemon == 1 & !t.isDaemon()) return;
-				if(daemon == -1 & t.isDaemon()) return;
-				
-				message.append(Strings.format("\n@: (@) @", t.getName(), t.isDaemon() ? "Daemon" : "", t.getState()));
-			});
-			sender.sendMessage(message.toString());
-		});
+		serverCommand(new ThreadsCommand());
 
 		serverCommand("doorscup", "[count]", "Устанавливает лимит дверей", (arg, sender, receiver, type) -> {
 			if(require(arg.length == 0, sender, type.format("doorscup.doors", doorsCoordinates.size(), doorsCup))) return;
