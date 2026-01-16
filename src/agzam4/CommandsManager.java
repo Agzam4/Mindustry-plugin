@@ -773,16 +773,7 @@ public class CommandsManager {
 		serverCommand(new RunwaveCommand());
 		serverCommand(new BansCommand());
 		serverCommand(new ChatfilterCommand());
-
-		serverCommand("js", "<script...>", "Запустить JS", (arg, sender, receiver, type) -> {
-			if(type == ReceiverType.bot) {
-				Core.app.post(() -> {
-					sender.sendMessage(type.format("js", Vars.mods.getScripts().runConsole(arg[0])));
-				});
-			} else {
-				sender.sendMessage(type.format("js", Vars.mods.getScripts().runConsole(arg[0])));
-			}
-		});
+		serverCommand(new JsCommand());
 
 		serverCommand("setdiscord", "<link>", "\ue80d Сервера", (arg, sender, receiver, type) -> {
 			if(arg.length != 1) return;
