@@ -213,17 +213,17 @@ public class BrushCommand extends CommandHandler<Player> {
 	@Override
 	public Seq<?> complete(String[] args, Player receiver, ReceiverType type) {
 		if(args.length == 0) return Seq.with("none очистить все слои", "block", "floor", "overlay", "info");
-		Seq<String> seq = Seq.with("air", "none");
+		Seq<Object> seq = Seq.with("air", "none");
 		if(args[0].equalsIgnoreCase("b") || args[0].equalsIgnoreCase("block")) {
-			seq.addAll(Vars.content.blocks().select(b -> allowedBlock(b, receiver)).map(b -> b.name + " " + b.emoji()));
+			seq.addAll(Vars.content.blocks().select(b -> allowedBlock(b, receiver)));
 			return seq;
 		}
 		if(args[0].equalsIgnoreCase("f") || args[0].equalsIgnoreCase("floor")) {
-			seq.addAll(Vars.content.blocks().select(b -> b instanceof Floor).map(b -> b.name + " " + b.emoji()));
+			seq.addAll(Vars.content.blocks().select(b -> b instanceof Floor));
 			return seq;
 		}
 		if(args[0].equalsIgnoreCase("o") || args[0].equalsIgnoreCase("overlay")) {
-			seq.addAll(Vars.content.blocks().select(b -> b instanceof OverlayFloor).map(b -> b.name + " " + b.emoji()));
+			seq.addAll(Vars.content.blocks().select(b -> b instanceof OverlayFloor));
 			return seq;
 		}
 		return super.complete(args, receiver, type);
