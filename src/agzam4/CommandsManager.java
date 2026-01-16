@@ -12,11 +12,13 @@ import agzam4.bot.TUser.MessageData;
 import agzam4.bot.TelegramBot;
 import agzam4.commands.CommandHandler;
 import agzam4.commands.Permissions;
+import agzam4.commands.Server;
 import agzam4.commands.admin.AdminCommand;
 import agzam4.commands.admin.BrushCommand;
 import agzam4.commands.admin.UnitCommand;
 import agzam4.commands.any.MapinfoCommand;
 import agzam4.commands.any.MapsCommand;
+import agzam4.commands.any.VoteCommand;
 import agzam4.commands.players.VotekickCommand;
 import agzam4.commands.server.ConfigCommand;
 import agzam4.commands.server.EventCommand;
@@ -69,6 +71,8 @@ import static agzam4.Emoji.*;
 public class CommandsManager {
 
 	private CommandsManager() {}
+	
+	private static Server server = new Server();
 	
 //    public static @Nullable VoteSession currentlyKicking = null;
     
@@ -549,7 +553,7 @@ public class CommandsManager {
 	public static void anyCommand(CommandHandler<Object> run) {
 		commandCompleters.put(run.text, run);
 		playerCommands.add(new PlayerCommand(run.text, run.parms, run.desc, (arg, player) -> run.command(arg, player::sendMessage, player, ReceiverType.player)));
-		serverCommands.add(new BaseCommand(run.text, run.parms, run.desc, (arg) -> run.command(arg, Log::info, null, ReceiverType.server)));
+		serverCommands.add(new BaseCommand(run.text, run.parms, run.desc, (arg) -> run.command(arg, Log::info, server, ReceiverType.server)));
 		botCommands.add(new BotCommand(run.text, run.parms, run.desc, (arg, chat) -> run.command(arg, m -> chat.chat.message(m), chat, ReceiverType.bot)));
 	}
 
@@ -1405,41 +1409,7 @@ public class CommandsManager {
 		
 		anyCommand(new MapinfoCommand());
 		anyCommand(new MapsCommand());
-		
-		playerCommand("vote", "<y/n/c>", "Проголосуйте, чтобы выгнать текущего игрока", (arg, player) -> {
-			if(require(KickVoteSession.current == null, player, "[red]Ни за кого не голосуют")) return;
-            boolean permission = Admins.has(player, "votekick");
-			if(permission && arg[0].equalsIgnoreCase("c")){
-				Call.sendMessage(Strings.format("[lightgray]Голосование отменено администратором[orange] @[lightgray].", player.name));
-				KickVoteSession.current.cancel();
-				return;
-			}
-			
-			if(require(player.isLocal(), player, "[red]Локальные игроки не могут голосовать. Вместо этого кикните игрока сами")) return;
-
-			int sign = switch(arg[0].toLowerCase()){
-			case "y", "yes" -> 1;
-			case "n", "no" -> -1;
-			default -> 0;
-			};
-			
-			if(permission && sign > 0) {
-        		Kicks.kick(KickVoteSession.current.kicker, KickVoteSession.current.target, KickVoteSession.current.reason);
-				KickVoteSession.current.cancel();
-        		return;
-			}
-			
-			//hosts can vote all they want
-			if(KickVoteSession.current.isPlayerVoted(player, sign)) {
-				player.sendMessage(Strings.format("[red]Вы уже проголосовали за @", arg[0].toLowerCase()));
-				return;
-			}
-			if(require(KickVoteSession.current.target == player, player, "[red]Ты не можешь голосовать на за себя")) return;
-			if(require(KickVoteSession.current.target.team() != player.team(), player, "[red]Ты не можешь голосовать на за другие команды")) return;
-			if(require(sign == 0, player, "[red]Голосуйте либо \"y\" (да), либо \"n\" (нет)")) return;
-			KickVoteSession.current.vote(player, sign);
-        });
-		
+		anyCommand(new VoteCommand());
 
 		playerCommand("a", "<сообщение...>", "Сообщение администраторам", (args, player) -> {
             String raw = "[#" + Color.scarlet.toString() + "]" + Iconc.admin + " " + player.coloredName() + ":[red] " + args[0];

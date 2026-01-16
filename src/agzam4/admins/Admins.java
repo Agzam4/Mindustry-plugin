@@ -1,6 +1,8 @@
 package agzam4.admins;
 
+import agzam4.bot.TUser.MessageData;
 import agzam4.commands.Permissions;
+import agzam4.commands.Server;
 import agzam4.utils.Log;
 import arc.files.Fi;
 import arc.struct.ObjectMap;
@@ -33,12 +35,15 @@ public class Admins {
 
 	public static boolean has(Object any, String string) {
 		if(any instanceof Player player) return has(player, string);
+		if(any instanceof Server) return true;
+		if(any instanceof MessageData data) return data.hasPermissions(string);
 		Log.warn("unimpleneted righs check for @", any.getClass());
 		return false;
 	}
 	
 	public static boolean has(Object any, Permissions permissions) {
 		if(any instanceof Player player) return has(player, permissions);
+		if(any instanceof Server) return true;
 		Log.warn("unimpleneted righs check for @", any.getClass());
 		return false;
 	}
