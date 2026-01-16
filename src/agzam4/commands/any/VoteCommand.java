@@ -26,20 +26,20 @@ public class VoteCommand extends CommandHandler<Object> {
         
 		if(permission && args[0].equalsIgnoreCase("c")){
 			String name = 
-					sender instanceof Player p ? p.name : 
-					sender instanceof Server s ? s.name : 
-					sender instanceof MessageData c ? c.user.name : "<неизвестный>";
+					receiver instanceof Player p ? p.name : 
+					receiver instanceof Server s ? s.name : 
+					receiver instanceof MessageData c ? c.user.name : "<неизвестный>";
 			Call.sendMessage(Strings.format("[lightgray]Голосование отменено администратором[orange] @[lightgray].", name));
 			KickVoteSession.current.cancel();
 			return;
 		}
 		
-		if(!(sender instanceof Player player)) {
+		if(!(receiver instanceof Player player)) {
 			sender.sendMessage("Только игроки и пользователи с правами могут голосовать");
 			return;
 		}
 		
-		if(require(sender instanceof Player p && p.isLocal(), sender, "[red]Локальные игроки не могут голосовать. Вместо этого кикните игрока сами")) return;
+		if(require(receiver instanceof Player p && p.isLocal(), sender, "[red]Локальные игроки не могут голосовать. Вместо этого кикните игрока сами")) return;
 
 		int sign = switch(args[0].toLowerCase()){
 		case "y", "yes" -> 1;
@@ -57,7 +57,7 @@ public class VoteCommand extends CommandHandler<Object> {
 			sender.sendMessage(Strings.format("[red]Вы уже проголосовали за @", args[0].toLowerCase()));
 			return;
 		}
-		if(require(KickVoteSession.current.target == sender, sender, "[red]Ты не можешь голосовать на за себя")) return;
+		if(require(KickVoteSession.current.target == player, sender, "[red]Ты не можешь голосовать на за себя")) return;
 		if(require(KickVoteSession.current.target.team() != player.team(), sender, "[red]Ты не можешь голосовать на за другие команды")) return;
 		if(require(sign == 0, sender, "[red]Голосуйте либо \"y\" (да), либо \"n\" (нет)")) return;
 		KickVoteSession.current.vote(player, sign);
