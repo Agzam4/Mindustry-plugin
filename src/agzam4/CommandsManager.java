@@ -22,7 +22,6 @@ import agzam4.io.ByteBufferIO;
 import agzam4.managers.Kicks;
 import agzam4.managers.Players;
 import agzam4.utils.Log;
-import agzam4.votes.SkipmapVoteSession;
 import arc.Core;
 import arc.Events;
 import arc.func.*;
@@ -1146,7 +1145,9 @@ public class CommandsManager {
 		
 		playerCommand(new VotekickCommand());
 		playerCommand(new DiscordCommand());
-		
+
+		anyCommand(new SkipmapCommand());
+		anyCommand(new SmvoteCommand());
 		anyCommand(new MapinfoCommand());
 		anyCommand(new MapsCommand());
 		anyCommand(new VoteCommand());
@@ -1157,26 +1158,7 @@ public class CommandsManager {
 		});
 
 
-		playerCommand("skipmap", "Начать голосование за пропуск карты", (arg, player) -> {
-			if(require(player.team() == Team.derelict, player, "[red]Вы не можете использовать эту команду")) return;
-			if(require(SkipmapVoteSession.current != null, player, "[red]Голосование уже идет: [gold]/smvote <y/n>")) return;
-			SkipmapVoteSession session = new SkipmapVoteSession();
-			session.vote(player, 1);
-//			currentlyMapSkipping[0] = session;
-		});
 
-		playerCommand("smvote", "<y/n>", "Проголосовать за/протов пропуск карты", (arg, player) -> {
-			if(require(player.team() == Team.derelict, player, "[red]Вы не можете использовать эту команду")) return;
-			if(require(SkipmapVoteSession.current == null, player, "[red]Нет открытого голосования")) return;
-			if(require(player.isLocal(), player, "[red]Локальные игроки не могут голосовать")) return;
-			String voteSign = arg[0].toLowerCase();
-			int sign = 0;
-			if(voteSign.equals("y")) sign = +1;
-			if(voteSign.equals("n")) sign = -1;
-			if(require(SkipmapVoteSession.current.isPlayerVoted(player, sign), player, "[red]Ты уже проголосовал. Молчи!")) return;
-			if(require(sign == 0, player, "[red]Голосуйте либо \"y\" (да), либо \"n\" (нет)")) return;
-			SkipmapVoteSession.current.vote(player, sign);
-		});
 
 		playerCommand("pluginfo", "info about pluging", (arg, player) -> {
 			player.sendMessage(""
