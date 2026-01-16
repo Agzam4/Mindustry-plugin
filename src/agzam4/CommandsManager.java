@@ -770,6 +770,8 @@ public class CommandsManager {
 		serverCommand(new LinkCommand());
 		serverCommand(new HelperCommand());
 		serverCommand(new SetnickCommand());
+		serverCommand(new TeamCommand());
+		serverCommand(new ReloadmapsCommand());
 		
 		adminCommand("m", "", "Открыть меню", (args, admin) -> {
 			 var players = new NetMenu("[white]" + Config.serverName.get().toString());
@@ -829,7 +831,6 @@ public class CommandsManager {
 			 players.show(admin);
     	});
 
-		serverCommand(new TeamCommand());
 
 		serverCommand("runwave", "Запускает волну", (arg, sender, receiver, type) -> {
 			boolean force = receiver instanceof Player player ? Admins.has(player, Permissions.forceRunwave) : true;
@@ -896,28 +897,6 @@ public class CommandsManager {
 			Vars.netServer.admins.dosBlacklist.each((value) -> {
 				sender.sendMessage("> " + value + " - banned");
 			});
-		});
-
-		serverCommand("reloadmaps", "Перезагрузить карты", (arg, sender, receiver, type) -> {
-			int beforeMaps = Vars.maps.all().size;
-			Vars.maps.reload();
-			if (Vars.maps.all().size > beforeMaps) {
-				sender.sendMessage("[gold]" + (Vars.maps.all().size - beforeMaps) + " новых карт было найдено");
-			} else if (Vars.maps.all().size < beforeMaps) {
-				sender.sendMessage("[gold]" + (beforeMaps - Vars.maps.all().size) + " карт было удалено");
-			} else {
-				sender.sendMessage("[gold]Карты перезагружены");
-			}
-			beforeMaps = EventMap.maps.size;
-			EventMap.reload();
-			if (EventMap.maps.size > beforeMaps) {
-				sender.sendMessage("[gold]" + (EventMap.maps.size - beforeMaps) + " ивентных новых карт было найдено");
-			} else if (EventMap.maps.size < beforeMaps) {
-				sender.sendMessage("[gold]" + (beforeMaps - EventMap.maps.size) + " ивентных карт было удалено");
-			} else {
-				sender.sendMessage("[gold]Ивентные карты перезагружены");
-			}
-			AchievementsManager.updateMaps();
 		});
 
 		serverCommand("js", "<script...>", "Запустить JS", (arg, sender, receiver, type) -> {
