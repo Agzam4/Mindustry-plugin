@@ -772,6 +772,7 @@ public class CommandsManager {
 		serverCommand(new SetnickCommand());
 		serverCommand(new TeamCommand());
 		serverCommand(new ReloadmapsCommand());
+		serverCommand(new RunwaveCommand());
 		
 		adminCommand("m", "", "Открыть меню", (args, admin) -> {
 			 var players = new NetMenu("[white]" + Config.serverName.get().toString());
@@ -831,14 +832,6 @@ public class CommandsManager {
 			 players.show(admin);
     	});
 
-
-		serverCommand("runwave", "Запускает волну", (arg, sender, receiver, type) -> {
-			boolean force = receiver instanceof Player player ? Admins.has(player, Permissions.forceRunwave) : true;
-			if(require(!force && Vars.state.enemies > 0, sender, type.bungle("runwave.enemies"))) return;
-			Vars.logic.runWave();
-			sender.sendMessage(type.bungle("runwave.ready"));
-        });
-		
 		serverCommand("chatfilter", "<on/off>", "Включить/выключить фильтр чата", (arg, sender, receiver, type) -> {
 			if(require(arg.length == 0, sender, "[red]Недостаточно аргументов")) return;
 			if(arg[0].equals("on")) {
