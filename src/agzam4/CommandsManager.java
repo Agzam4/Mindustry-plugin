@@ -15,6 +15,7 @@ import agzam4.commands.Permissions;
 import agzam4.commands.Server;
 import agzam4.commands.admin.AdminCommand;
 import agzam4.commands.admin.BrushCommand;
+import agzam4.commands.admin.NickCommand;
 import agzam4.commands.admin.UnitCommand;
 import agzam4.commands.any.MapinfoCommand;
 import agzam4.commands.any.MapsCommand;
@@ -774,6 +775,7 @@ public class CommandsManager {
 		adminCommand(new UnitCommand());
 		adminCommand(new BrushCommand());
 		adminCommand(new agzam4.commands.admin.BotCommand());
+		adminCommand(new NickCommand());
 		
 		serverCommand(new ConfigCommand());
 		serverCommand(new FillitemsCommand());
@@ -1153,18 +1155,6 @@ public class CommandsManager {
 //				Admins.save();
 //			}
 //		});
-
-		adminCommand("nick", "[ник...]", "Установить никнейм на сервере", (args, player) -> {
-			String name = args.length == 0 ? "" : args[0];
-			name = name.replaceAll(" ", "_");
-			if(!Admins.has(player, Permissions.longname)) {
-				if(name.length() > 100) name = name.substring(0, 100);
-			}
-			PlayersData.data(player.uuid()).name = name.isEmpty() ? null : name;
-			PlayersData.save();
-			if(!name.isEmpty()) player.name(name);
-			player.sendMessage("[gold]Установлено имя: []" + player.coloredName());
-		});
 
 
 		adminCommand("custom", "<join/leave> [сообщение...]", "Установить сообщение подключения/отключения [lightgray]([coral]@name[] - для имени)", (args, player) -> {
