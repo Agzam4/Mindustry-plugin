@@ -773,6 +773,7 @@ public class CommandsManager {
 		serverCommand(new TeamCommand());
 		serverCommand(new ReloadmapsCommand());
 		serverCommand(new RunwaveCommand());
+		serverCommand(new BansCommand());
 		
 		adminCommand("m", "", "Открыть меню", (args, admin) -> {
 			 var players = new NetMenu("[white]" + Config.serverName.get().toString());
@@ -868,29 +869,6 @@ public class CommandsManager {
 			}
 		});
 
-		serverCommand("bans", "List all banned IPs and IDs", (arg, sender, receiver, type) -> {
-			sender.sendMessage("Banned players [ID]:");
-			
-			Vars.netServer.admins.playerInfo.each((key, info) -> {
-				if(info == null) return;
-				if(info.banned) {
-					sender.sendMessage("> " + key + " - banned");
-				}
-				if(Time.millis() < info.lastKicked) {
-					sender.sendMessage("> " + key + " - kicked [lightgray](" + (info.lastKicked - Time.millis())/1000/60 + " minutes)");
-				}
-			});
-			sender.sendMessage("Banned players [IP]:");
-			Vars.netServer.admins.kickedIPs.each((key, time) -> {
-				if(Time.millis() < time) {
-					sender.sendMessage("> " + key + " - kicked [lightgray](" + (time - Time.millis())/1000/60 + " minutes)");
-				}
-			});
-			sender.sendMessage("Dos players [IP]:");
-			Vars.netServer.admins.dosBlacklist.each((value) -> {
-				sender.sendMessage("> " + value + " - banned");
-			});
-		});
 
 		serverCommand("js", "<script...>", "Запустить JS", (arg, sender, receiver, type) -> {
 			if(type == ReceiverType.bot) {
