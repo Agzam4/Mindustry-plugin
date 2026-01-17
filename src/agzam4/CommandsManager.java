@@ -62,6 +62,8 @@ public class CommandsManager {
 				byte id = buffer.get();
 				
 				String command = ByteBufferIO.readString(buffer);
+				if(!anyAcsessCommands.contains(command) && !Admins.has(player, command)) return;
+
 				var completer = commandCompleters.get(command);
 				if(completer == null) return;
 				
@@ -277,6 +279,7 @@ public class CommandsManager {
 	private static Seq<BaseCommand> serverCommands = new Seq<BaseCommand>();
 	private static Seq<BotCommand> botCommands = new Seq<BotCommand>();
 	private static ObjectMap<String, CommandHandler<? super Player>> commandCompleters = ObjectMap.of();
+	private static ObjectSet<String> anyAcsessCommands = ObjectSet.with();
 	
 	public static enum ReceiverType {
 		
@@ -331,11 +334,13 @@ public class CommandsManager {
 
 	public static void playerCommand(CommandHandler<Player> run) {
 		commandCompleters.put(run.text, run);
+		anyAcsessCommands.add(run.text);
 		playerCommands.add(new PlayerCommand(run.text, run.parms, run.desc, (args, player) -> run.command(args, player::sendMessage, player, ReceiverType.player)));
 	}
 	
 	public static void anyCommand(CommandHandler<Object> run) {
 		commandCompleters.put(run.text, run);
+		anyAcsessCommands.add(run.text);
 		playerCommands.add(new PlayerCommand(run.text, run.parms, run.desc, (arg, player) -> run.command(arg, player::sendMessage, player, ReceiverType.player)));
 		serverCommands.add(new BaseCommand(run.text, run.parms, run.desc, (arg) -> run.command(arg, Log::info, server, ReceiverType.server)));
 		botCommands.add(new BotCommand(run.text, run.parms, run.desc, (arg, chat) -> run.command(arg, m -> chat.chat.message(m), chat, ReceiverType.bot)));
