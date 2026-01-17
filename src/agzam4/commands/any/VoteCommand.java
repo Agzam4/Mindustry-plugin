@@ -1,7 +1,7 @@
 package agzam4.commands.any;
 
 import agzam4.CommandsManager.ReceiverType;
-import agzam4.CommandsManager.ResultSender;
+import agzam4.CommandsManager.CommandSender;
 import agzam4.admins.Admins;
 import agzam4.bot.TUser.MessageData;
 import agzam4.commands.CommandHandler;
@@ -20,7 +20,7 @@ public class VoteCommand extends CommandHandler<Object> {
 	}
 
 	@Override
-	public void command(String[] args, ResultSender sender, Object receiver, ReceiverType type) {
+	public void command(String[] args, CommandSender sender, Object receiver, ReceiverType type) {
 		if(require(KickVoteSession.current == null, sender, "[red]Ни за кого не голосуют")) return;
         boolean permission = Admins.has(receiver, "votekick");
         

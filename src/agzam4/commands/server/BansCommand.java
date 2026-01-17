@@ -1,7 +1,7 @@
 package agzam4.commands.server;
 
 import agzam4.CommandsManager.ReceiverType;
-import agzam4.CommandsManager.ResultSender;
+import agzam4.CommandsManager.CommandSender;
 import agzam4.commands.CommandHandler;
 import arc.util.Time;
 import mindustry.Vars;
@@ -13,7 +13,7 @@ public class BansCommand extends CommandHandler<Object> {
 	}
 
 	@Override
-	public void command(String[] args, ResultSender sender, Object receiver, ReceiverType type) {
+	public void command(String[] args, CommandSender sender, Object receiver, ReceiverType type) {
 		sender.sendMessage("Banned players [ID]:");
 		Vars.netServer.admins.playerInfo.each((key, info) -> {
 			if(info == null) return;

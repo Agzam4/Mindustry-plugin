@@ -2,7 +2,7 @@ package agzam4.commands.admin;
 
 import agzam4.CommandsManager;
 import agzam4.CommandsManager.ReceiverType;
-import agzam4.CommandsManager.ResultSender;
+import agzam4.CommandsManager.CommandSender;
 import agzam4.bot.Bots.NotifyTag;
 import agzam4.bot.TChat;
 import agzam4.bot.TSender;
@@ -25,7 +25,7 @@ public class BotCommand extends CommandHandler<Player> {
 	}
 	
 	@Override
-	public void command(String[] args, ResultSender player, Player receiver, ReceiverType type) {
+	public void command(String[] args, CommandSender player, Player receiver, ReceiverType type) {
 		if(require(args.length < 1, player, "Мало аргументов")) return;
 		try {
 			args[0] = args[0].toLowerCase();

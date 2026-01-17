@@ -1,7 +1,7 @@
 package agzam4.commands.server;
 
 import agzam4.CommandsManager.ReceiverType;
-import agzam4.CommandsManager.ResultSender;
+import agzam4.CommandsManager.CommandSender;
 import agzam4.commands.CommandHandler;
 import arc.struct.Seq;
 import mindustry.Vars;
@@ -17,7 +17,7 @@ public class SandboxCommand extends CommandHandler<Object> {
 	}
 
 	@Override
-	public void command(String[] args, ResultSender sender, Object receiver, ReceiverType type) {
+	public void command(String[] args, CommandSender sender, Object receiver, ReceiverType type) {
 		if(require(args.length == 0, sender, "enabled: " + Vars.state.rules.infiniteResources)) return;
 		Team team = null;
 		if(args.length == 2) {

@@ -1,7 +1,7 @@
 package agzam4.commands.server;
 
 import agzam4.CommandsManager.ReceiverType;
-import agzam4.CommandsManager.ResultSender;
+import agzam4.CommandsManager.CommandSender;
 import agzam4.achievements.AchievementsManager;
 import agzam4.commands.CommandHandler;
 import agzam4.events.EventMap;
@@ -14,7 +14,7 @@ public class ReloadmapsCommand extends CommandHandler<Object> {
 	}
 	
 	@Override
-	public void command(String[] args, ResultSender sender, Object receiver, ReceiverType type) {
+	public void command(String[] args, CommandSender sender, Object receiver, ReceiverType type) {
 		int beforeMaps = Vars.maps.all().size;
 		Vars.maps.reload();
 		if (Vars.maps.all().size > beforeMaps) {

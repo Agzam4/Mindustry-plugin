@@ -2,7 +2,7 @@ package agzam4.commands.admin;
 
 import agzam4.Game;
 import agzam4.CommandsManager.ReceiverType;
-import agzam4.CommandsManager.ResultSender;
+import agzam4.CommandsManager.CommandSender;
 import agzam4.admins.Admins;
 import agzam4.commands.CommandHandler;
 import agzam4.net.NetMenu;
@@ -23,7 +23,7 @@ public class MCommand extends CommandHandler<Player> {
 	}
 
 	@Override
-	public void command(String[] args, ResultSender sender, Player admin, ReceiverType type) {
+	public void command(String[] args, CommandSender sender, Player admin, ReceiverType type) {
 		 var players = new NetMenu("[white]" + Config.serverName.get().toString());
 
 		 for (int i = 0; i < Groups.player.size(); i++) {

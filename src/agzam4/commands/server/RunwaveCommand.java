@@ -1,7 +1,7 @@
 package agzam4.commands.server;
 
 import agzam4.CommandsManager.ReceiverType;
-import agzam4.CommandsManager.ResultSender;
+import agzam4.CommandsManager.CommandSender;
 import agzam4.admins.Admins;
 import agzam4.commands.CommandHandler;
 import agzam4.commands.Permissions;
@@ -14,7 +14,7 @@ public class RunwaveCommand extends CommandHandler<Object> {
 	}
 
 	@Override
-	public void command(String[] args, ResultSender sender, Object receiver, ReceiverType type) {
+	public void command(String[] args, CommandSender sender, Object receiver, ReceiverType type) {
 		boolean force = Admins.has(receiver, Permissions.forceRunwave);
 		if(require(!force && Vars.state.enemies > 0, sender, type.bungle("runwave.enemies"))) return;
 		Vars.logic.runWave();

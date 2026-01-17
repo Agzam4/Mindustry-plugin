@@ -4,7 +4,7 @@ import static agzam4.Emoji.liquidsEmoji;
 import static agzam4.Emoji.oreBlocksEmoji;
 
 import agzam4.CommandsManager.ReceiverType;
-import agzam4.CommandsManager.ResultSender;
+import agzam4.CommandsManager.CommandSender;
 import agzam4.admins.Admins;
 import agzam4.commands.CommandHandler;
 import agzam4.utils.Log;
@@ -24,7 +24,7 @@ public class MapinfoCommand extends CommandHandler<Object> {
 	}
 	
 	@Override
-	public void command(String[] args, ResultSender sender, Object receiver, ReceiverType type) {
+	public void command(String[] args, CommandSender sender, Object receiver, ReceiverType type) {
 		final Item itemDrops[] = new Item[] {
 				Items.copper,
 				Items.lead,

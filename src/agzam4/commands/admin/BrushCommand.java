@@ -1,7 +1,7 @@
 package agzam4.commands.admin;
 
 import agzam4.Game;
-import agzam4.CommandsManager.ResultSender;
+import agzam4.CommandsManager.CommandSender;
 import agzam4.CommandsManager.ReceiverType;
 import agzam4.admins.Admins;
 import agzam4.commands.CommandHandler;
@@ -125,7 +125,7 @@ public class BrushCommand extends CommandHandler<Player> {
 	}
 	
 	@Override
-	public void command(String[] args, ResultSender sender, Player player, ReceiverType type) {
+	public void command(String[] args, CommandSender sender, Player player, ReceiverType type) {
 		Brush brush = Brush.get(player);
 		if(args.length == 0) {
 			sender.sendMessage(Strings.format("Кисточка: [@,@,@]", brush.floor, brush.overlay, brush.block));
@@ -207,13 +207,15 @@ public class BrushCommand extends CommandHandler<Player> {
 	}
 	
 	private boolean allowedBlock(Block find, Player player) {
-		return (find.canBeBuilt() || find.buildVisibility == BuildVisibility.hidden) || Admins.has(player, "brush-sandbox");
+		if(find == Blocks.air) return false;
+		if(find.canBeBuilt() || find.buildVisibility == BuildVisibility.hidden) return true;
+		return Admins.has(player, "brush-sandbox");
 	}
 
 	@Override
 	public Seq<?> complete(String[] args, Player receiver, ReceiverType type) {
 		if(args.length == 0) return Seq.with("none очистить все слои", "block", "floor", "overlay", "info");
-		Seq<Object> seq = Seq.with("air", "none");
+		Seq<Object> seq = Seq.with("air ластик", "none убрать взаимодействие");
 		if(args[0].equalsIgnoreCase("b") || args[0].equalsIgnoreCase("block")) {
 			seq.addAll(Vars.content.blocks().select(b -> allowedBlock(b, receiver)));
 			return seq;

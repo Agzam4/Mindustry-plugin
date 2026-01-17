@@ -1,7 +1,7 @@
 package agzam4.commands.server;
 
 import agzam4.CommandsManager;
-import agzam4.CommandsManager.ResultSender;
+import agzam4.CommandsManager.CommandSender;
 import agzam4.CommandsManager.ReceiverType;
 import agzam4.Game;
 import agzam4.admins.AdminData;
@@ -23,7 +23,7 @@ public class HelperCommand extends CommandHandler<Object> {
 	}
 	
 	@Override
-	public void command(String[] args, ResultSender sender, Object receiver, ReceiverType type) {
+	public void command(String[] args, CommandSender sender, Object receiver, ReceiverType type) {
 		int code = 0;
 		if(args[0].equalsIgnoreCase("add")) code = 1;
 		else if(args[0].equalsIgnoreCase("remove")) code = -1;

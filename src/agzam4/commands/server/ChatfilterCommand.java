@@ -2,7 +2,7 @@ package agzam4.commands.server;
 
 import agzam4.AgzamPlugin;
 import agzam4.CommandsManager.ReceiverType;
-import agzam4.CommandsManager.ResultSender;
+import agzam4.CommandsManager.CommandSender;
 import agzam4.commands.CommandHandler;
 import arc.Core;
 import arc.struct.Seq;
@@ -17,7 +17,7 @@ public class ChatfilterCommand extends CommandHandler<Object> {
 	}
 
 	@Override
-	public void command(String[] argы, ResultSender sender, Object receiver, ReceiverType type) {
+	public void command(String[] argы, CommandSender sender, Object receiver, ReceiverType type) {
 		if(require(argы.length == 0, sender, "[red]Недостаточно аргументов")) return;
 		if(argы[0].equals("on")) {
 			chatFilter = true;

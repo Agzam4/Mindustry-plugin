@@ -321,13 +321,13 @@ public class CommandsManager {
 		playerCommands.add(new PlayerCommand(text, "", desc, run).admin(true));
 	}
 	
-	public static void serverCommand(String text, String desc, Cons4<String[], ResultSender, Object, ReceiverType> run) {
+	public static void serverCommand(String text, String desc, Cons4<String[], CommandSender, Object, ReceiverType> run) {
 		playerCommands.add(new PlayerCommand(text, "", desc, (arg, player) -> run.get(arg, player::sendMessage, player, ReceiverType.player)).admin(true));
 		serverCommands.add(new BaseCommand(text, "", desc, (arg) -> run.get(arg, Log::info, null, ReceiverType.server)));
 		botCommands.add(new BotCommand(text, "", desc, (arg, chat) -> run.get(arg, m -> chat.chat.message(m), chat, ReceiverType.bot)));
 	}
 
-	public static void serverCommand(String text, String parms, String desc, Cons4<String[], ResultSender, Object, ReceiverType> run) {
+	public static void serverCommand(String text, String parms, String desc, Cons4<String[], CommandSender, Object, ReceiverType> run) {
 		playerCommands.add(new PlayerCommand(text, parms, desc, (arg, player) -> run.get(arg, player::sendMessage, player, ReceiverType.player)).admin(true));
 		serverCommands.add(new BaseCommand(text, parms, desc, (arg) -> run.get(arg, Log::info, null, ReceiverType.server)));
 		botCommands.add(new BotCommand(text, parms, desc, (arg, chat) -> run.get(arg, m -> chat.chat.message(m), chat, ReceiverType.bot)));
@@ -374,7 +374,7 @@ public class CommandsManager {
 		botCommands.add(new BotCommand(text, parms, desc, (arg, chat) -> run.get(arg, chat)));
 	}
 	
-	public static interface ResultSender {
+	public static interface CommandSender {
 		void sendMessage(String message);
 	}
 	
@@ -876,7 +876,7 @@ public class CommandsManager {
 		return b;
 	}
 
-	public static boolean require(boolean b, ResultSender receiver, String string) {
+	public static boolean require(boolean b, CommandSender receiver, String string) {
 		if(b) receiver.sendMessage(string);
 		return b;
 	}

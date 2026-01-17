@@ -2,7 +2,7 @@ package agzam4.commands.admin;
 
 import agzam4.Game;
 import agzam4.CommandsManager.ReceiverType;
-import agzam4.CommandsManager.ResultSender;
+import agzam4.CommandsManager.CommandSender;
 import agzam4.commands.CommandHandler;
 import arc.struct.Seq;
 import arc.util.Strings;
@@ -19,7 +19,7 @@ public class AdminCommand extends CommandHandler<Player> {
 	}
 	
 	@Override
-	public void command(String[] args, ResultSender sender, Player player, ReceiverType type) {
+	public void command(String[] args, CommandSender sender, Player player, ReceiverType type) {
 		if(require(args.length != 2 || !(args[0].equals("add") || args[0].equals("remove")), sender, "[red]Second parameter must be either 'add' or 'remove'.")) return;
 		boolean add = args[0].equals("add");
 		PlayerInfo target;

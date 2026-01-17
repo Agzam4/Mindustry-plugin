@@ -2,7 +2,7 @@ package agzam4.commands.server;
 
 import agzam4.AgzamPlugin;
 import agzam4.CommandsManager.ReceiverType;
-import agzam4.CommandsManager.ResultSender;
+import agzam4.CommandsManager.CommandSender;
 import agzam4.commands.CommandHandler;
 import agzam4.commands.Server;
 import arc.Core;
@@ -53,7 +53,7 @@ public class DoorscapCommand extends CommandHandler<Object> {
 	}
 
 	@Override
-	public void command(String[] arg, ResultSender sender, Object receiver, ReceiverType type) {
+	public void command(String[] arg, CommandSender sender, Object receiver, ReceiverType type) {
 		if(require(arg.length == 0, sender, type.format("doorscap.doors", doorsCoordinates.size, Server.doorsCap))) return;
 		try {
 			int lastDoorsCup = Server.doorsCap;

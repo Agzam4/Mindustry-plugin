@@ -2,7 +2,7 @@ package agzam4.commands.server;
 
 import agzam4.Game;
 import agzam4.PlayersData;
-import agzam4.CommandsManager.ResultSender;
+import agzam4.CommandsManager.CommandSender;
 import agzam4.CommandsManager.ReceiverType;
 import agzam4.admins.Admins;
 import agzam4.commands.CommandHandler;
@@ -17,7 +17,7 @@ public class SetcustomCommand extends CommandHandler<Object> {
 	}
 	
 	@Override
-	public void command(String[] args, ResultSender sender, Object receiver, ReceiverType type) {
+	public void command(String[] args, CommandSender sender, Object receiver, ReceiverType type) {
 		if(args.length == 0) return;
 		Player p = Game.findPlayer(args[0]);
 		if(require(p == null, sender, "[red]Игрок не найден")) return;

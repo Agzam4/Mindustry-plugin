@@ -1,7 +1,7 @@
 package agzam4.commands.players;
 
 import agzam4.CommandsManager.ReceiverType;
-import agzam4.CommandsManager.ResultSender;
+import agzam4.CommandsManager.CommandSender;
 import agzam4.commands.CommandHandler;
 import agzam4.commands.Server;
 import mindustry.gen.Call;
@@ -14,7 +14,7 @@ public class DiscordCommand extends CommandHandler<Player> {
 	}
 	
 	@Override
-	public void command(String[] args, ResultSender sender, Player player, ReceiverType type) {
+	public void command(String[] args, CommandSender sender, Player player, ReceiverType type) {
 		if(Server.discordLink == null) {
 			sender.sendMessage("[red]\ue80d Ссылка отсутствует");
 		} else {

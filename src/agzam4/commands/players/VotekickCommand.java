@@ -2,7 +2,7 @@ package agzam4.commands.players;
 
 import agzam4.Images;
 import agzam4.CommandsManager.ReceiverType;
-import agzam4.CommandsManager.ResultSender;
+import agzam4.CommandsManager.CommandSender;
 import agzam4.admins.Admins;
 import agzam4.bot.Bots;
 import agzam4.bot.TelegramBot;
@@ -31,7 +31,7 @@ public class VotekickCommand extends CommandHandler<Player> {
 	}
 	
 	@Override
-	public void command(String[] args, ResultSender sender, Player player, ReceiverType type) {
+	public void command(String[] args, CommandSender sender, Player player, ReceiverType type) {
 		try {
             if(require(!Config.enableVotekick.bool(), sender, "[red]Голосование на этом сервере отключено")) return;
             if(require(player.isLocal(), sender, "[red]Просто кикни их сам, если ты хост")) return;

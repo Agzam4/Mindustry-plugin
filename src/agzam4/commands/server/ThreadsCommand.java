@@ -1,7 +1,7 @@
 package agzam4.commands.server;
 
 import agzam4.CommandsManager.ReceiverType;
-import agzam4.CommandsManager.ResultSender;
+import agzam4.CommandsManager.CommandSender;
 import agzam4.commands.CommandHandler;
 import arc.func.Func;
 import arc.struct.Seq;
@@ -16,7 +16,7 @@ public class ThreadsCommand extends CommandHandler<Object> {
 	}
 	
 	@Override
-	public void command(String[] args, ResultSender sender, Object receiver, ReceiverType type) {
+	public void command(String[] args, CommandSender sender, Object receiver, ReceiverType type) {
 		StringBuilder message = new StringBuilder("Threads");
 		Func<String, Byte> filter = (keyword) -> {
 			if(Structs.contains(args, keyword) || Structs.contains(args, "+" + keyword)) return 1;

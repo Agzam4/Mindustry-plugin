@@ -1,7 +1,7 @@
 package agzam4.commands.any;
 
 import agzam4.CommandsManager.ReceiverType;
-import agzam4.CommandsManager.ResultSender;
+import agzam4.CommandsManager.CommandSender;
 import agzam4.commands.CommandHandler;
 import agzam4.events.EventMap;
 import arc.struct.Seq;
@@ -17,7 +17,7 @@ public class MapsCommand extends CommandHandler<Object> {
 	}
 	
 	@Override
-	public void command(String[] args, ResultSender sender, Object receiver, ReceiverType type) {
+	public void command(String[] args, CommandSender sender, Object receiver, ReceiverType type) {
 		String types = "all";
 		if(args.length == 0) types = Vars.maps.getShuffleMode().name();
 		else types = args[0];

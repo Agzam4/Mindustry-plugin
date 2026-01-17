@@ -1,7 +1,7 @@
 package agzam4.commands.any;
 
 import agzam4.CommandsManager.ReceiverType;
-import agzam4.CommandsManager.ResultSender;
+import agzam4.CommandsManager.CommandSender;
 import agzam4.admins.Admins;
 import agzam4.commands.CommandHandler;
 import agzam4.votes.SkipmapVoteSession;
@@ -17,7 +17,7 @@ public class SmvoteCommand extends CommandHandler<Object> {
 	}
 
 	@Override
-	public void command(String[] arg, ResultSender sender, Object reciver, ReceiverType type) {
+	public void command(String[] arg, CommandSender sender, Object reciver, ReceiverType type) {
 		String voteSign = arg[0].toLowerCase();
 		if(Admins.has(reciver, "smvote") && voteSign.equals("c")) {
 			SkipmapVoteSession.current.cancel();

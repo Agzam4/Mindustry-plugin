@@ -13,7 +13,7 @@ public class JsCommand extends CommandHandler<Object> {
 	}
 
 	@Override
-	public void command(String[] arg, ResultSender sender, Object receiver, ReceiverType type) {
+	public void command(String[] arg, CommandSender sender, Object receiver, ReceiverType type) {
 		if(type == ReceiverType.bot) {
 			Core.app.post(() -> {
 				sender.sendMessage(type.format("js", Vars.mods.getScripts().runConsole(arg[0])));
