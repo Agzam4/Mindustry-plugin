@@ -117,6 +117,7 @@ public class CommandsManager {
 		});
 
     	Events.on(PlayerJoin.class, e -> {
+			Call.hideHudText(e.player.con);
     		
     		Bots.notify(NotifyTag.playerConnection,
     				Strings.format("<b>@</b>@ has joined <i>(@ players)</i>", TelegramBot.strip(e.player.name), (e.player.admin() ? " (admin)":""), Players.joinedAmount()),
@@ -591,6 +592,7 @@ public class CommandsManager {
 		serverCommand(new DoorscapCommand());
 		serverCommand(new SandboxCommand());
 		serverCommand(new ExtrastarCommand());
+		serverCommand(new InfoCommand());
 
 
 //		adminCommand("pardon", "<ID> [index]", "Прощает выбор игрока по ID и позволяет ему присоединиться снова.", (arg, player) -> {
