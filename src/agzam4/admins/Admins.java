@@ -77,9 +77,14 @@ public class Admins {
 	 * @param player - target player
 	 * @return true of player was removed or null if player is null or not found
 	 */
-	public static boolean remove(Player player) {
+	public static boolean remove(@Nullable Player player) {
 		if(player == null) return false;
 		return admins.remove(player.getInfo()) != null;
+	}
+
+	public static boolean remove(@Nullable PlayerInfo player) {
+		if(player == null) return false;
+		return admins.remove(player) != null;
 	}
 
 	public static boolean refresh(@Nullable Player player) {
@@ -120,4 +125,7 @@ public class Admins {
 		save.writeString(result.toString(), false);
 	}
 
+	public static ObjectMap<PlayerInfo, AdminData> admins() {
+		return admins;
+	}
 }
