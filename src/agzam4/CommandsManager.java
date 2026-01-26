@@ -1,6 +1,7 @@
 package agzam4;
 
 import java.nio.ByteBuffer;
+
 import agzam4.achievements.AchievementsManager;
 import agzam4.achievements.AchievementsManager.Achievement;
 import agzam4.admins.Admins;
@@ -305,6 +306,48 @@ public class CommandsManager {
 		
 	}
 	
+	private static Func<Player, CommandSender> playerSender = p -> new CommandSender() {
+		
+		@Override
+		public void sendMessage(String message) {
+			p.sendMessage(message);
+		}
+		
+		@Override
+		public boolean hasPermissions(String type) {
+			return Admins.has(p, type);
+		}
+		
+	};
+
+	private static Prov<CommandSender> serverSender = () -> new CommandSender() {
+		
+		@Override
+		public void sendMessage(String message) {
+			Log.info(message);
+		}
+		
+		@Override
+		public boolean hasPermissions(String type) {
+			return true;
+		}
+		
+	};
+
+	private static Func<MessageData, CommandSender> botSender = chat -> new CommandSender() {
+		
+		@Override
+		public void sendMessage(String message) {
+			chat.chat.message(message);
+		}
+		
+		@Override
+		public boolean hasPermissions(String type) {
+			return chat.hasPermissions(type);
+		}
+		
+	};
+	
 	public static void playerCommand(String text, String parms, String desc, CommandRunner<Player> run) {
 		playerCommands.add(new PlayerCommand(text, parms, desc, run));
 	}
@@ -322,48 +365,48 @@ public class CommandsManager {
 	}
 	
 	public static void serverCommand(String text, String desc, Cons4<String[], CommandSender, Object, ReceiverType> run) {
-		playerCommands.add(new PlayerCommand(text, "", desc, (arg, player) -> run.get(arg, player::sendMessage, player, ReceiverType.player)).admin(true));
-		serverCommands.add(new BaseCommand(text, "", desc, (arg) -> run.get(arg, Log::info, null, ReceiverType.server)));
-		botCommands.add(new BotCommand(text, "", desc, (arg, chat) -> run.get(arg, m -> chat.chat.message(m), chat, ReceiverType.bot)));
+		playerCommands.add(new PlayerCommand(text, "", desc, (arg, player) -> run.get(arg, playerSender.get(player), player, ReceiverType.player)).admin(true));
+		serverCommands.add(new BaseCommand(text, "", desc, (arg) -> run.get(arg, serverSender.get(), null, ReceiverType.server)));
+		botCommands.add(new BotCommand(text, "", desc, (arg, chat) -> run.get(arg, botSender.get(chat), chat, ReceiverType.bot)));
 	}
 
 	public static void serverCommand(String text, String parms, String desc, Cons4<String[], CommandSender, Object, ReceiverType> run) {
-		playerCommands.add(new PlayerCommand(text, parms, desc, (arg, player) -> run.get(arg, player::sendMessage, player, ReceiverType.player)).admin(true));
-		serverCommands.add(new BaseCommand(text, parms, desc, (arg) -> run.get(arg, Log::info, null, ReceiverType.server)));
-		botCommands.add(new BotCommand(text, parms, desc, (arg, chat) -> run.get(arg, m -> chat.chat.message(m), chat, ReceiverType.bot)));
+		playerCommands.add(new PlayerCommand(text, parms, desc, (arg, player) -> run.get(arg, playerSender.get(player), player, ReceiverType.player)).admin(true));
+		serverCommands.add(new BaseCommand(text, parms, desc, (arg) -> run.get(arg, serverSender.get(), null, ReceiverType.server)));
+		botCommands.add(new BotCommand(text, parms, desc, (arg, chat) -> run.get(arg, botSender.get(chat), chat, ReceiverType.bot)));
 	}
 
 	public static void playerCommand(CommandHandler<Player> run) {
 		commandCompleters.put(run.text, run);
 		anyAcsessCommands.add(run.text);
-		playerCommands.add(new PlayerCommand(run.text, run.parms, run.desc, (args, player) -> run.command(args, player::sendMessage, player, ReceiverType.player)));
+		playerCommands.add(new PlayerCommand(run.text, run.parms, run.desc, (args, player) -> run.command(args, playerSender.get(player), player, ReceiverType.player)));
 	}
 	
 	public static void anyCommand(CommandHandler<Object> run) {
 		commandCompleters.put(run.text, run);
 		anyAcsessCommands.add(run.text);
-		playerCommands.add(new PlayerCommand(run.text, run.parms, run.desc, (arg, player) -> run.command(arg, player::sendMessage, player, ReceiverType.player)));
-		serverCommands.add(new BaseCommand(run.text, run.parms, run.desc, (arg) -> run.command(arg, Log::info, server, ReceiverType.server)));
-		botCommands.add(new BotCommand(run.text, run.parms, run.desc, (arg, chat) -> run.command(arg, m -> chat.chat.message(m), chat, ReceiverType.bot)));
+		playerCommands.add(new PlayerCommand(run.text, run.parms, run.desc, (arg, player) -> run.command(arg, playerSender.get(player), player, ReceiverType.player)));
+		serverCommands.add(new BaseCommand(run.text, run.parms, run.desc, (arg) -> run.command(arg, serverSender.get(), server, ReceiverType.server)));
+		botCommands.add(new BotCommand(run.text, run.parms, run.desc, (arg, chat) -> run.command(arg, botSender.get(chat), chat, ReceiverType.bot)));
 	}
 
 	public static void adminCommand(CommandHandler<Player> run) {
 		commandCompleters.put(run.text, run);
-		playerCommands.add(new PlayerCommand(run.text, run.parms, run.desc, (args, player) -> run.command(args, player::sendMessage, player, ReceiverType.player)).admin(true));
+		playerCommands.add(new PlayerCommand(run.text, run.parms, run.desc, (args, player) -> run.command(args, playerSender.get(player), player, ReceiverType.player)).admin(true));
 	}
 	
 	public static void serverCommand(CommandHandler<Object> run) {
 		commandCompleters.put(run.text, run);
-		playerCommands.add(new PlayerCommand(run.text, run.parms, run.desc, (arg, player) -> run.command(arg, player::sendMessage, player, ReceiverType.player)).admin(true));
-		serverCommands.add(new BaseCommand(run.text, run.parms, run.desc, (arg) -> run.command(arg, Log::info, null, ReceiverType.server)));
-		botCommands.add(new BotCommand(run.text, run.parms, run.desc, (arg, chat) -> run.command(arg, m -> chat.chat.message(m), chat, ReceiverType.bot)));
+		playerCommands.add(new PlayerCommand(run.text, run.parms, run.desc, (arg, player) -> run.command(arg, playerSender.get(player), player, ReceiverType.player)).admin(true));
+		serverCommands.add(new BaseCommand(run.text, run.parms, run.desc, (arg) -> run.command(arg, serverSender.get(), null, ReceiverType.server)));
+		botCommands.add(new BotCommand(run.text, run.parms, run.desc, (arg, chat) -> run.command(arg, botSender.get(chat), chat, ReceiverType.bot)));
 	}
 	
 	public static void serverCommand(String text, String parms, String desc, CommandHandler<Object> run) {
 		commandCompleters.put(text, run);
-		playerCommands.add(new PlayerCommand(text, parms, desc, (arg, player) -> run.command(arg, player::sendMessage, player, ReceiverType.player)).admin(true));
-		serverCommands.add(new BaseCommand(text, parms, desc, (arg) -> run.command(arg, Log::info, null, ReceiverType.server)));
-		botCommands.add(new BotCommand(text, parms, desc, (arg, chat) -> run.command(arg, m -> chat.chat.message(m), chat, ReceiverType.bot)));
+		playerCommands.add(new PlayerCommand(text, parms, desc, (arg, player) -> run.command(arg, playerSender.get(player), player, ReceiverType.player)).admin(true));
+		serverCommands.add(new BaseCommand(text, parms, desc, (arg) -> run.command(arg, serverSender.get(), null, ReceiverType.server)));
+		botCommands.add(new BotCommand(text, parms, desc, (arg, chat) -> run.command(arg, botSender.get(chat), chat, ReceiverType.bot)));
 	}
 
 	public static void botCommand(String text, String desc, Cons2<String[], MessageData> run) {
@@ -375,7 +418,10 @@ public class CommandsManager {
 	}
 	
 	public static interface CommandSender {
+		
 		void sendMessage(String message);
+		boolean hasPermissions(String type);
+		
 	}
 	
 	public static class BotCommand {
