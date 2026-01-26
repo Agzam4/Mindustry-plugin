@@ -12,6 +12,7 @@ public class ConfigCommand extends CommandHandler<Object> {
 	{
 		parms = "[name] [set/add] [value...]";
 		desc = "Конфигурация сервера";
+		new Config("playerlimit", "limit players on server", 30);
 	}
 	
 	@Override
