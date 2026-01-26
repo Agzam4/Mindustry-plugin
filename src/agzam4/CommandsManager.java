@@ -58,11 +58,43 @@ public class CommandsManager {
 		
 		Vars.netServer.addBinaryPacketHandler("agzam4.cmd-sug", (player, bs) -> {
 			try {
+				Cons2<Byte, Seq<?>> send = (id,result) -> {
+					int maxSize = Byte.MAX_VALUE;
+					int parts = (result.size+maxSize-1)/maxSize;
+					for (int p = 0; p < parts; p++) {
+						int offset = p*maxSize;
+						int size = Math.min(offset+maxSize, result.size) - offset;
+						var res = ByteBuffer.allocate(size * Byte.MAX_VALUE);
+						res.put(id);
+						res.putShort((short) offset);
+						res.put((byte) (size));
+						res.putShort((short) result.size);
+						for (int i = 0; i < size; i++) {
+							var obj = result.get(i+offset);
+							if(obj instanceof MappableContent content) {
+								res.put((byte) content.getContentType().ordinal());
+								res.putShort(content.id);
+							} else {
+								res.put((byte) -1);
+								ByteBufferIO.writeString(res, obj.toString());
+							}
+						}
+						Log.info("sending id: #@", id);
+						Call.clientBinaryPacketReliable(player.con, "agzam4.cmd-sug", res.array());
+					}
+				};
+				
 				var buffer = ByteBuffer.wrap(bs);
 				
 				byte id = buffer.get();
 				
 				String command = ByteBufferIO.readString(buffer);
+				if(command.length() == 0) {
+					var result = playerCommands.map(c -> c.text)
+							.select(c -> anyAcsessCommands.contains(c) || Admins.has(player, command));
+					send.get(id, result);
+					return;
+				}
 				if(!anyAcsessCommands.contains(command) && !Admins.has(player, command)) return;
 
 				var completer = commandCompleters.get(command);
@@ -74,29 +106,8 @@ public class CommandsManager {
 				}
 				var result = completer.complete(args, player, ReceiverType.player);
 				if(result == null) return;
-
-				int maxSize = Byte.MAX_VALUE;
-				int parts = (result.size+maxSize-1)/maxSize;
-				for (int p = 0; p < parts; p++) {
-					int offset = p*maxSize;
-					int size = Math.min(offset+maxSize, result.size) - offset;
-					var res = ByteBuffer.allocate(size * Byte.MAX_VALUE);
-					res.put(id);
-					res.putShort((short) offset);
-					res.put((byte) (size));
-					res.putShort((short) result.size);
-					for (int i = 0; i < size; i++) {
-						var obj = result.get(i+offset);
-						if(obj instanceof MappableContent content) {
-							res.put((byte) content.getContentType().ordinal());
-							res.putShort(content.id);
-						} else {
-							res.put((byte) -1);
-							ByteBufferIO.writeString(res, obj.toString());
-						}
-					}
-					Call.clientBinaryPacketReliable(player.con, "agzam4.cmd-sug", res.array());
-				}
+				send.get(id, result);
+				
 			} catch (Exception e) {
 				Log.err(e);
 			}
