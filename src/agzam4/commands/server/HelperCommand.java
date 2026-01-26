@@ -12,8 +12,9 @@ import agzam4.utils.Log;
 import arc.struct.ObjectSet;
 import arc.struct.Seq;
 import arc.util.Strings;
-import mindustry.gen.Groups;
+import mindustry.Vars;
 import mindustry.gen.Player;
+import mindustry.net.Administration.PlayerInfo;
 
 public class HelperCommand extends CommandHandler<Object> {
 	
@@ -29,8 +30,7 @@ public class HelperCommand extends CommandHandler<Object> {
 		else if(args[0].equalsIgnoreCase("remove")) code = -1;
 		else if(args[0].equalsIgnoreCase("refresh")) code = 2;
 		if(code == 0) {
-			Player found = Groups.player.find(p -> p.uuid().equals(args[0]));
-            if(found == null) found = Groups.player.find(p -> p.name.equals(args[0]));
+            Player found = Game.findPlayer(args[0]);
 			if(require(found == null, sender, "[red]UIID не найден")) return;
             
 			AdminData data = Admins.adminData(found.getInfo());
@@ -55,18 +55,28 @@ public class HelperCommand extends CommandHandler<Object> {
 		} else {
 			if(require(args.length < 2, sender, "[red]Слишком мало аргументов")) return;
 
-            Player found = Groups.player.find(p -> p.uuid().equals(args[1]));
-            if(found == null) found = Groups.player.find(p -> p.name.equals(args[1]));
+			if(code == -1) {
+	            PlayerInfo info = Vars.netServer.admins.playerInfo.get(args[1]);
+	            if(info == null) {
+	                Player found = Game.findPlayer(args[1]);
+	            	if(found != null) info = Vars.netServer.admins.playerInfo.get(found.uuid());
+	            }
+				if(require(info == null, sender, "[red]Игрок не найден")) return;
+				
+				if(Admins.remove(info)) sender.sendMessage("Игрок [gold]" + info.plainLastName() + "[] успешно удален!");
+				else sender.sendMessage("[red]Игрок [gold]" + info.plainLastName() + "[] не найден!");
+				return;
+			}
+
+            Player found = Game.findPlayer(args[1]);
 			if(require(found == null, sender, "[red]Игрок не найден")) return;
+			
 			if(code == 2) {
 				if(Admins.refresh(found)) sender.sendMessage("Игрок [gold]" + found.plainName() + "[] успешно обновлен!");
 				else sender.sendMessage("[red]Игрок [gold]" + found.plainName() + "[] уже обновлен!");
 			} if(code == 1) {
 				if(Admins.add(found)) sender.sendMessage("Игрок [gold]" + found.plainName() + "[] успешно добавлен!");
 				else sender.sendMessage("[red]Игрок [gold]" + found.plainName() + "[] уже добавлен!");
-			} else if(code == -1) {
-				if(Admins.remove(found)) sender.sendMessage("Игрок [gold]" + found.plainName() + "[] успешно удален!");
-				else sender.sendMessage("[red]Игрок [gold]" + found.plainName() + "[] не найден!");
 			}
 			Admins.save();
 		}
@@ -76,7 +86,12 @@ public class HelperCommand extends CommandHandler<Object> {
 	public Seq<String> complete(String[] args, Object receiver, ReceiverType type) {
 		if(args.length == 0) return completePlayers().addAll("add ", "remove", "refresh");
 		if(args.length == 1) {
-			if(args[0].equals("add") || args[0].equals("remove") || args[0].equals("refresh")) return completePlayers();
+			if(args[0].equals("remove")) {
+				Seq<String> list = Seq.with();
+				Admins.admins().each((i,d) -> list.add(i.id + " " + i.lastName));
+				return list;
+			}
+			if(args[0].equals("add") || args[0].equals("refresh")) return completePlayers();
 		}
         Player found = Game.findPlayer(args[0]);
         if(found == null) return null;
