@@ -40,7 +40,7 @@ public class SkipmapVoteSession extends VoteSession {
 	@Override
 	public void onVote(Player player, int d) {
 		Call.sendMessage(Strings.format("[@]@[lightgray] проголосовал @[] пропуска карты[accent] (@/100)\n[lightgray]Напишите[orange] /smvote <y/n>[], чтобы проголосовать [green]за[]/[red]против",
-				Game.colorToHex(player.color), d >= 0 ? "[green]за" : "[red]против", player.name, votes*100/votesRequired()));
+				Game.colorToHex(player.color), player.name, d >= 0 ? "[green]за" : "[red]против", votes*100/votesRequired()));
 	}
 	
 	@Override
