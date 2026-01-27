@@ -403,7 +403,7 @@ public class CommandsManager {
 
 	public static void adminCommand(CommandHandler<Player> run) {
 		commandCompleters.put(run.text, run);
-		playerCommands.add(new PlayerCommand(run.text, run.parms, run.desc, (args, player) -> run.command(args, playerSender.get(player), player, ReceiverType.player)).admin(true));
+		playerCommands.add(new PlayerCommand(run).admin(true));
 	}
 	
 	public static void serverCommand(CommandHandler<Object> run) {
@@ -495,7 +495,16 @@ public class CommandsManager {
 		public boolean admin = false;
 		private CommandRunner<Player> run;
 		private boolean registered;
+		
+		private @Nullable CommandHandler<Player> handler = null;
 
+		public PlayerCommand(CommandHandler<Player> handler) {
+			this(handler.text, handler.parms, handler.desc, 
+					(args, player) -> handler.command(args, playerSender.get(player), player, ReceiverType.player)
+					);
+			this.handler = handler;
+		}
+		
 		public PlayerCommand(String text, String parms, String desc, CommandRunner<Player> run) {
 			this.text = text;
 			this.parms = parms;
@@ -533,6 +542,23 @@ public class CommandsManager {
 			};
 		}
 
+		public boolean hasHandler() {
+			return handler != null;
+		}
+		
+		public @Nullable CommandHandler<Player> handler(CommandSender sender) {
+			if(!admin) return handler;
+			if(sender.hasPermissions(text)) return handler;
+			return null;
+		}
+
+		public @Nullable CommandHandler<Player> handlerAny(Object any) {
+			if(!admin) return handler;
+			if(Admins.has(any, text)) return handler;
+			return null;
+		}
+		
+		
 		private String build(String[] args) {
 			StringBuilder command = new StringBuilder("&#47;");
 			command.append(text);
@@ -650,6 +676,7 @@ public class CommandsManager {
 		serverCommand(new SandboxCommand());
 		serverCommand(new ExtrastarCommand());
 		serverCommand(new InfoCommand());
+		serverCommand(new AsCommand());
 
 
 //		adminCommand("pardon", "<ID> [index]", "Прощает выбор игрока по ID и позволяет ему присоединиться снова.", (arg, player) -> {
