@@ -18,17 +18,16 @@ public class UnitCommand extends CommandHandler<Player> {
 	
 	@Override
 	public void command(String[] args, CommandSender sender, Player player, ReceiverType type) {
-		if(args.length > 0) {
-			if(args[0].equals("list")) {
-				StringBuilder unitTypes = new StringBuilder();
-				Vars.content.units().each(ut -> {
-					if(ut == UnitTypes.block) return;
-					if(unitTypes.length() != 0) unitTypes.append(", ");
-					unitTypes.append(ut.name);
-				});
-				sender.sendMessage(unitTypes.toString());
-				return;
-			}
+		if(require(args.length < 1, sender, "Мало аргументов")) return;
+		if(args[0].equals("list")) {
+			StringBuilder unitTypes = new StringBuilder();
+			Vars.content.units().each(ut -> {
+				if(ut == UnitTypes.block) return;
+				if(unitTypes.length() != 0) unitTypes.append(", ");
+				unitTypes.append(ut.name);
+			});
+			sender.sendMessage(unitTypes.toString());
+			return;
 		}
 		var ut = Vars.content.units().find(t -> t.name.equals(args[0]) && t != UnitTypes.block);
 		
