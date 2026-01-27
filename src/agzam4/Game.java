@@ -273,12 +273,12 @@ public class Game {
         found = Groups.player.find(p -> p.name.equals(s));
         if(found != null) return found;
         
-        String str = strip(s);
+        String strip = strip(s).replaceAll(" ", "_");
         found = Groups.player.find(p -> p.name.equals(s));	
         if(found != null) return found;
-        found = Groups.player.find(p -> strip(p.name).equals(str));	
+        found = Groups.player.find(p -> strip(p.name).equals(strip));	
         if(found != null) return found;
-        return Groups.player.find(p -> strip(p.name).replaceAll(" ", "_").equals(str));		
+        return Groups.player.find(p -> strip(p.name).replaceAll(" ", "_").equals(strip));		
 	}
 
 	@Deprecated
