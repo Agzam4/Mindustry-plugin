@@ -10,6 +10,7 @@ import agzam4.bot.Bots.NotifyTag;
 import agzam4.commands.CommandHandler;
 import agzam4.commands.Permissions;
 import agzam4.managers.Kicks;
+import agzam4.managers.Players;
 import agzam4.utils.Log;
 import agzam4.votes.Cooldowns;
 import agzam4.votes.KickVoteSession;
@@ -28,6 +29,7 @@ public class VotekickCommand extends CommandHandler<Player> {
 	{
 		parms = "[игрок] [причина...]";
 		desc = "Проголосовать, чтобы кикнуть игрока по уважительной причине";
+		
 	}
 	
 	@Override
@@ -37,6 +39,8 @@ public class VotekickCommand extends CommandHandler<Player> {
             if(require(player.isLocal(), sender, "[red]Просто кикни их сам, если ты хост")) return;
             boolean permission = Admins.has(player, "votekick");
             if(require(KickVoteSession.current != null && !(permission && !player.admin), sender, "[red]Голосование уже идет")) return;
+            if(require(!permission && Players.mapPlaytime(player) < KickVoteSession.requiredMapPlayertime.num(), sender,"[red]Вам запрещено голосовать")) return;
+            if(require(!permission && Players.gamePlaytime(player) < KickVoteSession.requiredTotalPlayertime.num(), sender,"[red]Вам запрещено голосовать")) return;
 
             if(args.length == 0){
                 StringBuilder builder = new StringBuilder();

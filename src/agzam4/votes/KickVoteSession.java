@@ -11,8 +11,15 @@ import mindustry.core.NetServer;
 import mindustry.gen.Call;
 import mindustry.gen.Groups;
 import mindustry.gen.Player;
+import mindustry.net.Administration.Config;
 
 public class KickVoteSession extends VoteSession {
+
+	public static Config requiredMapPlayertime = 
+			new Config("votekickRequiredMapPlayertime", "Минимальное требуемое время в минутах на карте", 5);
+	
+	public static Config requiredTotalPlayertime = 
+			new Config("votekickRequiredPlayertime", "Минимальное требуемое время в минутах на карте", 15);
 	
 	public static @Nullable KickVoteSession current = null;
 	
