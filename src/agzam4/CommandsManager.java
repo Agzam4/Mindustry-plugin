@@ -680,6 +680,7 @@ public class CommandsManager {
 		serverCommand(new ExtrastarCommand());
 		serverCommand(new InfoCommand());
 		serverCommand(new AsCommand());
+		serverCommand(new StatCommand());
 
 
 //		adminCommand("pardon", "<ID> [index]", "Прощает выбор игрока по ID и позволяет ему присоединиться снова.", (arg, player) -> {
