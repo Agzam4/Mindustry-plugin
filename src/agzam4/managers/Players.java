@@ -60,6 +60,15 @@ public class Players {
 		return mpt.mapPlaytime;
 	}
 	
+	/**
+	 * @return player play time total minutes
+	 */
+	public static int gamePlaytime(Player player) {
+		var ent = joinedEntity(player);
+		if(ent == null) return 0;
+		return ent.playtime;
+	}
+	
 	public static @Nullable PlayerEntity joinedEntity(Player player) {
 		return joined.get(player.uuid());
 	}
