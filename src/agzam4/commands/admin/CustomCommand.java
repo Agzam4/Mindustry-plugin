@@ -3,7 +3,6 @@ package agzam4.commands.admin;
 import agzam4.PlayersData;
 import agzam4.CommandsManager.ReceiverType;
 import agzam4.CommandsManager.CommandSender;
-import agzam4.admins.Admins;
 import agzam4.commands.CommandHandler;
 import agzam4.commands.Permissions;
 import arc.struct.Seq;
@@ -24,7 +23,7 @@ public class CustomCommand extends CommandHandler<Player> {
 		if(require(!join && !leave, sender, "[red]Доступно только join/leave")) return;
 		
 		String message = args.length == 1 ? "" : args[1];
-		if(!Admins.has(player, Permissions.longname)) {
+		if(!sender.hasPermissions(Permissions.longname)) {
 			if(message.length() > 200) message = message.substring(0, 200);
 		}
 		if(join) PlayersData.data(player.uuid()).connectMessage = message.isEmpty() ? null : message;
