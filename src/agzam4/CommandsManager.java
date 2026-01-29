@@ -432,6 +432,9 @@ public class CommandsManager {
 		
 		void sendMessage(String message);
 		boolean hasPermissions(String type);
+		default boolean hasPermissions(Permissions permission) {
+			return hasPermissions(permission.name);
+		}
 		
 	}
 	
