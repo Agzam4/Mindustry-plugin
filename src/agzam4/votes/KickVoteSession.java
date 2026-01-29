@@ -16,10 +16,10 @@ import mindustry.net.Administration.Config;
 public class KickVoteSession extends VoteSession {
 
 	public static Config requiredMapPlayertime = 
-			new Config("votekickRequiredMapPlayertime", "Минимальное требуемое время в минутах на карте", 5);
+			new Config("votekickRequiredMapPlaytime", "Минимальное требуемое время в минутах на карте", 5);
 	
 	public static Config requiredTotalPlayertime = 
-			new Config("votekickRequiredPlayertime", "Минимальное требуемое время в минутах на карте", 15);
+			new Config("votekickRequiredPlaytime", "Минимальное требуемое время в минутах на карте", 15);
 	
 	public static @Nullable KickVoteSession current = null;
 	
