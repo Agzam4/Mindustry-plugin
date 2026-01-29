@@ -22,7 +22,7 @@ public class VoteCommand extends CommandHandler<Object> {
 	@Override
 	public void command(String[] args, CommandSender sender, Object receiver, ReceiverType type) {
 		if(require(KickVoteSession.current == null, sender, "[red]Ни за кого не голосуют")) return;
-        boolean permission = Admins.has(receiver, "votekick");
+        boolean permission = sender.hasPermissions("votekick");
         
 		if(permission && args[0].equalsIgnoreCase("c")){
 			String name = 
