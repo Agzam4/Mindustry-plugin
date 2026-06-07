@@ -38,6 +38,8 @@ public class Images {
 				int size = b.size*3;
 				mapColors[index] = new int[size*size];
 				for (int i = 0; i < size*size; i++) {
+					if(id.y/9 >= colors.getWidth()) continue;
+					if(id.y%9 >= colors.getHeight()) continue;
 					int rgb = colors.getRGB(id.y/9, id.y%9);
 					id.y++;
 					if(i == size*size/2) {

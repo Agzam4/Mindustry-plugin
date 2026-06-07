@@ -141,7 +141,7 @@ public class Debug {
 					if(line.indexOf("Selected next map to be") != -1) {
 						writer.println("js Vars.state.rules.infiniteResources = true");
 					}
-					if(line.contains(env.get("admin.name")) && line.contains("has connected.")) {
+					if(line.contains(env.get("admin.name"))) {
 						writer.println("admin add " + env.get("admin.name"));
 						writer.flush();
 					}
