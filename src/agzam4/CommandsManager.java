@@ -586,6 +586,10 @@ public class CommandsManager {
 //			}
 //		});
 		var handler = AgzamPlugin.clientHandler;
+		if(handler == null) {
+			Log.warn("client handler is null");
+			return;
+		}
 		
 		playerCommands.each(c -> {
 			if(c.registered) return;
@@ -628,6 +632,10 @@ public class CommandsManager {
 	
 	public static void flushServerCommands() {
 		var handler = AgzamPlugin.serverHandler;
+		if(handler == null) {
+			Log.warn("server handler is null");
+			return;
+		}
 		serverCommands.each(c -> {
 			if(c.registered) return;
 			handler.removeCommand(c.text);
@@ -638,6 +646,10 @@ public class CommandsManager {
 
 	public static void flushBotCommands() {
 		var handler = Bots.handler;
+		if(handler == null) {
+			Log.warn("bot handler is null");
+			return;
+		}
 		botCommands.each(c -> {
 			if(c.registered) return;
 			handler.removeCommand(c.text);
