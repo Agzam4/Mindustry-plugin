@@ -5,6 +5,7 @@ import agzam4.bot.Bots;
 import agzam4.bot.TelegramBot;
 import agzam4.bot.Bots.NotifyTag;
 import agzam4.managers.Kicks;
+import agzam4.managers.Players;
 import arc.util.Nullable;
 import arc.util.Strings;
 import mindustry.core.NetServer;
@@ -34,6 +35,7 @@ public class KickVoteSession extends VoteSession {
 		this.target = target;
 		this.reason = reason;
 		current = this;
+		Players.disable(target);
 	}
 	
 	@Override
@@ -63,6 +65,7 @@ public class KickVoteSession extends VoteSession {
 	public void cancel() {
 		super.cancel();
 		current = null;
+		Players.enable(target);
 	}
 
 	String bungle(String name) {

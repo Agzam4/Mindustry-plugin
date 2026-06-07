@@ -6,8 +6,10 @@ import agzam4.database.Database;
 import agzam4.database.Database.PlayerEntity;
 import arc.Events;
 import arc.struct.ObjectMap;
+import arc.struct.ObjectSet;
 import arc.util.Nullable;
 import arc.util.Time;
+import mindustry.Vars;
 import mindustry.game.EventType.GameOverEvent;
 import mindustry.game.EventType.PlayerJoin;
 import mindustry.game.EventType.PlayerLeave;
@@ -15,9 +17,11 @@ import mindustry.gen.Player;
 
 public class Players {
 
-	private static ObjectMap<String, PlayerEntity> joined = new ObjectMap<>(); // UUID, PlayerEntity
+	private static ObjectMap<String, PlayerEntity> joined = ObjectMap.of(); // UUID, PlayerEntity
 
-	private static ObjectMap<String, PlayerMapSession> mapPlaytime = new ObjectMap<>(); // UUID, PlayerMapSession
+	private static ObjectMap<String, PlayerMapSession> mapPlaytime = ObjectMap.of(); // UUID, PlayerMapSession
+	
+	private static ObjectSet<String> disabled = ObjectSet.with();
 	
 	public static void init() {
     	Events.on(PlayerJoin.class, e -> {
@@ -48,6 +52,11 @@ public class Players {
     	Events.on(GameOverEvent.class, e -> {
     		mapPlaytime.clear();
     	});
+    	
+    	Vars.netServer.admins.addActionFilter(action -> {
+    		if(action.player == null) return true;
+    		return !disabled(action.player);
+    	});
 	}
 
 	/**
@@ -57,7 +66,7 @@ public class Players {
 	public static int mapPlaytime(Player player) {
 		var mpt = mapPlaytime.get(player.uuid());
 		if(mpt == null) return 0;
-		return mpt.mapPlaytime;
+		return mpt.playtime();
 	}
 	
 	/**
@@ -66,7 +75,7 @@ public class Players {
 	public static int gamePlaytime(Player player) {
 		var ent = joinedEntity(player);
 		if(ent == null) return 0;
-		return ent.playtime;
+		return ent.playtime + ent.sessionPlaytime();
 	}
 	
 	public static @Nullable PlayerEntity joinedEntity(Player player) {
@@ -75,6 +84,21 @@ public class Players {
 
 	public static @Nullable PlayerEntity joinedEntity(String uuid) {
 		return joined.get(uuid);
+	}
+
+	public static boolean disabled(Player player) {
+//		long comp = Time.millis();
+//		boolean d = disabled.get(player.uuid(), comp) < comp;
+//		if(!d) disabled.remove(player.uuid()); // clear not disabled
+		return disabled.contains(player.uuid());
+	}
+
+	public static boolean disable(Player player) {
+		return disabled.add(player.uuid());
+	}
+	
+	public static boolean enable(Player player) {
+		return disabled.remove(player.uuid());
 	}
 	
 	@Deprecated
@@ -92,11 +116,13 @@ public class Players {
 		private int mapPlaytime = 0; // minutes
 		
 		public void update() {
-			mapPlaytime += TimeUnit.MILLISECONDS.toMinutes(Time.millis() - sessionJoinTime);
+			mapPlaytime = playtime();
 			sessionJoinTime = Time.millis();
 		}
 		
-		
+		private int playtime() {
+			return (int) (mapPlaytime + TimeUnit.MILLISECONDS.toMinutes(Time.millis() - sessionJoinTime));
+		}
 		
 	}
 	
