@@ -16,6 +16,7 @@ import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
 import org.telegram.telegrambots.meta.generics.BotSession;
 
 import agzam4.Game;
@@ -257,6 +258,9 @@ public class TelegramBot extends TelegramLongPollingBot {
 			var builder = SendMessage.builder();
 			cons.get(builder);
 			bot.execute(builder.build());
+		} catch (TelegramApiRequestException e) {
+			if(e.getErrorCode() == 429) return; // TODO: [429] Too Many Requests: retry after ... fix
+			Log.err(e);
 		} catch (Exception e) {
 			Log.err(e);
 		}
