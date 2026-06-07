@@ -14,19 +14,41 @@ java {
 repositories{
     mavenCentral()
     maven{ url 'https://raw.githubusercontent.com/Zelaux/MindustryRepo/master/repository' }
-    maven{ url 'https://www.jitpack.io' }
-    maven{ url = uri("https://maven.xpdustry.com/mindustry") }
+    //maven{ url 'https://www.jitpack.io' }
+    //maven{ url = uri("https://maven.xpdustry.com/mindustry") }
+    
+    //Downloads the server-release JAR file from Mindustry releases; does not use any real repository. Surprisingly, this is the most reliable option.
+    ivy{
+        url 'https://github.com/'
+        patternLayout{artifact '/[organisation]/[module]/releases/download/[revision]/dependencies.jar'}
+        metadataSources{ artifact() }
+    }
+
+    //"Latest" option to depend on BE builds.
+    ivy{
+        url 'https://github.com/'
+        patternLayout{artifact '/[organisation]/[module]/releases/download/master/[revision].jar'}
+        metadataSources{ artifact() }
+    }
+
+    //Do the same with jabel
+    ivy{
+        url 'https://github.com/'
+        patternLayout{artifact '/[organisation]/[module]/releases/download/[revision]/jabel.jar'}
+        metadataSources{ artifact() }
+    }
 }
 
 ext{
     //the build number that this mod is made for
-    mindustryVersion = 'v154.3'
+    mindustryVersion = 'v157'
     sdkRoot = System.getenv("ANDROID_HOME") ?: System.getenv("ANDROID_SDK_ROOT")
 }
 
 dependencies{
-    compileOnly "com.github.Anuken.Arc:arc-core:$mindustryVersion"
-    compileOnly "com.github.Anuken.Mindustry:core:$mindustryVersion"
+    compileOnly "Anuken:Mindustry:$mindustryVersion"
+    //compileOnly "com.github.Anuken.Arc:arc-core:$mindustryVersion"
+    //compileOnly "com.github.Anuken.Mindustry:core:$mindustryVersion"
     implementation "org.telegram:telegrambots:6.9.7.1"
     implementation 'org.xerial:sqlite-jdbc:3.49.1.0'
 }
