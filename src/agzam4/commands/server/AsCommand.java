@@ -10,7 +10,6 @@ import agzam4.Game;
 import agzam4.commands.CommandHandler;
 import arc.struct.Seq;
 import arc.util.Log;
-import mindustry.gen.Player;
 
 public class AsCommand extends CommandHandler<Object> {
 

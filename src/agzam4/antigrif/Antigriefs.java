@@ -1,6 +1,5 @@
 package agzam4.antigrif;
 
-import agzam4.antigrif.methods.RotateAntigief;
 
 public class Antigriefs {
 
