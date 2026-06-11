@@ -23,7 +23,7 @@ public class RotateAntigief extends AntigriefSystem<agzam4.antigrif.methods.Rota
 	@Config
 	public boolean checknextinputs = true;
 	
-	private Tile[] prevSenders = new Tile[4];
+//	private Tile[] prevSenders = new Tile[4];
 	
 	public final Cons<BuildRotateEvent> rotate = e -> {
 		Log.info("Event: @ @ @", e.unit, e.build, e.unit.controller());
