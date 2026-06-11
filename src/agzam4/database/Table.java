@@ -4,21 +4,26 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.Field;
+import java.sql.ResultSet;
 
 import agzam4.database.DBFields.FIELD;
 import agzam4.database.DBFields.PRIMARY_KEY;
 import agzam4.database.SQL.TableColumnInfo;
 import agzam4.utils.Log;
+import arc.func.Cons;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
 import arc.util.Nullable;
 import arc.util.Strings;
 
 public class Table<T> {
-	
+
+	private Database database;
 	private String name;
 
 	private final ObjectMap<String, MethodHandle> getters = new ObjectMap<>();
+	
+	// FIXME: setters support boolean using interfaces on scan
 	private final ObjectMap<String, MethodHandle> setters = new ObjectMap<>();
 	
 	private String keyName;
@@ -30,12 +35,16 @@ public class Table<T> {
 //	private final ObjectMap<String, TableColumnInfo> columnsInfos = new ObjectMap<>();
 	
 	private final Class<T> entityType;
+
 	
-	public Table(String name, Class<T> type) {
+	public Table(Database database, String name, Class<T> type) {
+		this.database = database;
 		entityType = type;
 		this.name = name;
 		Seq<TableColumnInfo> currentInfo = SQL.createTableInfo(type);
-		Seq<TableColumnInfo> previousInfo = Database.queryTableInfo(name);
+		Seq<TableColumnInfo> previousInfo = database.queryTableInfo(name);
+		Log.info("Before: [blue]@[]", previousInfo);
+		Log.info("After:  [blue]@[]", currentInfo);
 		
 		if(previousInfo != null) {
 			// Checking format matching of old table and new
@@ -68,7 +77,7 @@ public class Table<T> {
 				String copyList = toCopy.toString(", ", info -> info.name);
 
 				// if not same rename table and copy fields
-				Database.executeTransaction(
+				database.executeTransaction(
 						"DROP TABLE IF EXISTS tmp;",
 						Strings.format("CREATE TABLE tmp (@);", currentInfo.toString(",", info -> info.toString())),
 						Strings.format("INSERT INTO tmp(@) SELECT @ FROM @;", copyList, copyList, name),
@@ -79,7 +88,7 @@ public class Table<T> {
 		}
 		
 		
-		Database.execute(Strings.format("CREATE TABLE IF NOT EXISTS @ (@)", name, currentInfo.toString(",", info -> info.toString())));
+		database.execute(Strings.format("CREATE TABLE IF NOT EXISTS @ (@)", name, currentInfo.toString(",", info -> info.toString())));
 		Log.info("Table [blue]@[] inited", name);
 		
 	    try {
@@ -104,47 +113,94 @@ public class Table<T> {
 	    columnsNoKey = columns.select(e -> !e.equals(keyName));
 	}
 	
-	
 	public void update(T entity) {
 		String sql = Strings.format("UPDATE @ SET @ WHERE @ = ?", name, filedNames.toString(" ", n -> n + " = ?"), keyName);
 		Object[] args = new Object[filedNames.size+1];
 		for (int i = 0; i < filedNames.size; i++) args[i] = column(filedNames.get(i), entity);
 		args[args.length-1] = key(entity);
-		Database.update(sql, args);
+		database.update(sql, args);
 	}
 
 	public void put(T entity) {
 		String sql = Strings.format("INSERT OR REPLACE INTO @ (@) VALUES (@)", name, columns.toString(", "), columns.toString(", ", n -> "?"));
 		Object[] args = new Object[columns.size];
 		for (int i = 0; i < args.length; i++) args[i] = column(columns.get(i), entity);
-		Database.update(sql, args);
+		database.update(sql, args);
 	}
 
 	public void putNoKey(T entity) {
 		String sql = Strings.format("INSERT INTO @ (@) VALUES (@)", name, columnsNoKey.toString(", "), columnsNoKey.toString(", ", n -> "?"));
 		Object[] args = new Object[columnsNoKey.size];
 		for (int i = 0; i < args.length; i++) args[i] = column(columnsNoKey.get(i), entity);
-		Database.update(sql, args);
+		database.update(sql, args);
+	}
+	
+	private @Nullable T readNext(ResultSet r) {
+		try {
+			if(!r.next()) return null;
+			T entity = entityType.getConstructor().newInstance();
+			for (int i = 0; i < columns.size; i++) {
+				var obj = r.getObject(columns.get(i));
+				setters.get(columns.get(i)).invoke(entity, obj);
+			}
+			return entity;
+		} catch (Throwable e) {
+			Log.err(e);
+		}
+		return null;
 	}
 
 	public @Nullable T get(Object key) {
 		String sql = Strings.format("SELECT * FROM @ WHERE @ = ?", name, keyName);
-		return Database.query(sql, r -> {
+		return database.query(sql, r -> readNext(r), key);
+	}
+
+	public void select(String sql, Cons<T> cons, Object...args) {
+		database.queryCons(Strings.format("SELECT * FROM @ @", name, sql), r -> {
+			while (true) {
+				T t = readNext(r);
+				if(t == null) return;
+				cons.get(t);
+			}
+		}, args);
+	}
+	
+	public @Nullable T last() {
+		if (columns.isEmpty()) return null;
+		String sql = Strings.format("SELECT * FROM @ ORDER BY @ DESC LIMIT 1", name, keyName);
+		return database.query(sql, r -> readNext(r));
+	}
+	
+	public @Nullable T first() {
+		if (columns.isEmpty()) return null;
+		String sql = Strings.format("SELECT * FROM @ ORDER BY @ ASC LIMIT 1", name, keyName);
+		return database.query(sql, r -> readNext(r));
+	}
+
+	public int count() {
+		String sql = Strings.format("SELECT COUNT(*) FROM @", name);
+		return database.query(sql, r -> {
 			try {
-				if(!r.next()) return null;
-				T entity = entityType.getConstructor().newInstance();
-				for (int i = 0; i < columns.size; i++) {
-					var obj = r.getObject(columns.get(i));
-					setters.get(columns.get(i)).invoke(entity, obj);
-				}
-				return entity;
+				if (r.next()) return r.getInt(1);
 			} catch (Throwable e) {
 				Log.err(e);
 			}
-			return null;
-		}, key);
+			return 0;
+		});
 	}
 
+	public int count(String whereSql, Object... args) {
+		String sql = Strings.format("SELECT COUNT(*) FROM @ WHERE @", name, whereSql);
+		return database.query(sql, r -> {
+			try {
+				if (r.next()) return r.getInt(1);
+			} catch (Throwable e) {
+				Log.err(e);
+			}
+			return 0;
+		}, args);
+	}
+			
 	public @Nullable Seq<T> query(Object... args) {
 		if(args.length%2 != 0) throw new RuntimeException("Query arguments must be n*2 \"(column1, value1, column2, value2, ...)\"");
 		StringBuilder sql = new StringBuilder("SELECT * FROM ");
@@ -156,7 +212,7 @@ public class Table<T> {
 			sql.append(args[i*2]);
 			sql.append(" = ?");
 		}
-		return Database.query(sql.toString(), r -> {
+		return database.query(sql.toString(), r -> {
 			try {
 				Seq<T> ts = new Seq<>();
 				while (r.next()) {
@@ -223,5 +279,6 @@ public class Table<T> {
 		}
 		return null;
 	}
+
 
 }

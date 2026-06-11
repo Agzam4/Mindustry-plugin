@@ -1,5 +1,6 @@
 package agzam4;
 
+import static mindustry.Vars.ghApi;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -13,11 +14,16 @@ import java.util.Scanner;
 import agzam4.utils.Log;
 import arc.files.Fi;
 import arc.graphics.Color;
+import arc.math.Mathf;
 import arc.math.geom.Point2;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
+import arc.util.ArcRuntimeException;
+import arc.util.Http;
 import arc.util.Threads;
 import arc.util.io.PropertiesUtils;
+import arc.util.io.Streams;
+import arc.util.serialization.Jval;
 import mindustry.Vars;
 import mindustry.content.Fx;
 import mindustry.gen.Call;
@@ -42,14 +48,55 @@ public class Debug {
 	static Scanner scanner = new Scanner(System.in);
 	static File cd = new File(System.getProperty("user.dir") + "/build/libs/");
 	static ObjectMap<String, String> env = new ObjectMap<>();
+	static boolean downloading = false;
 
 	public static void main(String[] args) throws IOException {
+		
+		Fi props = Fi.get(".env.properties");
+		if(!props.exists()) {
+			Log.info("[blue]Enter admin name:");
+			props.writeString("admin.name=" + scanner.nextLine() + "\nevent.name=\n", false);
+		}
 		
 		PropertiesUtils.load(env, Fi.get(".env.properties").reader());
 		
 		String[] type = env.get("event.name").split("\n");
 		
 		System.out.println(cd.getPath());
+		
+		Fi serverRelease = Fi.get(cd.getAbsolutePath() + "/server-release.jar");
+		Log.info(serverRelease.absolutePath());
+		if(!serverRelease.exists()) {
+			downloading = true;
+            Http.get(ghApi + "/repos/Anuken/Mindustry/releases/latest", res -> {
+                var json = Jval.read(res.getResultAsString());
+                var assets = json.get("assets").asArray();
+
+                //prioritize dexed jar, as that's what Sonnicon's mod template outputs
+                var dexedAsset = assets.find(j -> j.getString("name").startsWith("server") && j.getString("name").endsWith(".jar"));
+                var asset = dexedAsset == null ? assets.find(j -> j.getString("name").endsWith(".jar")) : dexedAsset;
+
+                if(asset != null){
+                    //grab actual file
+                    var url = asset.getString("browser_download_url");
+
+                    Http.get(url, result -> {
+                        long len = result.getContentLength();
+                        try(var stream = serverRelease.write(false)){
+                            Streams.copyProgress(result.getResultAsStream(), stream, len, 4096, p -> {
+                            	Log.info("[blue]@%[]", Mathf.round(p*100));
+                            });
+                        }
+                        downloading = false;
+                    });
+                }else{
+                    throw new ArcRuntimeException("No JAR file found in releases. Make sure you have a valid jar file in the mod's latest Github Release.");
+                }
+            });
+            while (downloading) {
+				Threads.sleep(10);
+			}
+		}
 
 		Fi user = Fi.get(System.getProperty("user.dir"));
 
@@ -116,6 +163,7 @@ public class Debug {
 	static PrintWriter writer;
 	
 	private static void run() throws IOException {
+		@SuppressWarnings("deprecation")
 		Process p = Runtime.getRuntime().exec("java -jar server-release.jar host", null, cd);
 		
 		System.out.println("PID: " + p);
@@ -141,7 +189,7 @@ public class Debug {
 					if(line.indexOf("Selected next map to be") != -1) {
 						writer.println("js Vars.state.rules.infiniteResources = true");
 					}
-					if(line.contains(env.get("admin.name"))) {
+					if(line.contains(env.get("admin.name")) && !line.contains("status")) {
 						writer.println("admin add " + env.get("admin.name"));
 						writer.flush();
 					}

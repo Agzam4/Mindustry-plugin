@@ -14,10 +14,12 @@ import agzam4.commands.players.*;
 import agzam4.commands.server.*;
 import agzam4.commands.admin.*;
 import agzam4.commands.any.*;
-import agzam4.database.Database;
-import agzam4.database.Database.PlayerEntity;
+import agzam4.database.Databases;
+import agzam4.database.Databases.PlayerEntity;
 import agzam4.events.*;
 import agzam4.io.ByteBufferIO;
+import agzam4.logs.LogEvents.*;
+import agzam4.logs.Logs;
 import agzam4.managers.Kicks;
 import agzam4.managers.Players;
 import agzam4.utils.Log;
@@ -121,7 +123,9 @@ public class CommandsManager {
 		
 		Events.on(PlayerLeave.class, e -> {
 			if(e.player == null) return;
+
 			Bots.notify(NotifyTag.playerConnection, NotifyTag.playerConnection.bungle("left", TelegramBot.strip(e.player.name), Players.joinedAmount()));
+			Logs.event(new PlayerLeaveLogEvent(e.player, Players.joinedAmount()));
 			
 			PlayerData data = PlayersData.getData(e.player.uuid());
 			if(data == null || data.disconnectedMessage == null) Call.sendMessage(e.player.coloredName() + "[accent] отключился");
@@ -130,8 +134,8 @@ public class CommandsManager {
 
     	Events.on(PlayerJoin.class, e -> {
 			Call.hideHudText(e.player.con);
-    		
-    		Bots.notify(NotifyTag.playerConnection,
+			Logs.event(new PlayerJoinLogEvent(e.player, Players.joinedAmount()));
+			Bots.notify(NotifyTag.playerConnection,
     				Strings.format("<b>@</b>@ has joined <i>(@ players)</i>", TelegramBot.strip(e.player.name), (e.player.admin() ? " (admin)":""), Players.joinedAmount()),
     				Strings.format("<b>@</b>@ has joined <i>(@ players)</i> <code>@</code>", TelegramBot.strip(e.player.name), (e.player.admin() ? " (admin)":""), Players.joinedAmount(), e.player.uuid())
     		);
@@ -240,6 +244,7 @@ public class CommandsManager {
 		Vars.netServer.admins.addChatFilter((player, text) -> {
 			if(player != null && text != null) {
 				Bots.notify(NotifyTag.chatMessage, "<u><b>" + TelegramBot.strip(player.name) + "</b></u>: " + TelegramBot.strip(text));
+				Logs.event(new ChatMessageLogEvent(player, text));
 			}
 			if(ChatfilterCommand.chatFilter) {
 				text = "[white]" + text + "[white]";
@@ -532,6 +537,7 @@ public class CommandsManager {
 		public CommandRunner<Player> run() {
 			if(!admin) return (args, player) -> {
 				Bots.notify(NotifyTag.playerCommand, "<b><u>" + TelegramBot.strip(player.plainName()) + "</u></b>: <code>" + build(args) + "</code>");
+				Logs.event(new PlayerCommandLogEvent(player, build(args)));
 				run.accept(args, player);
 			};
 			return (args, player) -> {
@@ -540,7 +546,7 @@ public class CommandsManager {
 						player.admin() ? null : Strings.format("#helper <b><u>@</u></b>: <code>@</code>", TelegramBot.strip(player.name), build(args)),
 						Strings.format("@ <b><u>@</u></b>: <code>@</code>", player.admin() ? "#admin" : "#helper", TelegramBot.strip(player.name), build(args))
 				);
-				
+				Logs.event(new AdminCommandLogEvent(player, build(args)));
 				run.accept(args, player);
 			};
 		}
@@ -771,7 +777,7 @@ public class CommandsManager {
 			boolean online = true;
 			if(entity == null) {
 				online = false;
-				entity = Database.player(uuid);
+				entity = Databases.player(uuid);
 				
 			}
 			
@@ -904,7 +910,7 @@ public class CommandsManager {
 	            if(found != null) {
 	    			if(require(Admins.has(found, "votekick"), receiver, "Этот игрок защищен пластаном")) return;
 	    			if(require(Admins.has(found, Permissions.whitelist), receiver, "Этот игрок защищен метастеклом")) return;
-            		Kicks.kick(receiver.user.name, found, reason);
+            		Kicks.kickByName(receiver.user.name, found, reason);
     				receiver.sendMessage("Игрок забанен");
 	            } else {
 	            	receiver.sendMessage("Игрок " + args[0] + " не найден.");

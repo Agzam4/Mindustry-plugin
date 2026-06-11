@@ -3,7 +3,7 @@ package agzam4.achievements;
 import agzam4.Game;
 import agzam4.bot.Bots;
 import agzam4.bot.Bots.NotifyTag;
-import agzam4.database.Database.PlayerEntity;
+import agzam4.database.Databases.PlayerEntity;
 import arc.Core;
 import arc.struct.ObjectMap;
 import arc.util.Log;
@@ -46,6 +46,9 @@ public class AchievementsManager {
 			Call.warningToast(0, format("on-reward", _args));
 			Call.sendMessage(format("on-reward", _args));
 			Bots.notify(NotifyTag.achievement, format("on-reward", _args));
+//			Logs.event(new AchievementLogEvent());
+			// TODO
+//			Logs.notify(NotifyTag.achievement, player.uuid, format("on-reward", _args));
 		}
 
 		public String format(String name, Object... args) {

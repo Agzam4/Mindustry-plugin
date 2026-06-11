@@ -42,6 +42,7 @@ public class KickVoteSession extends VoteSession {
 	public void onFail() {
 		Call.sendMessage(Strings.format("[lightgray]Голосование провалено. Недостаточно голосов, чтобы кикнуть [orange] @[lightgray].", target.name));
 		Bots.notify(NotifyTag.votekick, "Голосование провалено");
+//		Logs.notify(NotifyTag.votekick, "Голосование провалено");
 	}
 	
 	@Override

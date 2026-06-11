@@ -416,4 +416,12 @@ public class Game {
 		AgzamPlugin.serverHandler.handleMessage("exit");
 		System.exit(0);
 	}
+	
+	
+	public static @Nullable String nameByUuid(@Nullable String uuid) {
+		if(uuid == null) return null;
+		var info = Vars.netServer.admins.playerInfo.get(uuid);
+		if(info == null) return null;
+		return info.lastName;
+	}
 }

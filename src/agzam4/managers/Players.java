@@ -2,8 +2,8 @@ package agzam4.managers;
 
 import java.util.concurrent.TimeUnit;
 
-import agzam4.database.Database;
-import agzam4.database.Database.PlayerEntity;
+import agzam4.database.Databases;
+import agzam4.database.Databases.PlayerEntity;
 import arc.Events;
 import arc.struct.ObjectMap;
 import arc.struct.ObjectSet;
@@ -28,7 +28,7 @@ public class Players {
     		/**
     		 * Loading PlayerEntity
     		 */
-			PlayerEntity playerEntity = Database.player(e.player);
+			PlayerEntity playerEntity = Databases.player(e.player);
 			playerEntity.joinTime = Time.millis();
     		joined.put(e.player.uuid(), playerEntity);
     		
@@ -42,7 +42,7 @@ public class Players {
     		@Nullable PlayerEntity playerEntity = joined.remove(e.player.uuid());
     		if(playerEntity != null) {
     			playerEntity.playtime += playerEntity.sessionPlaytime();
-    			Database.players.put(playerEntity);
+    			Databases.players.put(playerEntity);
     		}
     		
     		var mpt = mapPlaytime.get(e.player.uuid());

@@ -13,6 +13,7 @@ public class Bots {
 	
 	public static enum NotifyTag {
 
+		log,
 		event,
 		achievement,
 		round,

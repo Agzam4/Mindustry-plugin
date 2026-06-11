@@ -9,6 +9,8 @@ import agzam4.bot.TelegramBot;
 import agzam4.bot.Bots.NotifyTag;
 import agzam4.commands.CommandHandler;
 import agzam4.commands.Permissions;
+import agzam4.logs.LogEvents.VotekickLogEvent;
+import agzam4.logs.Logs;
 import agzam4.managers.Kicks;
 import agzam4.managers.Players;
 import agzam4.utils.Log;
@@ -93,6 +95,7 @@ public class VotekickCommand extends CommandHandler<Player> {
                             KickVoteSession session = new KickVoteSession(player, found, reason);
                             Bots.notify(NotifyTag.votekick, Strings.format("<code>@</code> started voting for kicking <code>@</code> (<code>#@</code>): <code>@</code>", TelegramBot.strip(player.name), TelegramBot.strip(found.name), found.id, TelegramBot.strip(reason)));
                             Bots.notify(NotifyTag.votekick, Images.screenshot(found));
+                            Logs.event(new VotekickLogEvent(player, found, reason));
                             
                             session.vote(player, 1);
                             Call.sendMessage(Strings.format("[lightgray]Причина:[orange] @[lightgray].", reason));

@@ -18,9 +18,12 @@ import agzam4.bot.Bots;
 import agzam4.bot.Bots.NotifyTag;
 import agzam4.commands.Server;
 import agzam4.bot.TelegramBot;
-import agzam4.database.Database;
+import agzam4.database.Databases;
 import agzam4.events.EventMap;
 import agzam4.events.ServerEventsManager;
+import agzam4.logs.LogEvents.GameBeginLogEvent;
+import agzam4.logs.LogEvents.GameOverLogEvent;
+import agzam4.logs.Logs;
 import agzam4.managers.Kicks;
 import agzam4.managers.Players;
 import agzam4.net.NetMenu;
@@ -29,6 +32,8 @@ import agzam4.votes.SkipmapVoteSession;
 
 import static agzam4.Emoji.*;
 import static mindustry.Vars.*;
+
+import java.sql.SQLException;
 
 public class AgzamPlugin extends Plugin {
 //	Blocks
@@ -47,8 +52,9 @@ public class AgzamPlugin extends Plugin {
     	Log.init();
     	Log.info("init");
     	try {
-			Database.init(Vars.saveDirectory.absolutePath() + "/database");
-		} catch (ClassNotFoundException e) {
+			Databases.init();
+			Logs.init();
+		} catch (ClassNotFoundException | SQLException e) {
 			Log.err(e);
 			Threads.sleep(10_000);
 			Core.app.exit();
@@ -122,6 +128,7 @@ public class AgzamPlugin extends Plugin {
     		Call.sendMessage(result.toString());
     		SkipmapVoteSession.stop();
 			Bots.notify(NotifyTag.round, "<b>Game over</b>: " + state.wave + "/" + state.map.getHightScore());
+			Logs.event(new GameOverLogEvent(state.map.name(), state.wave, state.map.getHightScore()));
     	});
 
     	Events.on(WorldLoadBeginEvent.class, e -> {
@@ -134,6 +141,7 @@ public class AgzamPlugin extends Plugin {
 //            Map map = maps.getNextMap(state.rules.mode(), state.map);
     		Timer.schedule(() -> {
     			Bots.notify(NotifyTag.round, Strings.format("<b>Next map is:</b> <code>@</code>", TelegramBot.strip(state.map.plainName())));
+    			Logs.event(new GameBeginLogEvent(state.map.name()));
     		}, 1f);
     	});
     	
