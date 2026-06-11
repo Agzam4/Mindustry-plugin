@@ -8,11 +8,21 @@ import agzam4.database.DBFields.FIELD;
 import agzam4.database.DBFields.PRIMARY_KEY;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
+import arc.util.Log;
 import arc.util.Nullable;
 
 public class SQL {
 
-	public static final ObjectMap<Class<?>, String> typesByClass = ObjectMap.of(String.class, "TEXT", Integer.class, "INTEGER");
+	public static final ObjectMap<Class<?>, String> typesByClass = ObjectMap.of(
+			String.class, "TEXT", 
+			Integer.class, "INTEGER", int.class, "INTEGER",
+			Long.class, "INTEGER", long.class, "INTEGER",
+			Short.class, "INTEGER", short.class, "INTEGER",
+			Byte.class, "INTEGER", byte.class, "INTEGER",
+			Boolean.class, "INTEGER", boolean.class, "INTEGER",
+			Double.class, "REAL", double.class, "REAL",
+			Float.class, "REAL", float.class, "REAL"
+	);
 	
 	public static class TableColumnInfo {
 
@@ -79,6 +89,7 @@ public class SQL {
 			}
 			
 			String filedType = isArray ? (SQL.typesByClass.get(elementType) + "[]") : SQL.typesByClass.get(f.getType());
+			if(filedType == null) Log.warn("SQL Filed \"@\" type is unknow: @", f.getName(), f.getType());
 			if(field == null || filedType == null) continue;
 			@Nullable PRIMARY_KEY primaryKey = f.getAnnotation(PRIMARY_KEY.class);
 			@Nullable DEFAULT def = f.getAnnotation(DEFAULT.class);
