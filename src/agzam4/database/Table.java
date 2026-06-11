@@ -75,15 +75,26 @@ public class Table<T> {
 					toCopy.add(c);
 				}
 				String copyList = toCopy.toString(", ", info -> info.name);
-
+				String createSql = Strings.format("CREATE TABLE tmp (@);", currentInfo.toString(",", info -> info.toString()));
+				
 				// if not same rename table and copy fields
-				database.executeTransaction(
-						"DROP TABLE IF EXISTS tmp;",
-						Strings.format("CREATE TABLE tmp (@);", currentInfo.toString(",", info -> info.toString())),
-						Strings.format("INSERT INTO tmp(@) SELECT @ FROM @;", copyList, copyList, name),
-						Strings.format("DROP TABLE @;", name),
-						Strings.format("ALTER TABLE tmp RENAME TO @;", name)
-				);
+				if (toCopy.isEmpty()) {
+					// empty table
+				    database.executeTransaction(
+				            "DROP TABLE IF EXISTS tmp;",
+				            createSql,
+				            Strings.format("DROP TABLE IF EXISTS @;", name),
+				            Strings.format("ALTER TABLE tmp RENAME TO @;", name)
+				        );
+				} else {
+					database.executeTransaction(
+							"DROP TABLE IF EXISTS tmp;",
+							createSql,
+							Strings.format("INSERT INTO tmp(@) SELECT @ FROM @;", copyList, copyList, name),
+							Strings.format("DROP TABLE @;", name),
+							Strings.format("ALTER TABLE tmp RENAME TO @;", name)
+					);
+				}
 			}
 		}
 		

@@ -30,13 +30,17 @@ public class Logs {
 	private static final ConcurrentLinkedQueue<LogEvent> queue = new ConcurrentLinkedQueue<>();
 	private static Seq<LogInstance> instances = new Seq<>(); // CopyOnWriteArrayList?
 	
-	private static ObjectMap<Class<? extends LogEvent>, LogBuilder<? extends LogEvent>> builders = ObjectMap.of();
+	private static ObjectMap<Class<? extends LogEvent>, LogBuilder<? extends LogEvent>> builderByClass = ObjectMap.of();
+	private static LogBuilder<? extends LogEvent>[] builders;
 	
+	@SuppressWarnings("unchecked")
 	public static void init() throws ClassNotFoundException {
+		builders = new LogBuilder[LogEvents.events.length];
 		for (int i = 0; i < LogEvents.events.length; i++) {
 			var event = LogEvents.events[i];
 			LogBuilder<? extends LogEvent> builder = new LogBuilder<>(event, i);
-			builders.put(event, builder);
+			builderByClass.put(event, builder);
+			builders[i] = builder;
 		}
 		
 		root.mkdirs();
@@ -70,8 +74,6 @@ public class Logs {
 					}
 					LogEntity entity = buildEntity(event);
 
-					Log.info("Event from queue: @", entity.message);
-					
 					if (current.totalRows >= MAX_LOGS) {
                         current.close();
                         LogInstance nextInstance = new LogInstance(current.id + 1);
@@ -101,7 +103,7 @@ public class Logs {
 	@SuppressWarnings("unchecked")
 	private static <T extends LogEvent> LogEntity buildEntity(T event) {
 	    Class<T> eventClass = (Class<T>) event.getClass();
-	    LogBuilder<T> builder = (LogBuilder<T>) builders.get(eventClass);
+	    LogBuilder<T> builder = (LogBuilder<T>) builderByClass.get(eventClass);
 	    if (builder == null) {
 	    	throw new ArcRuntimeException("No builder registrated for class " + eventClass);
 //	        builder = new LogBuilder<>(eventClass);
@@ -162,6 +164,10 @@ public class Logs {
         }
         return result;
     }
+    
+    public static String protectedJson(LogEntity entity) {
+    	return builders[entity.id].protect(entity.message);
+	}
 
 //	public static void notify(NotifyTag tag, String message) {
 //		notify(tag, null, message, false);
@@ -257,7 +263,6 @@ public class Logs {
 
 
 	public static void event(LogEvent event) {
-		Log.info("Event to queue: @", event);
 		queue.add(event);
 	}
 	

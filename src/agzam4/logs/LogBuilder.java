@@ -4,7 +4,6 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.Field;
-import java.util.Arrays;
 
 import agzam4.logs.LogsAnnotations.JsonProp;
 import agzam4.logs.LogsAnnotations.Sensitive;
@@ -138,13 +137,9 @@ public class LogBuilder<T> {
 		
 		this.precomputedHeaders = parts.toArray(String.class);
 		this.extractors = extractors.toArray(Extractor.class);
+		this.protectors = protectors.toArray(Protector.class);
 		this.extracted = new Object[extractors.size];
 		this.types = types.toArray(JsonTypes.class);
-		
-		this.protectors = protectors.toArray(Protector.class);
-		Log.info("precomputedHeaders: @ --- @",  parts, Arrays.toString(this.precomputedHeaders));
-		Log.info("extractors: @ --- @",  extractors, Arrays.toString(this.extractors));
-		Log.info("extracted: @ --- @",  extracted, Arrays.toString(this.extracted));
 	}
 	
 	

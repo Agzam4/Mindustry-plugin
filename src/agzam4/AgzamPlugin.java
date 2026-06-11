@@ -14,6 +14,7 @@ import mindustry.mod.Plugin;
 import agzam4.achievements.*;
 import agzam4.admins.Admins;
 import agzam4.antigrif.Antigriefs;
+import agzam4.api.ApiServer;
 import agzam4.bot.Bots;
 import agzam4.bot.Bots.NotifyTag;
 import agzam4.commands.Server;
@@ -59,6 +60,7 @@ public class AgzamPlugin extends Plugin {
 			Threads.sleep(10_000);
 			Core.app.exit();
 		}
+    	ApiServer.init();
     	Server.init();
     	Game.init();
     	try {
