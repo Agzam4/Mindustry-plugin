@@ -166,13 +166,12 @@ public class LogBuilder<T> {
 		return json.toString();
 	}
 	
-	public String protect(String json) {
-		var val = Jval.read(json);
+	public Jval protect(Jval val) {
 		for (int i = 0; i < protectors.length; i++) {
 			String protectedData = protectors[i].protector.get(val.getString(protectors[i].name));
 			val.put(protectors[i].name, protectedData);
 		}
-		return val.toString(Jformat.plain);
+		return val;
 	}
 	
 	

@@ -44,7 +44,8 @@ public class LogEvents {
 		public @FIELD String message = "";
 
 		public @FIELD long timestamp;
-		
+	
+		public int logId = -1;
 	}
 	
 

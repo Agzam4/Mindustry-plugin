@@ -17,10 +17,8 @@ public class ApiLogs {
 			@BodyField("page") int page, 
 			@BodyField("pageSize") int pageSize
 			) {
-		Log.info("Meow");
 		var entities = Logs.selectByTimerange(from, end, page, pageSize);
-		Log.info("entities: @", entities.toString(",", e -> protect ? Logs.protectedJson(e) : e.message));
-		return Strings.format("[@]", entities.toString(",", e -> protect ? Logs.protectedJson(e) : e.message));
+		return Strings.format("[@]", entities.toString(",", e -> Logs.entityJson(e, protect)));
 	}
 
 

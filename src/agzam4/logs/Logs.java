@@ -13,6 +13,8 @@ import arc.util.ArcRuntimeException;
 import arc.util.Strings;
 import arc.util.Threads;
 import arc.util.serialization.Base64Coder;
+import arc.util.serialization.Jval;
+import arc.util.serialization.Jval.Jformat;
 import mindustry.Vars;
 
 public class Logs {
@@ -130,6 +132,7 @@ public class Logs {
 
         synchronized (instances) {
             for (int i = instances.size - 1; i >= 0; i--) {
+            	final int logId = i;
                 if(result.size >= pageSize) break;
                 
                 LogInstance instance = instances.get(i);
@@ -154,7 +157,10 @@ public class Logs {
                     int fileLimit = pageSize - result.size;
                     skipRows = 0;
 
-                    instance.logs.select("WHERE timestamp >= ? AND timestamp <= ? ORDER BY id DESC LIMIT ? OFFSET ?", e -> result.add(e), t1, t2, fileLimit, fileOffset);
+                    instance.logs.select("WHERE timestamp >= ? AND timestamp <= ? ORDER BY id DESC LIMIT ? OFFSET ?", e -> {
+                    	e.logId = logId;
+                    	result.add(e);
+                    }, t1, t2, fileLimit, fileOffset);
                 } catch (Exception e) {
                     Log.err("REST failed to query logs by time in file: " + instance.id, e);
                 } finally {
@@ -165,8 +171,16 @@ public class Logs {
         return result;
     }
     
-    public static String protectedJson(LogEntity entity) {
-    	return builders[entity.id].protect(entity.message);
+    public static String entityJson(LogEntity entity, boolean protect) {
+    	if(entity.tag >= builders.length) throw new RuntimeException(Strings.format("Unknow event type id: @ (maximum @) for @-@  @ ", entity.tag, builders.length, entity.logId, entity.id, entity.message));
+
+		var val = Jval.read(entity.message);
+		if(protect) builders[entity.tag].protect(val);
+		val.put("timestamp", entity.timestamp);
+		val.put("logid", entity.logId);
+		val.put("id", entity.id);
+		
+    	return val.toString(Jformat.plain);
 	}
 
 //	public static void notify(NotifyTag tag, String message) {
