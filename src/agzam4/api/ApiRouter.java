@@ -11,15 +11,16 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
 import agzam4.api.ApiAnnotations.BodyField;
+import agzam4.api.ApiAnnotations.HeadField;
 import agzam4.api.ApiAnnotations.PostEndpoint;
 import agzam4.api.ApiAnnotations.SseEndpoint;
 import agzam4.api.ApiAnnotations.SseProcessor;
 import agzam4.utils.Log;
 import arc.func.Func;
-import arc.func.Func2;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
 import arc.util.Nullable;
+import arc.util.Reflect;
 import arc.util.Strings;
 import arc.util.serialization.Jval;
 
@@ -33,13 +34,19 @@ public class ApiRouter {
 	
 	private interface Handler {
 		
-		ApiResponse get(Jval body);
+		ApiResponse get(HttpExchange exchange, Jval body);
 		
 	}
 
 	private interface SseHandler {
 
 		ApiResponse get(HttpExchange exchange, Jval body);
+
+	}
+
+	private interface Extracotor {
+
+		Object get(HttpExchange e, Jval v) throws ApiResponse;
 
 	}
 	
@@ -62,28 +69,19 @@ public class ApiRouter {
 
 			Log.info("Endpoint: [cyan]/@/@", prefix, name);
 
-			var parmsAnnotations = method.getParameterAnnotations();
-			var parmsTypes = method.getParameterTypes();
-
 			if(method.getReturnType() != String.class) throw new RuntimeException(Strings.format("return type of endpoint @.@ must be String", cls.getSimpleName(), method.getName()));
-			String[] names = new String[parmsTypes.length];
-			Func2<Jval, String, Object>[] extractors = new Func2[parmsTypes.length];
+			
+			Extracotor[] extractors = generateExtractors(method);
 
-			for (int i = 0; i < names.length; i++) {
-				for (var a : parmsAnnotations[i]) if(a instanceof BodyField parm) names[i] = parm.value();
-				if(names[i] == null) throw new RuntimeException(Strings.format("no @ annotation in parametr of endpoint @.@ must be String", BodyField.class.getSimpleName(), cls.getSimpleName(), method.getName()));
-				extractors[i] = exractorFor(parmsTypes[i]);
-				if(extractors[i] == null) throw new RuntimeException(Strings.format("unsupported parm type \"@\" for endpoint @.@", parmsTypes[i], cls.getSimpleName(), method.getName()));
-			}
-
-			handlers.put(name, jval -> {
-				Object[] args = new Object[names.length];
+			handlers.put(name, (exchange, jval) -> {
+				Object[] args = new Object[extractors.length];
 				try {
 					for (int i = 0; i < args.length; i++) {
-						if(!jval.has(names[i])) return new ApiResponse(Strings.format("Wrong parms: no @ value (@)", names[i], parmsTypes[i].getSimpleName())).wrongParms();
-						args[i] = extractors[i].get(jval, names[i]);
+						args[i] = extractors[i].get(exchange, jval);
 					}
 					return new ApiResponse(method.invoke(null, args).toString());
+				} catch (ApiResponse e) {
+					return e;
 				} catch (Exception e) {
 					e.printStackTrace();
 					Log.info("Call @ with parms: @", name, Arrays.toString(args));
@@ -98,13 +96,7 @@ public class ApiRouter {
 			
 			String name = enpointName(endpoint.value(), field.getName());
 			
-			Object source = null;
-			try {
-				source = field.get(null);
-			} catch (IllegalArgumentException | IllegalAccessException e) {
-				Log.err(e);
-				continue;
-			}
+			Object source = Reflect.get(field);
 			if(source == null) throw new RuntimeException(Strings.format("SSE source must be not null"));
 			if(!(source instanceof SseSource sse)) throw new RuntimeException(Strings.format("SSE source must be @", SseSource.class));
 			var sourceCls = source.getClass();
@@ -114,31 +106,23 @@ public class ApiRouter {
 			var method = processors.first();
 			
 			Log.info("SSE Endpoint: [cyan]/@/@", prefix, name);
-			var parmsAnnotations = method.getParameterAnnotations();
-			var parmsTypes = method.getParameterTypes();
 
 			if(method.getReturnType() != Func.class) throw new RuntimeException(Strings.format("return type of endpoint @.@ must be String", cls.getSimpleName(), method.getName()));
-			String[] names = new String[parmsTypes.length];
-			Func2<Jval, String, Object>[] extractors = new Func2[parmsTypes.length];
 
-			for (int i = 0; i < names.length; i++) {
-				for (var a : parmsAnnotations[i]) if(a instanceof BodyField parm) names[i] = parm.value();
-				if(names[i] == null) throw new RuntimeException(Strings.format("no @ annotation in parametr of endpoint @.@ must be String", BodyField.class.getSimpleName(), cls.getSimpleName(), method.getName()));
-				extractors[i] = exractorFor(parmsTypes[i]);
-				if(extractors[i] == null) throw new RuntimeException(Strings.format("unsupported parm type \"@\" for endpoint @.@", parmsTypes[i], cls.getSimpleName(), method.getName()));
-			}
+			Extracotor[] extractors = generateExtractors(method);
 
 			sseHandlers.put(name, (exchange, jval) -> {
-				Object[] args = new Object[names.length];
+				Object[] args = new Object[extractors.length];
 				try {
 					for (int i = 0; i < args.length; i++) {
-						if(!jval.has(names[i])) return new ApiResponse(Strings.format("Wrong parms: no @ value (@)", names[i], parmsTypes[i].getSimpleName())).wrongParms();
-						args[i] = extractors[i].get(jval, names[i]);
+						args[i] = extractors[i].get(exchange, jval);
 					}
 					@SuppressWarnings("rawtypes")
 					Func func = (Func) method.invoke(source, args);
 					sse.register(exchange, func);
 					return null; // OK, continue request
+				} catch (ApiResponse e) {
+					return e;
 				} catch (Exception e) {
 					e.printStackTrace();
 					return new ApiResponse((e.getCause().getClass().getSimpleName()) + (e.getCause().getMessage() == null ? "" : ": " + e.getCause().getMessage())).serverError();
@@ -147,12 +131,33 @@ public class ApiRouter {
 		}
 	}
 	
+	private Extracotor[] generateExtractors(Method method) {
+		var parmsAnnotations = method.getParameterAnnotations();
+		var parmsTypes = method.getParameterTypes();
+		
+		Extracotor[] extractors =new Extracotor[parmsTypes.length];
+		for (int i = 0; i < extractors.length; i++) {
+			for (var a : parmsAnnotations[i]) {
+				if(a instanceof BodyField parm) {
+					extractors[i] = bodyExractorFor(parmsTypes[i], parm.value());
+					break;
+				}
+				if(a instanceof HeadField parm) {
+					extractors[i] = headExractorFor(parmsTypes[i], parm.value());
+					break;
+				}
+			}
+			if(extractors[i] == null) throw new RuntimeException(Strings.format("unsupported parm type \"@\" for endpoint @.@", parmsTypes[i], method.getDeclaringClass(), method.getName()));
+		}
+		return extractors;
+	}
+
 	private String enpointName(String name, String method) {
 		if(name.isEmpty()) return Strings.camelToKebab(method).replace('-', '/');
 		return name;
 	}
 	
-	private class ApiResponse {
+	private class ApiResponse extends Exception {
 		
 		String content;
 		int code = 200;
@@ -172,16 +177,53 @@ public class ApiRouter {
 		
 	}
 
-	private @Nullable Func2<Jval, String, Object> exractorFor(Class<?> clz) {
-		if(clz == int.class) return (j,n) -> j.getInt(n, 0);
-		if(clz == long.class) return (j,n) -> j.getLong(n, 0);
+	private @Nullable Extracotor bodyExractorFor(Class<?> clz, String n) {
+		if(clz == int.class) return (e,j) -> {
+			if(j.has(n)) return j.getInt(n, 0);
+			throw new ApiResponse(Strings.format("Wrong body: no int value \"@\"", n)).wrongParms();
+		};
+		if(clz == long.class) return (e,j) -> {
+			if(j.has(n)) return j.getLong(n, 0);
+			throw new ApiResponse(Strings.format("Wrong body: no long value \"@\"", n)).wrongParms();
+		};
 
-		if(clz == float.class) return (j,n) -> j.getFloat(n, 0f);
-		if(clz == double.class) return (j,n) -> j.getDouble(n, 0);
+		if (clz == float.class) return (e, j) -> {
+		    if (j.has(n)) return j.getFloat(n, 0f);
+		    throw new ApiResponse(Strings.format("Wrong body: no float value \"@\"", n)).wrongParms();
+		};
+		if (clz == double.class) return (e, j) -> {
+		    if (j.has(n)) return j.getDouble(n, 0d);
+		    throw new ApiResponse(Strings.format("Wrong body: no double value \"@\"", n)).wrongParms();
+		};
 
-		if(clz == boolean.class) return (j,n) -> j.getBool(n, false);
+		if (clz == boolean.class) return (e, j) -> {
+		    if (j.has(n)) return j.getBool(n, false);
+		    throw new ApiResponse(Strings.format("Wrong body: no boolean value \"@\"", n)).wrongParms();
+		};
+
+		if (clz == String.class) return (e, j) -> {
+		    if (j.has(n)) return j.getString(n);
+		    throw new ApiResponse(Strings.format("Wrong body: no String value \"@\"", n)).wrongParms();
+		};
+		return null;
+	}
+
+	private String header(HttpExchange e, String header) {
+		var h = e.getRequestHeaders().getFirst("Agzam4-" + header);
+		if(h == null)  new ApiResponse(Strings.format("Wrong header: no \"Agzam4-@\" header", header)).wrongParms();
+		return h;
+	}
+	
+	private @Nullable Extracotor headExractorFor(Class<?> clz, String n) {
+		if(clz == int.class) return (e,j) -> Strings.parseInt(header(e, n), 0);
+		if(clz == long.class) return (e,j) -> Strings.parseLong(header(e, n), 0);
+
+		if(clz == float.class) return (e,j) -> Strings.parseFloat(header(e, n), 0);
+		if(clz == double.class) return (e,j) -> Strings.parseDouble(header(e, n), 0);
+
+		if(clz == boolean.class) return (e,j) -> Boolean.valueOf(header(e, n));
 		
-		if(clz == String.class) return (j,n) -> j.getString(n);
+		if(clz == String.class) return (e,j) -> header(e, n);
 		
 		return null;
 	}
@@ -198,13 +240,13 @@ public class ApiRouter {
         handlers.each((path, handler) -> {
             server.createContext(Strings.format("/@/@", prefix, path), exchange -> {
             	readBody(exchange, jval -> {
-                    var resp =  handler.get(jval);
+                    var resp = handler.get(exchange, jval);
                     
                     String response = resp.content;
                     exchange.sendResponseHeaders(resp.code, response.getBytes().length);
                     exchange.getResponseBody().write(response.getBytes());
                     exchange.getResponseBody().close();
-                    handler.get(jval);
+                    handler.get(exchange, jval);
                     Log.info("< \"@\"", jval);
                     Log.info("> \"@\"", response);
         		});

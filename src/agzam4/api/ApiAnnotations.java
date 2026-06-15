@@ -31,5 +31,10 @@ public class ApiAnnotations {
 		String value();
 	}
 
-	
+	@Retention(RetentionPolicy.RUNTIME)
+	@Target(ElementType.PARAMETER)
+	public @interface HeadField {
+		String value();
+	}
+
 }
