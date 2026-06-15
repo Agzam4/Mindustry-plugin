@@ -109,7 +109,7 @@ public class ApiRouter {
 			if(!(source instanceof SseSource sse)) throw new RuntimeException(Strings.format("SSE source must be @", SseSource.class));
 			var sourceCls = source.getClass();
 			
-			Seq<Method> processors = Seq.with(sourceCls.getMethods()).select(m -> Modifier.isStatic(m.getModifiers()) && m.isAnnotationPresent(SseProcessor.class));
+			Seq<Method> processors = Seq.with(sourceCls.getMethods()).select(m -> m.isAnnotationPresent(SseProcessor.class));
 			if(processors.size != 1) throw new RuntimeException(Strings.format("SSE source have to contains only one processors method"));
 			var method = processors.first();
 			
@@ -136,7 +136,7 @@ public class ApiRouter {
 						args[i] = extractors[i].get(jval, names[i]);
 					}
 					@SuppressWarnings("rawtypes")
-					Func func = (Func) method.invoke(null, args);
+					Func func = (Func) method.invoke(source, args);
 					sse.register(exchange, func);
 					return null; // OK, continue request
 				} catch (Exception e) {

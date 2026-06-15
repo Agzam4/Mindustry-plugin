@@ -60,7 +60,8 @@ public class ApiServer {
     		try {
     			InetAddress loopback = InetAddress.getLoopbackAddress();
     			InetSocketAddress address = new InetSocketAddress(loopback, currentPort);
-
+    			pingListeners.clear();
+    			
     			server = HttpServer.create(address, 0);
 
     			executor = Threads.boundedExecutor("http-api", maxThreads);
@@ -96,6 +97,7 @@ public class ApiServer {
             }
             server.stop(0);
             executor.shutdown();
+            pingListeners.clear();
             server = null;
             executor = null;
             Log.info("Api server stoped");

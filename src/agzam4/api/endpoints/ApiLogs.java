@@ -16,7 +16,7 @@ public class ApiLogs {
 	public static SseSource<LogEntity> logsStream = new SseSource<LogEntity>() {
 		
 		@SseProcessor
-		public static Func<LogEntity, String> processor(@BodyField("protect") boolean protect) { 
+		public Func<LogEntity, String> processor(@BodyField("protect") boolean protect) { 
 			return e -> Logs.entityJson(e, protect);
 		}
 

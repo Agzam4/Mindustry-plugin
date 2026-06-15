@@ -24,17 +24,11 @@ public class SseSource<T> {
 
     public void broadcast(T event) {
         if(activeClients.isEmpty()) return;
-        activeClients.forEach((exchange, client) -> {
-            if(client.send(event)) return;
-            activeClients.remove(exchange);
-        });
+        activeClients.entrySet().removeIf(entry -> !entry.getValue().send(event));
     }
     
     public void pingDisconnects() {
         if(activeClients.isEmpty()) return;
-        activeClients.forEach((exchange, client) -> {
-            if(client.ping()) return;
-            activeClients.remove(exchange);
-        });
+        activeClients.entrySet().removeIf(entry -> !entry.getValue().ping());
     }
 }
