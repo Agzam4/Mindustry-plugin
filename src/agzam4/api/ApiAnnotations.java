@@ -14,9 +14,22 @@ public class ApiAnnotations {
 	}
 
 	@Retention(RetentionPolicy.RUNTIME)
+	@Target(ElementType.FIELD)
+	public @interface SseEndpoint {
+		String value() default "";
+	}
+
+	@Retention(RetentionPolicy.RUNTIME)
+	@Target(ElementType.METHOD)
+	public @interface SseProcessor {
+		String value() default "";
+	}
+	
+	@Retention(RetentionPolicy.RUNTIME)
 	@Target(ElementType.PARAMETER)
 	public @interface BodyField {
 		String value();
 	}
+
 	
 }

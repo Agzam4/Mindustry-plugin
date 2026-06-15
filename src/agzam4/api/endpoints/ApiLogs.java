@@ -2,12 +2,25 @@ package agzam4.api.endpoints;
 
 import agzam4.api.ApiAnnotations.BodyField;
 import agzam4.api.ApiAnnotations.PostEndpoint;
+import agzam4.api.ApiAnnotations.SseEndpoint;
+import agzam4.api.ApiAnnotations.SseProcessor;
+import agzam4.api.SseSource;
+import agzam4.logs.LogEvents.LogEntity;
 import agzam4.logs.Logs;
-import arc.util.Log;
+import arc.func.Func;
 import arc.util.Strings;
 
 public class ApiLogs {
 
+	@SseEndpoint
+	public static SseSource<LogEntity> logsStream = new SseSource<LogEntity>() {
+		
+		@SseProcessor
+		public static Func<LogEntity, String> processor(@BodyField("protect") boolean protect) { 
+			return e -> Logs.entityJson(e, protect);
+		}
+
+	};
 
 	@PostEndpoint
 	public static String timerange(
@@ -21,6 +34,7 @@ public class ApiLogs {
 		return Strings.format("[@]", entities.toString(",", e -> Logs.entityJson(e, protect)));
 	}
 
-
-
+	
+	
+	
 }

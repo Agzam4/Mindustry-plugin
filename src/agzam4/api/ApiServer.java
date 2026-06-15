@@ -3,7 +3,10 @@ package agzam4.api;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.Timer;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import com.sun.net.httpserver.HttpServer;
 
@@ -11,7 +14,9 @@ import agzam4.api.endpoints.ApiLogs;
 import agzam4.utils.Log;
 import arc.Core;
 import arc.Settings;
+import arc.struct.Seq;
 import arc.util.Threads;
+import arc.util.Time;
 import mindustry.Vars;
 import mindustry.net.Administration.Config;
 
@@ -30,6 +35,8 @@ public class ApiServer {
     private static final Object lock = new Object();
     private static HttpServer server = null;
     private static ExecutorService executor = null;
+    
+    public static Seq<Runnable> pingListeners = Seq.with();
 	
     private static final int maxThreads = 4;
 	
@@ -44,28 +51,42 @@ public class ApiServer {
     private ApiServer() {}
 
     public static void start() {
-        synchronized (lock) {
-            if (server != null) {
-                Log.warn("Server already running at @", currentPort);
-                return;
-            }
+    	synchronized (lock) {
+    		if (server != null) {
+    			Log.warn("Server already running at @", currentPort);
+    			return;
+    		}
 
-            try {
-                InetAddress loopback = InetAddress.getLoopbackAddress();
-                InetSocketAddress address = new InetSocketAddress(loopback, currentPort);
+    		try {
+    			InetAddress loopback = InetAddress.getLoopbackAddress();
+    			InetSocketAddress address = new InetSocketAddress(loopback, currentPort);
 
-                server = HttpServer.create(address, 0);
-                
-                executor = Threads.boundedExecutor("http-api", maxThreads);
-                server.setExecutor(executor);
-                setupRoutes();
-                
-                server.start();
-                Log.info("Api server started at http://127.0.0.1:@", currentPort);
-            } catch (IOException e) {
-                Log.err(e);
-            }
-        }}
+    			server = HttpServer.create(address, 0);
+
+    			executor = Threads.boundedExecutor("http-api", maxThreads);
+    			server.setExecutor(executor);
+    			setupRoutes();
+
+    			server.start();
+    			Log.info("Api server started at http://127.0.0.1:@", currentPort);
+    			
+    			executor.execute(new Runnable() {
+    			    @Override
+    			    public void run() {
+    			        try {
+    			        	pingListeners.forEach(p -> p.run());
+    			        } catch (Exception e) {
+    			            Log.err(e); 
+    			        }
+    			        CompletableFuture.delayedExecutor(20, TimeUnit.SECONDS, executor).execute(this);
+    			    }
+    			});
+    			
+    		} catch (IOException e) {
+    			Log.err(e);
+    		}
+    	}
+    }
 
     public static void stop() {
         synchronized (lock) {
@@ -74,7 +95,9 @@ public class ApiServer {
                 return;
             }
             server.stop(0);
+            executor.shutdown();
             server = null;
+            executor = null;
             Log.info("Api server stoped");
         }
     }

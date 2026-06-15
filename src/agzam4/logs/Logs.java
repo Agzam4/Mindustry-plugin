@@ -2,6 +2,7 @@ package agzam4.logs;
 
 import java.sql.SQLException;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import agzam4.api.endpoints.ApiLogs;
 import agzam4.database.Database;
 import agzam4.database.Table;
 import agzam4.logs.LogEvents.*;
@@ -75,6 +76,7 @@ public class Logs {
 						continue;
 					}
 					LogEntity entity = buildEntity(event);
+                    entity.logId = current.id;
 
 					if (current.totalRows >= MAX_LOGS) {
                         current.close();
@@ -93,6 +95,8 @@ public class Logs {
                     }
                     current.maxTimestamp = entity.timestamp;
                     current.totalRows++;
+
+                    ApiLogs.logsStream.broadcast(entity);
 				} catch (Exception e) {
 					Log.err(e);
 				}
@@ -177,8 +181,8 @@ public class Logs {
 		var val = Jval.read(entity.message);
 		if(protect) builders[entity.tag].protect(val);
 		val.put("timestamp", entity.timestamp);
-		val.put("logid", entity.logId);
-		val.put("id", entity.id);
+		if(entity.logId >= 0) val.put("logid", entity.logId);
+		if(entity.id != null) val.put("id", entity.id);
 		
     	return val.toString(Jformat.plain);
 	}

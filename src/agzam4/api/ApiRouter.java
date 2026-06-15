@@ -1,15 +1,21 @@
 package agzam4.api;
 
+import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 
+import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
 import agzam4.api.ApiAnnotations.BodyField;
 import agzam4.api.ApiAnnotations.PostEndpoint;
+import agzam4.api.ApiAnnotations.SseEndpoint;
+import agzam4.api.ApiAnnotations.SseProcessor;
 import agzam4.utils.Log;
+import arc.func.Func;
 import arc.func.Func2;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
@@ -30,53 +36,120 @@ public class ApiRouter {
 		ApiResponse get(Jval body);
 		
 	}
+
+	private interface SseHandler {
+
+		ApiResponse get(HttpExchange exchange, Jval body);
+
+	}
 	
 	private ObjectMap<String, Handler> handlers = ObjectMap.of();
+	private ObjectMap<String, SseHandler> sseHandlers = ObjectMap.of();
 
+	@SuppressWarnings("unchecked")
 	public ApiRouter(Class<?> cls, String prefix) {
 		Log.info("== Class: @ ==", cls.getSimpleName());
 		this.prefix = prefix;
-		
+
 		Seq<Method> methods = Seq.with(cls.getMethods()).select(m -> Modifier.isStatic(m.getModifiers()));
+		Seq<Field> fields = Seq.with(cls.getFields()).select(m -> Modifier.isStatic(m.getModifiers()));
 		
 		for (var method : methods) {
 			var endpoint = method.getAnnotation(PostEndpoint.class);
-			if(endpoint == null) continue;
-			String name = endpoint.value().isEmpty() ? Strings.camelToKebab(method.getName()).replace('-', '/') : endpoint.value();
+			if (endpoint == null) continue;
 			
+			String name = enpointName(endpoint.value(), method.getName());
+
 			Log.info("Endpoint: [cyan]/@/@", prefix, name);
 
-	        var parmsAnnotations = method.getParameterAnnotations();
-	        var parmsTypes = method.getParameterTypes();
-	        
-	        if(method.getReturnType() != String.class) throw new RuntimeException(Strings.format("return type of endpoint @.@ must be String", cls.getSimpleName(), method.getName()));
-	        String[] names = new String[parmsTypes.length];
-	        @SuppressWarnings("unchecked")
+			var parmsAnnotations = method.getParameterAnnotations();
+			var parmsTypes = method.getParameterTypes();
+
+			if(method.getReturnType() != String.class) throw new RuntimeException(Strings.format("return type of endpoint @.@ must be String", cls.getSimpleName(), method.getName()));
+			String[] names = new String[parmsTypes.length];
 			Func2<Jval, String, Object>[] extractors = new Func2[parmsTypes.length];
-	       
-	        for (int i = 0; i < names.length; i++) {
-	        	for (var a : parmsAnnotations[i]) if(a instanceof BodyField parm) names[i] = parm.value();
-	        	if(names[i] == null) throw new RuntimeException(Strings.format("no @ annotation in parametr of endpoint @.@ must be String", BodyField.class.getSimpleName(), cls.getSimpleName(), method.getName()));
-	        	extractors[i] = exractorFor(parmsTypes[i]);
-	        	if(extractors[i] == null) throw new RuntimeException(Strings.format("unsupported parm type \"@\" for endpoint @.@", parmsTypes[i], cls.getSimpleName(), method.getName()));
-	        }
-			
-	        handlers.put(name, jval -> {
-        		Object[] args = new Object[names.length];
-	        	try {
-	        		for (int i = 0; i < args.length; i++) {
-	        			if(jval.has(name)) return new ApiResponse(Strings.format("Wrong parms: no @ value (@)", name, parmsTypes[i].getSimpleName())).wrongParms();
-	        			args[i] = extractors[i].get(jval, names[i]);
-	        		}
-	        		return new ApiResponse(method.invoke(null, args).toString());
-	        	} catch (Exception e) {
-	        		e.printStackTrace();
-	        		Log.info("Call @ with parms: @", name, Arrays.toString(args));
-	        		return new ApiResponse((e.getCause().getClass().getSimpleName()) + (e.getCause().getMessage() == null ? "" : ": " + e.getCause().getMessage())).serverError();
-	        	}
-	        });
+
+			for (int i = 0; i < names.length; i++) {
+				for (var a : parmsAnnotations[i]) if(a instanceof BodyField parm) names[i] = parm.value();
+				if(names[i] == null) throw new RuntimeException(Strings.format("no @ annotation in parametr of endpoint @.@ must be String", BodyField.class.getSimpleName(), cls.getSimpleName(), method.getName()));
+				extractors[i] = exractorFor(parmsTypes[i]);
+				if(extractors[i] == null) throw new RuntimeException(Strings.format("unsupported parm type \"@\" for endpoint @.@", parmsTypes[i], cls.getSimpleName(), method.getName()));
+			}
+
+			handlers.put(name, jval -> {
+				Object[] args = new Object[names.length];
+				try {
+					for (int i = 0; i < args.length; i++) {
+						if(!jval.has(names[i])) return new ApiResponse(Strings.format("Wrong parms: no @ value (@)", names[i], parmsTypes[i].getSimpleName())).wrongParms();
+						args[i] = extractors[i].get(jval, names[i]);
+					}
+					return new ApiResponse(method.invoke(null, args).toString());
+				} catch (Exception e) {
+					e.printStackTrace();
+					Log.info("Call @ with parms: @", name, Arrays.toString(args));
+					return new ApiResponse((e.getCause().getClass().getSimpleName()) + (e.getCause().getMessage() == null ? "" : ": " + e.getCause().getMessage())).serverError();
+				}
+			});
 		}
-		
+
+		for (var field : fields) {
+			var endpoint = field.getAnnotation(SseEndpoint.class);
+			if(endpoint == null) continue;
+			
+			String name = enpointName(endpoint.value(), field.getName());
+			
+			Object source = null;
+			try {
+				source = field.get(null);
+			} catch (IllegalArgumentException | IllegalAccessException e) {
+				Log.err(e);
+				continue;
+			}
+			if(source == null) throw new RuntimeException(Strings.format("SSE source must be not null"));
+			if(!(source instanceof SseSource sse)) throw new RuntimeException(Strings.format("SSE source must be @", SseSource.class));
+			var sourceCls = source.getClass();
+			
+			Seq<Method> processors = Seq.with(sourceCls.getMethods()).select(m -> Modifier.isStatic(m.getModifiers()) && m.isAnnotationPresent(SseProcessor.class));
+			if(processors.size != 1) throw new RuntimeException(Strings.format("SSE source have to contains only one processors method"));
+			var method = processors.first();
+			
+			Log.info("SSE Endpoint: [cyan]/@/@", prefix, name);
+			var parmsAnnotations = method.getParameterAnnotations();
+			var parmsTypes = method.getParameterTypes();
+
+			if(method.getReturnType() != Func.class) throw new RuntimeException(Strings.format("return type of endpoint @.@ must be String", cls.getSimpleName(), method.getName()));
+			String[] names = new String[parmsTypes.length];
+			Func2<Jval, String, Object>[] extractors = new Func2[parmsTypes.length];
+
+			for (int i = 0; i < names.length; i++) {
+				for (var a : parmsAnnotations[i]) if(a instanceof BodyField parm) names[i] = parm.value();
+				if(names[i] == null) throw new RuntimeException(Strings.format("no @ annotation in parametr of endpoint @.@ must be String", BodyField.class.getSimpleName(), cls.getSimpleName(), method.getName()));
+				extractors[i] = exractorFor(parmsTypes[i]);
+				if(extractors[i] == null) throw new RuntimeException(Strings.format("unsupported parm type \"@\" for endpoint @.@", parmsTypes[i], cls.getSimpleName(), method.getName()));
+			}
+
+			sseHandlers.put(name, (exchange, jval) -> {
+				Object[] args = new Object[names.length];
+				try {
+					for (int i = 0; i < args.length; i++) {
+						if(!jval.has(names[i])) return new ApiResponse(Strings.format("Wrong parms: no @ value (@)", names[i], parmsTypes[i].getSimpleName())).wrongParms();
+						args[i] = extractors[i].get(jval, names[i]);
+					}
+					@SuppressWarnings("rawtypes")
+					Func func = (Func) method.invoke(null, args);
+					sse.register(exchange, func);
+					return null; // OK, continue request
+				} catch (Exception e) {
+					e.printStackTrace();
+					return new ApiResponse((e.getCause().getClass().getSimpleName()) + (e.getCause().getMessage() == null ? "" : ": " + e.getCause().getMessage())).serverError();
+				}
+			});
+		}
+	}
+	
+	private String enpointName(String name, String method) {
+		if(name.isEmpty()) return Strings.camelToKebab(method).replace('-', '/');
+		return name;
 	}
 	
 	private class ApiResponse {
@@ -124,74 +197,48 @@ public class ApiRouter {
         
         handlers.each((path, handler) -> {
             server.createContext(Strings.format("/@/@", prefix, path), exchange -> {
-                if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-//                    exchange.sendResponseHeaders(405, -1); // Method Not Allowed
-                    String response = "Hello from secured localhost!";
-                    exchange.sendResponseHeaders(405, response.getBytes().length);
+            	readBody(exchange, jval -> {
+                    var resp =  handler.get(jval);
+                    
+                    String response = resp.content;
+                    exchange.sendResponseHeaders(resp.code, response.getBytes().length);
                     exchange.getResponseBody().write(response.getBytes());
                     exchange.getResponseBody().close();
-                    return;
-                }
-                
-                var jval = Jval.read(new InputStreamReader(exchange.getRequestBody()));
-                
-                var resp =  handler.get(jval);
-                
-                String response = resp.content;
-                exchange.sendResponseHeaders(resp.code, response.getBytes().length);
-                exchange.getResponseBody().write(response.getBytes());
-                exchange.getResponseBody().close();
-                handler.get(jval);
-                Log.info("< \"@\"", jval);
-                Log.info("> \"@\"", response);
-                
+                    handler.get(jval);
+                    Log.info("< \"@\"", jval);
+                    Log.info("> \"@\"", response);
+        		});
             });
         });
 
-//        try {
-//            // 2. Читаем все байты из тела запроса
-//            java.io.InputStream inputStream = exchange.getRequestBody();
-//            byte[] bytes = inputStream.readAllBytes();
-//            String body = new String(bytes, "UTF-8");
-//
-//            // 3. Парсим JSON с помощью встроенного в Arc класса Jval
-//            arc.util.serialization.Jval json = arc.util.serialization.Jval.read(body);
-//
-//            // Пример: получаем строку "action" и число "amount" из JSON
-//            // { "action": "spawn", "amount": 5 }
-//            String action = json.getString("action", "unknown");
-//            int amount = json.getInt("amount", 1);
-//
-//            Log.info("[PluginServer] Получена команда: @, количество: @", action, amount);
-//
-//            // ВАЖНО: Если вы меняете мир игры (спавните юнитов, даете ресурсы),
-//            // это нужно делать строго в главном потоке Mindustry!
-//            arc.Core.app.post(() -> {
-//                // Код, изменяющий мир игры, пишется здесь
-//                if (action.equals("spawn")) {
-//                    // mindustry.gen.UnitTypes.dagger.spawn(...)
-//                }
-//            });
-//
-//            // 4. Отправляем успешный ответ
-//            String response = "{\"success\":true}";
-//            byte[] responseBytes = response.getBytes("UTF-8");
-//            exchange.getResponseHeaders().set("Content-Type", "application/json");
-//            exchange.sendResponseHeaders(200, responseBytes.length);
-//            exchange.getResponseBody().write(responseBytes);
-//
-//        } catch (Exception e) {
-//            Log.err("[PluginServer] Ошибка обработки POST-запроса", e);
-//            
-//            // Если прислали невалидный JSON или упала ошибка
-//            String errorResponse = "{\"error\":\"Invalid request\"}";
-//            byte[] errorBytes = errorResponse.getBytes("UTF-8");
-//            exchange.getResponseHeaders().set("Content-Type", "application/json");
-//            exchange.sendResponseHeaders(400, errorBytes.length);
-//            exchange.getResponseBody().write(errorBytes);
-//        } finally {
-//            exchange.getResponseBody().close();
-//        }
+        sseHandlers.each((path, handler) -> {			
+        	server.createContext(Strings.format("/@/@", prefix, path), exchange -> {
+        		readBody(exchange, jval -> {
+        			var resp = handler.get(exchange, jval);
+        			if(resp == null) return; // OK, stream started
+                    String response = resp.content;
+                    exchange.sendResponseHeaders(resp.code, response.getBytes().length);
+                    exchange.getResponseBody().write(response.getBytes());
+                    exchange.getResponseBody().close();
+        		});
+        	});
+        });
+	}
+
+	private interface BodyHandler {
+		void get(Jval jval) throws IOException;
 	}
 	
+	private void readBody(HttpExchange exchange, BodyHandler cons) throws IOException {
+		if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+			String response = "Method not allowed";
+			exchange.sendResponseHeaders(405, response.getBytes().length);
+			exchange.getResponseBody().write(response.getBytes());
+			exchange.getResponseBody().close();
+			return;
+		}
+		var jval = Jval.read(new InputStreamReader(exchange.getRequestBody()));
+		cons.get(jval);
+	}
+
 }
