@@ -948,6 +948,7 @@ public class CommandsManager {
 		
 		playerCommand(new VotekickCommand());
 		playerCommand(new DiscordCommand());
+		playerCommand(new AuthCommand());
 
 		anyCommand(new SkipmapCommand());
 		anyCommand(new SmvoteCommand());

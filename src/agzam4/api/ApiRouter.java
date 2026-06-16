@@ -229,14 +229,6 @@ public class ApiRouter {
 	}
 
 	public void register(HttpServer server) {
-
-        server.createContext("/", exchange -> {
-            String response = "Hello from secured localhost!";
-            exchange.sendResponseHeaders(200, response.getBytes().length);
-            exchange.getResponseBody().write(response.getBytes());
-            exchange.getResponseBody().close();
-        });
-        
         handlers.each((path, handler) -> {
             server.createContext(Strings.format("/@/@", prefix, path), exchange -> {
             	readBody(exchange, jval -> {
