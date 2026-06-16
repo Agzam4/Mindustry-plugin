@@ -3,20 +3,20 @@ package agzam4.api;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.Timer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import com.sun.net.httpserver.HttpServer;
 
+import agzam4.api.auth.ApiAuth;
+import agzam4.api.auth.AuthDatabase;
 import agzam4.api.endpoints.ApiLogs;
 import agzam4.utils.Log;
 import arc.Core;
 import arc.Settings;
 import arc.struct.Seq;
 import arc.util.Threads;
-import arc.util.Time;
 import mindustry.Vars;
 import mindustry.net.Administration.Config;
 
@@ -41,6 +41,11 @@ public class ApiServer {
     private static final int maxThreads = 4;
 	
 	public static void init() {
+		try {
+			AuthDatabase.init(Vars.dataDirectory.child("auth.db"));
+		} catch (Exception e) {
+			Log.err(e);
+		}
 		start();
 	}
 	
@@ -57,7 +62,7 @@ public class ApiServer {
     			return;
     		}
 
-    		try {
+    	try {
     			InetAddress loopback = InetAddress.getLoopbackAddress();
     			InetSocketAddress address = new InetSocketAddress(loopback, currentPort);
     			pingListeners.clear();
@@ -129,6 +134,7 @@ public class ApiServer {
         if (server == null) return;
 
         new ApiRouter(ApiLogs.class).register(server);
+        new ApiRouter(ApiAuth.class).register(server);
 //        
 //        server.createContext("/", exchange -> {
 //            String response = "Hello from secured localhost!";
