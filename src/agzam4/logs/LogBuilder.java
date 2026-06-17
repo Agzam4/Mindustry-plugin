@@ -25,7 +25,7 @@ public class LogBuilder<T> {
 		for (var jt: JsonTypes.values()) {
 			for (int i = 0; i < jt.types.length; i++) typeMap.put(jt.types[i], jt);
 		}
-		Log.info("[cyan]Type map: @", typeMap);
+//		Log.info("[cyan]Type map: @", typeMap);
 	}
 	
 	private interface SizeFunc { int get(Object o); }
@@ -147,7 +147,7 @@ public class LogBuilder<T> {
 		int size = 1; // "{}" + no first ","
 		for (int i = 0; i < extractors.length; i++) {
 			extracted[i] = extractors[i].get(t);
-			Log.info("#@: @", i, extracted[i]);
+//			Log.info("#@: @", i, extracted[i]);
 			if(extracted[i] == null) continue;
 			size += precomputedHeaders[i].length() + 1; // part + ","
 			size += types[i].buffer.get(extracted[i]);

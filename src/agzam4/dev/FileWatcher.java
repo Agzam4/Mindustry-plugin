@@ -6,6 +6,11 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import arc.files.Fi;
 import arc.func.Cons;
@@ -16,12 +21,21 @@ import arc.util.Threads;
 import static java.nio.file.StandardWatchEventKinds.*;
 
 public class FileWatcher implements Runnable {
-	
+
+    public static long delayMs = 500;
+    
 	private final Fi fi;
     private final Cons<Fi> listener;
     private final boolean isDirectory;
     private final WatchService service;
     private final Map<WatchKey, Path> keyPathMap = new HashMap<>();
+    private final ConcurrentHashMap<Path, ScheduledFuture<?>> delays = new ConcurrentHashMap<>();
+    
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "FileWatcher-Scheduler");
+        t.setDaemon(true);
+        return t;
+    });
 
     public FileWatcher(Fi fi, Cons<Fi> listener) throws IOException {
         this.fi = fi;
@@ -50,6 +64,32 @@ public class FileWatcher implements Runnable {
             }
         });
     }
+
+    private void trigger(Path path, Fi changed) {
+        ScheduledFuture<?> scheduled = delays.remove(path);
+        if (scheduled != null) {
+            scheduled.cancel(false);
+        }
+
+        ScheduledFuture<?> future = scheduler.schedule(() -> {
+            delays.remove(path);
+            if (waitForFileReady(path)) {
+                listener.get(changed);
+            }
+        }, delayMs, TimeUnit.MILLISECONDS);
+
+        delays.put(path, future);
+    }
+    
+    private boolean waitForFileReady(Path path) {
+        if (Files.isDirectory(path) || !Files.exists(path)) return true;
+        try (java.nio.channels.FileChannel ch = java.nio.channels.FileChannel.open(path, StandardOpenOption.WRITE)) {
+            return true; 
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
 
     @Override
     public void run() {
@@ -80,11 +120,11 @@ public class FileWatcher implements Runnable {
                             	Log.err(e);
                             }
                         }
-                        listener.get(changed);
+                        trigger(path, changed);
                         continue;
                     }
                     if(kind != ENTRY_MODIFY || !changed.equals(fi)) continue;
-                    listener.get(changed);
+                    trigger(path, changed);
                 }
 
                 boolean valid = key.reset();

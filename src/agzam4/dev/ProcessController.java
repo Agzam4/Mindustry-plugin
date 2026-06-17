@@ -64,7 +64,7 @@ public class ProcessController {
 		
 
 		process = pb.start();
-		process.onExit().thenAccept(p -> System.out.print("Process " + name + " stopped"));
+		process.onExit().thenAccept(p -> System.out.println("Process " + name + " stopped"));
 
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 		    if (process != null && process.isAlive()) {

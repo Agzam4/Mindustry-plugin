@@ -43,8 +43,8 @@ public class Table<T> {
 		this.name = name;
 		Seq<TableColumnInfo> currentInfo = SQL.createTableInfo(type);
 		Seq<TableColumnInfo> previousInfo = database.queryTableInfo(name);
-		Log.info("Before: [blue]@[]", previousInfo);
-		Log.info("After:  [blue]@[]", currentInfo);
+//		Log.info("Before: [blue]@[]", previousInfo);
+//		Log.info("After:  [blue]@[]", currentInfo);
 		
 		if(previousInfo != null) {
 			// Checking format matching of old table and new
@@ -100,7 +100,7 @@ public class Table<T> {
 		
 		
 		database.execute(Strings.format("CREATE TABLE IF NOT EXISTS @ (@)", name, currentInfo.toString(",", info -> info.toString())));
-		Log.info("Table [blue]@[] inited", name);
+//		Log.info("Table [blue]@[] inited", name);
 		
 	    try {
 	        Lookup lookup = MethodHandles.lookup();

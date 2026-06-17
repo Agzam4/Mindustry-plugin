@@ -88,12 +88,12 @@ public class Database implements AutoCloseable {
 	public boolean executeTransaction(String...executes) {
 		try (Statement s = connection.createStatement()) {
 			connection.setAutoCommit(false);
-			Log.info("[SQL] == [Transaction] ==========");
+//			Log.info("[SQL] == [Transaction] ==========");
 			for (int i = 0; i < executes.length; i++) {
 				if(executes[i] == null) {
-					Log.info("[SQL] Transaction (SKIPED)");
+//					Log.info("[SQL] Transaction (SKIPED)");
 				}
-				Log.info("[SQL] Transaction > @", executes[i]);
+//				Log.info("[SQL] Transaction > @", executes[i]);
 				s.execute(executes[i]);
 			}
 			connection.commit();
@@ -108,7 +108,7 @@ public class Database implements AutoCloseable {
 			return false;
 		} finally {
 			try {
-				Log.info("[SQL] == [Transaction] ==========");
+//				Log.info("[SQL] == [Transaction] ==========");
 				connection.setAutoCommit(true);
 			} catch (SQLException e) {
 				Log.err(e);
