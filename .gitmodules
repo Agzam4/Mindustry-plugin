@@ -1,3 +1,6 @@
 [submodule "proxy"]
 	path = proxy
 	url = https://github.com/Agzam4/Mindustry-plugin-proxy
+[submodule "web"]
+	path = web
+	url = https://github.com/Agzam4/Mindustry-plugin-web
