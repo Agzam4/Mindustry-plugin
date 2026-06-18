@@ -7,10 +7,14 @@ import agzam4.dev.FileWatcher;
 import agzam4.dev.GithubDownloader;
 import agzam4.dev.ProcessController;
 import agzam4.utils.Log;
+import arc.Core;
+import arc.Settings;
 import arc.files.Fi;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
 import arc.util.io.PropertiesUtils;
+import mindustry.Vars;
+import mindustry.net.Administration.Config;
 
 public class Dev {
 
@@ -21,7 +25,6 @@ public class Dev {
 	static ObjectMap<String, String> props = new ObjectMap<>();
 
 	public static void main(String[] args) throws IOException, InterruptedException {
-		
 		Fi propsFi = Fi.get(".env.properties");
 		if(!propsFi.exists()) {
 			Log.info("[blue]Enter admin name:");
@@ -74,7 +77,7 @@ public class Dev {
 		proxy.workdir = proxyRoot;
 		
 		ObjectMap<String, String> goenv = ObjectMap.of(
-				"JAVA_API_URL", "http://127.0.0.1:25566",
+				"JAVA_API_URL", "http://127.0.0.1:" + (Vars.port + 1),
 				"LISTEN_ADDR", ":8080",
 				"TLS_MODE", "none",
 				"DOMAIN", "",
@@ -83,6 +86,15 @@ public class Dev {
 		proxy.env = goenv;
 		proxy.start();
 		
+		FileWatcher.watch(f -> {
+			plugin.stop();
+			try {
+				plugin.start();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}, proxyRoot.child("proxy"));
+
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 		    Log.info("Shutdown...");
 		    plugin.stop();

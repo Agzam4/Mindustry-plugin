@@ -28,18 +28,8 @@ public class LogEvents {
 
 		public @FIELD @AUTOINCREMENT @PRIMARY_KEY Integer id;
 		
-//		public @FIELD Long uuid;
-		
-		/**
-		 * Id of tag
-		 */
+		/** Id of tag */
 		public @FIELD Integer tag;
-		
-		/**
-		 * Is record has IP/UUID/etc
-		 */
-//		public @FIELD Boolean sensitive;
-		
 
 		public @FIELD String message = "";
 

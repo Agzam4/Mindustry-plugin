@@ -22,7 +22,7 @@ import static java.nio.file.StandardWatchEventKinds.*;
 
 public class FileWatcher implements Runnable {
 
-    public static long delayMs = 500;
+    public static long delayMs = 10;
     
 	private final Fi fi;
     private final Cons<Fi> listener;

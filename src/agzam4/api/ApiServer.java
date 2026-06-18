@@ -9,8 +9,9 @@ import java.util.concurrent.TimeUnit;
 
 import com.sun.net.httpserver.HttpServer;
 
-import agzam4.api.auth.ApiAuth;
 import agzam4.api.auth.AuthDatabase;
+import agzam4.api.endpoints.ApiAuth;
+import agzam4.api.endpoints.ApiDebug;
 import agzam4.api.endpoints.ApiLogs;
 import agzam4.utils.Log;
 import arc.Core;
@@ -135,6 +136,7 @@ public class ApiServer {
 
         new ApiRouter(ApiLogs.class).register(server);
         new ApiRouter(ApiAuth.class).register(server);
+        new ApiRouter(ApiDebug.class).register(server);
 //        
 //        server.createContext("/", exchange -> {
 //            String response = "Hello from secured localhost!";
