@@ -33,6 +33,12 @@ public class DBFields {
 		
 	}
 	
+	@Retention(RetentionPolicy.RUNTIME)
+	@Target(ElementType.FIELD)
+	public @interface UNIQUE {
+		
+	}
+	
 	
 	
 	

@@ -6,6 +6,7 @@ import java.sql.SQLException;
 import agzam4.database.DBFields.DEFAULT;
 import agzam4.database.DBFields.FIELD;
 import agzam4.database.DBFields.PRIMARY_KEY;
+import agzam4.database.DBFields.UNIQUE;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
 import arc.util.Log;
@@ -31,13 +32,15 @@ public class SQL {
 		public boolean isNullable; 
 		public @Nullable String def;
 		public boolean isPrimaryKey;
+		public boolean isUnique;
 
-		public TableColumnInfo(String name, String type, boolean isNullable, String def, boolean isPrimaryKey) {
+		public TableColumnInfo(String name, String type, boolean isNullable, String def, boolean isPrimaryKey, boolean isUnique) {
 			this.name = name;
 			this.type = type;
 			this.isNullable = isNullable;
 			this.def = def;
 			this.isPrimaryKey = isPrimaryKey;
+			this.isUnique = isUnique;
 		}
 		
 		public TableColumnInfo(ResultSet result) throws SQLException {
@@ -53,6 +56,7 @@ public class SQL {
 			StringBuilder sb = new StringBuilder();
 			sb.append(name).append(' ').append(type);
 			if(isPrimaryKey) sb.append(" PRIMARY KEY");
+			if(isUnique) sb.append(" UNIQUE");
 			if(def != null) sb.append(" DEFAULT ").append(def);
 			return sb.toString();
 		}
@@ -60,6 +64,7 @@ public class SQL {
 		public boolean eql(TableColumnInfo i) {
 			if(isNullable != i.isNullable) return false;
 			if(isPrimaryKey != i.isPrimaryKey) return false;
+			if(isUnique != i.isUnique) return false;
 			if((def == null) != (i.def == null)) return false;
 			if(!name.equals(i.name)) return false;
 			if(!type.equals(i.type)) return false;
@@ -93,7 +98,8 @@ public class SQL {
 			if(field == null || filedType == null) continue;
 			@Nullable PRIMARY_KEY primaryKey = f.getAnnotation(PRIMARY_KEY.class);
 			@Nullable DEFAULT def = f.getAnnotation(DEFAULT.class);
-			infos.add(new TableColumnInfo(f.getName(), filedType, true, def == null ? null : def.value(), primaryKey != null));
+			@Nullable UNIQUE unique = f.getAnnotation(UNIQUE.class);
+			infos.add(new TableColumnInfo(f.getName(), filedType, true, def == null ? null : def.value(), primaryKey != null, unique != null));
 		}
 		return infos;
 	}
