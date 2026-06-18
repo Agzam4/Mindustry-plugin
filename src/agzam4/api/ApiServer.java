@@ -10,8 +10,10 @@ import java.util.concurrent.TimeUnit;
 import com.sun.net.httpserver.HttpServer;
 
 import agzam4.api.auth.AuthDatabase;
+import agzam4.api.auth.SensitiveData;
 import agzam4.api.endpoints.ApiAuth;
 import agzam4.api.endpoints.ApiDebug;
+import agzam4.api.endpoints.ApiInfo;
 import agzam4.api.endpoints.ApiLogs;
 import agzam4.utils.Log;
 import arc.Core;
@@ -44,6 +46,7 @@ public class ApiServer {
 	public static void init() {
 		try {
 			AuthDatabase.init(Vars.dataDirectory.child("auth.db"));
+			SensitiveData.init(Vars.dataDirectory.child("sensitive.db"));
 		} catch (Exception e) {
 			Log.err(e);
 		}
@@ -136,6 +139,7 @@ public class ApiServer {
 
         new ApiRouter(ApiLogs.class).register(server);
         new ApiRouter(ApiAuth.class).register(server);
+        new ApiRouter(ApiInfo.class).register(server);
         new ApiRouter(ApiDebug.class).register(server);
 //        
 //        server.createContext("/", exchange -> {

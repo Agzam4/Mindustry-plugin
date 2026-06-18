@@ -5,17 +5,15 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.Field;
 
+import agzam4.api.auth.SensitiveData;
 import agzam4.logs.LogsAnnotations.JsonProp;
 import agzam4.logs.LogsAnnotations.Sensitive;
 import agzam4.utils.Log;
 import agzam4.utils.Strs;
 import arc.func.Cons2;
-import arc.func.Func;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
 import arc.util.Nullable;
-import arc.util.serialization.Jval;
-import arc.util.serialization.Jval.Jformat;
 
 public class LogBuilder<T> {
 	
@@ -57,18 +55,6 @@ public class LogBuilder<T> {
 	}
 	
 	
-	private class Protector {
-		
-		String name;
-		Func<String, String> protector;
-		
-		public Protector(String name, Func<String, String> protector) {
-			this.name = name;
-			this.protector = protector;
-		}
-		
-	}
-	
 	public final Class<?> cls;
 	
 	interface Extractor<T> {
@@ -80,8 +66,9 @@ public class LogBuilder<T> {
 	private Extractor<T>[] extractors;
 	private Object[] extracted;
 	private JsonTypes[] types;
+	private boolean[] sensitive;
+	private String[] sensitiveTypes;
 	private String[] precomputedHeaders; // "name":
-	private Protector[] protectors;
 	public final int id;
 
 	public LogBuilder(Class<T> cls, int id) {
@@ -97,7 +84,7 @@ public class LogBuilder<T> {
 		Seq<Extractor<T>> extractors = new Seq<>();
 		
 		Seq<Field> fileds = Seq.with(cls.getDeclaredFields());
-		Seq<Protector> protectors = new Seq<>();
+		Seq<String> sensitiveTypesSeq = new Seq<>();
 		
 		for (var f : fileds) {
 			@Nullable JsonProp prop = f.getDeclaredAnnotation(JsonProp.class);
@@ -122,10 +109,7 @@ public class LogBuilder<T> {
 				types.add(type);
 
 				@Nullable Sensitive sensitive = f.getDeclaredAnnotation(Sensitive.class);
-				if(sensitive != null) {
-					var protector = sensitive.value();
-					protectors.add(new Protector(name, protector.func));
-				}
+				sensitiveTypesSeq.add(sensitive != null ? sensitive.value().name() : null);
 				
 				part.append('"').append(name).append("\":");
 				parts.add(part.toString());
@@ -137,7 +121,12 @@ public class LogBuilder<T> {
 		
 		this.precomputedHeaders = parts.toArray(String.class);
 		this.extractors = extractors.toArray(Extractor.class);
-		this.protectors = protectors.toArray(Protector.class);
+		this.sensitive = new boolean[sensitiveTypesSeq.size];
+		this.sensitiveTypes = new String[sensitiveTypesSeq.size];
+		for (int i = 0; i < sensitive.length; i++) {
+			sensitive[i] = sensitiveTypesSeq.get(i) != null;
+			sensitiveTypes[i] = sensitiveTypesSeq.get(i);
+		}
 		this.extracted = new Object[extractors.size];
 		this.types = types.toArray(JsonTypes.class);
 	}
@@ -146,11 +135,14 @@ public class LogBuilder<T> {
 	public String build(T t) {
 		int size = 1; // "{}" + no first ","
 		for (int i = 0; i < extractors.length; i++) {
-			extracted[i] = extractors[i].get(t);
-//			Log.info("#@: @", i, extracted[i]);
-			if(extracted[i] == null) continue;
+			Object val = extractors[i].get(t);
+			if(val == null) continue;
+			if(sensitive[i]) {
+				val = SensitiveData.insertOrGet((String) val, sensitiveTypes[i]);
+			}
+			extracted[i] = val;
 			size += precomputedHeaders[i].length() + 1; // part + ","
-			size += types[i].buffer.get(extracted[i]);
+			size += types[i].buffer.get(val);
 		}
 		
 		StringBuilder json = new StringBuilder(size);
@@ -159,19 +151,15 @@ public class LogBuilder<T> {
 			if(extracted[i] == null) continue;
 			if(json.length() != 1) json.append(',');
 			json.append(precomputedHeaders[i]);
-			types[i].func.get(extracted[i], json);
+			if(sensitive[i]) {
+				json.append((int) extracted[i]); // number, no quotes
+			} else {
+				types[i].func.get(extracted[i], json);
+			}
 		}
 		json.append("}");
 		
 		return json.toString();
-	}
-	
-	public Jval protect(Jval val) {
-		for (int i = 0; i < protectors.length; i++) {
-			String protectedData = protectors[i].protector.get(val.getString(protectors[i].name));
-			val.put(protectors[i].name, protectedData);
-		}
-		return val;
 	}
 	
 	

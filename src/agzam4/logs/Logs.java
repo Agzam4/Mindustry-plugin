@@ -179,13 +179,12 @@ public class Logs {
     	if(entity.tag >= builders.length) throw new RuntimeException(Strings.format("Unknow event type id: @ (maximum @) for @-@  @ ", entity.tag, builders.length, entity.logId, entity.id, entity.message));
 
 		var val = Jval.read(entity.message);
-		if(protect) builders[entity.tag].protect(val);
 		val.put("timestamp", entity.timestamp);
 		if(entity.logId >= 0) val.put("logid", entity.logId);
 		if(entity.id != null) val.put("id", entity.id);
 		
     	return val.toString(Jformat.plain);
-	}
+    }
 
 //	public static void notify(NotifyTag tag, String message) {
 //		notify(tag, null, message, false);
