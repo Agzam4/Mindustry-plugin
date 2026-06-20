@@ -1,18 +1,15 @@
 # Java
-
 *.class
 *.war
 *.ear
 /bin/
 
 # Eclipse
-
 .classpath
 .project
 .settings/
 
 # Gradle
-
 gradlew
 gradlew.bat
 /gradle/
@@ -21,11 +18,13 @@ gradlew.bat
 gradle-app.setting
 /build/
 
-# Source
-
-src/agzam4/Debug.java
-
-
 # Env
-
 .env.properties
+
+# Apt
+/.apt_generated/
+.factorypath
+
+
+# :processor
+processor/bin

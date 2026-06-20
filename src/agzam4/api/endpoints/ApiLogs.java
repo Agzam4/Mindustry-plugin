@@ -6,10 +6,12 @@ import agzam4.api.ApiAnnotations.SseEndpoint;
 import agzam4.api.ApiAnnotations.SseProcessor;
 import agzam4.api.SseSource;
 import agzam4.logs.LogEvents.LogEntity;
+import agzam4proc.api.annotations.Router;
 import agzam4.logs.Logs;
 import arc.func.Func;
 import arc.util.Strings;
 
+@Router("/logs")
 public class ApiLogs {
 
 	@SseEndpoint

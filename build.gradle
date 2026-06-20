@@ -1,8 +1,12 @@
-apply plugin: "java"
-apply plugin: "eclipse"
+plugins {
+    id 'java'
+    id 'eclipse'
+    id 'net.ltgt.apt-eclipse' version '0.21' // for apt
+}
 
 version '1.0'
 
+base.archivesName = "Mindustry-plugin" 
 sourceSets.main.java.srcDirs = ["src"]
 
 java {
@@ -10,27 +14,51 @@ java {
     targetCompatibility = JavaVersion.VERSION_17
 }
 
+eclipse {
+    jdt {
+        apt {
+            aptEnabled = true
+            genSrcDir = file('.apt_generated')
+        }
+    }
+    synchronizationTasks 'eclipseJdtApt', 'eclipseFactorypath'
+}
+
+tasks.named('eclipseFactorypath') {
+    doLast {
+        def factorypathFile = file('.factorypath')
+        if (factorypathFile.exists()) {
+            def xml = new XmlParser().parse(factorypathFile)
+            def processorJar = project(':processor').tasks.jar.archiveFile.get().asFile.absolutePath
+            def exists = xml.factorypathentry.any { it.'@id' == processorJar }
+            if (!exists) {
+                xml.appendNode('factorypathentry', [
+                    kind: 'EXTJAR', 
+                    id: processorJar, 
+                    enabled: true, 
+                    runInBatchMode: false
+                ])
+                def printer = new XmlNodePrinter(new PrintWriter(new FileWriter(factorypathFile)))
+                printer.print(xml)
+            }
+        }
+    }
+}
+tasks.named('eclipseFactorypath').configure { dependsOn ':processor:jar' }
+
 repositories{
     mavenCentral()
     maven{ url 'https://raw.githubusercontent.com/Zelaux/MindustryRepo/master/repository' }
-    //maven{ url 'https://www.jitpack.io' }
-    //maven{ url = uri("https://maven.xpdustry.com/mindustry") }
-    
-    //Downloads the server-release JAR file from Mindustry releases; does not use any real repository. Surprisingly, this is the most reliable option.
     ivy{
         url 'https://github.com/'
         patternLayout{artifact '/[organisation]/[module]/releases/download/[revision]/dependencies.jar'}
         metadataSources{ artifact() }
     }
-
-    //"Latest" option to depend on BE builds.
     ivy{
         url 'https://github.com/'
         patternLayout{artifact '/[organisation]/[module]/releases/download/master/[revision].jar'}
         metadataSources{ artifact() }
     }
-
-    //Do the same with jabel
     ivy{
         url 'https://github.com/'
         patternLayout{artifact '/[organisation]/[module]/releases/download/[revision]/jabel.jar'}
@@ -39,15 +67,15 @@ repositories{
 }
 
 ext{
-    //the build number that this mod is made for
     mindustryVersion = 'v157'
-    sdkRoot = System.getenv("ANDROID_HOME") ?: System.getenv("ANDROID_SDK_ROOT")
 }
 
-dependencies{
+dependencies{    
+	implementation project(':processor')
+    annotationProcessor project(':processor')
+	annotationProcessor 'com.google.auto.service:auto-service:1.1.1'
+    
     compileOnly "Anuken:Mindustry:$mindustryVersion"
-    //compileOnly "com.github.Anuken.Arc:arc-core:$mindustryVersion"
-    //compileOnly "com.github.Anuken.Mindustry:core:$mindustryVersion"
     implementation "org.telegram:telegrambots:6.9.7.1"
     implementation 'org.xerial:sqlite-jdbc:3.49.1.0'
 }
@@ -69,3 +97,110 @@ jar{
     }
 }
 
+eclipse {
+    jdt {
+        //apt {
+        //    aptEnabled = true
+        //   	genSrcDir = file('.apt_generated')
+        //}
+    }
+}
+
+/*
+eclipse {
+    //classpath {
+    //    file.whenMerged { cp ->
+    //        cp.entries.add(new org.gradle.plugins.ide.eclipse.model.SourceFolder('/generated/sources/annotationProcessor/java/main', null))
+    //    }
+    //}
+    classpath {
+        file.whenMerged { cp ->
+            def aptFolder = new org.gradle.plugins.ide.eclipse.model.SourceFolder('.apt_generated', null)
+            if (!cp.entries.any { it instanceof org.gradle.plugins.ide.eclipse.model.SourceFolder && it.path == '.apt_generated' }) {
+                cp.entries.add(aptFolder)
+            }
+        }
+    }
+    jdt {
+        //apt {
+        //    aptEnabled = true
+        //   	genSrcDir = file('.apt_generated')
+        //}
+        file {
+            withProperties { properties ->
+                properties['org.eclipse.jdt.apt.aptEnabled'] = 'true'
+                properties['org.eclipse.jdt.apt.genSrcDir'] = '.apt_generated'
+                properties['org.eclipse.jdt.apt.genTestSrcDir'] = '.apt_generated'
+                properties['org.eclipse.jdt.apt.reconcileEnabled'] = 'true'
+            }
+        }
+    }
+    project {
+        file {
+            whenMerged { 
+                def processorJar = new File(project(':processor').layout.buildDirectory.get().asFile, "libs").listFiles()?.find { it.name.endsWith('.jar') }
+                if(processorJar && processorJar.exists()) {
+                
+                    //rootProject.layout.projectDirectory.file('.factorypath').asFile.text =
+                    //"<?xml version='1.0' encoding='UTF-8' standalone='no'?><factorypath><factorypathentry kind='EXTJAR' id='${processorJar.absolutePath}' enabled='true' runInBatchMode='false'/></factorypath>"
+                    
+        			//def settingsDir = rootProject.layout.projectDirectory.file('.settings')
+        			//if(!settingsDir.asFile.exists()) settingsDir.asFile.mkdirs()
+        			//def aptPrefs = rootProject.layout.projectDirectory.file('.settings/org.eclipse.jdt.apt.core.prefs').asFile.text =
+                    //"org.preferences.version=1\norg.eclipse.jdt.apt.aptEnabled=true\norg.eclipse.jdt.apt.genSrcDir=.apt_generated\norg.eclipse.jdt.apt.reconcileEnabled=true"
+                    
+                    // === .factorypath === /
+                    def xmlBuilder = new StringBuilder()
+                    xmlBuilder.append("<?xml version='1.0' encoding='UTF-8' standalone='no'?>\n<factorypath>\n")
+                    
+                    // main (processor)
+                    xmlBuilder.append("    <factorypathentry kind='EXTJAR' id='${processorJar.absolutePath}' enabled='true' runInBatchMode='false'/>\n")
+                    
+                    // each dependencies
+                    project(':processor').configurations.runtimeClasspath.each { file ->
+                        if (file.exists() && file.name.endsWith('.jar')) {
+                            xmlBuilder.append("    <factorypathentry kind='EXTJAR' id='${file.absolutePath}' enabled='true' runInBatchMode='false'/>\n")
+                        }
+                    }
+                    // write
+                    xmlBuilder.append("</factorypath>")
+                    rootProject.layout.projectDirectory.file('.factorypath').asFile.text = xmlBuilder.toString()
+                    
+                    // === APT settings === /
+                    def settingsDir = rootProject.layout.projectDirectory.file('.settings')
+                    if (!settingsDir.asFile.exists()) settingsDir.asFile.mkdirs()
+                    rootProject.layout.projectDirectory.file('.settings/org.eclipse.jdt.apt.core.prefs').asFile.text =
+                    "org.preferences.version=1\norg.eclipse.jdt.apt.aptEnabled=true\norg.eclipse.jdt.apt.genSrcDir=.apt_generated\norg.eclipse.jdt.apt.reconcileEnabled=true"
+                }
+            }
+        }
+    }
+}
+//*/
+
+
+task debugg {
+    def eclipseExt = project.extensions.findByName('eclipse').jdt
+    if (eclipseExt != null) {
+        println "\n=== PROPERTIES ==="
+        eclipseExt.properties.each { key, val ->
+            println "Property: ${key} -> (${val?.getClass()?.name})"
+        }
+
+        println "\n===  METHODS ==="
+        eclipseExt.class.metaClass.methods.each { method ->
+            if (method.declaringClass.name.contains('Eclipse')) {
+                println "Method: ${method.name}(${method.parameterTypes*.name.join(', ')})"
+            }
+        }
+        println "===========================================\n"
+        def processorJar = project(':processor').layout.buildDirectory.get().asFile
+        println processorJar
+        println new File(project(':processor').layout.buildDirectory.get().asFile, "libs").listFiles()?.find { it.name.endsWith('.jar') }
+        println rootProject.layout.projectDirectory.file('.factorypath').asFile
+        println "===========================================\n"
+        
+    } else {
+        println "\n=== Not found ===\n"
+    }
+}

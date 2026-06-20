@@ -7,10 +7,13 @@ import agzam4.api.ApiAnnotations.HeadField;
 import agzam4.api.ApiAnnotations.PostEndpoint;
 import agzam4.api.auth.AuthDatabase;
 import agzam4.api.auth.AuthTokens;
+import agzam4proc.api.annotations.Router;
 import arc.util.serialization.Jval;
 
-public class ApiAuth {
 
+@Router("/auth")
+public class ApiAuth {
+	
     @PostEndpoint("create-session")
     public static String createSession(@BodyField("token") String token, @HeadField("Client-Ip") String ip) {
         String uuid = AuthTokens.verify(token);
