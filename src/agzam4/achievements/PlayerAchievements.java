@@ -1,7 +1,6 @@
 package agzam4.achievements;
 
 //import agzam4.achievements.AchievementsManager.Achievement;
-
 public class PlayerAchievements {
 
 //	public String uidd;
