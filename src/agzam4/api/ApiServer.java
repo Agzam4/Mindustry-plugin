@@ -11,11 +11,8 @@ import com.sun.net.httpserver.HttpServer;
 
 import agzam4.api.auth.AuthDatabase;
 import agzam4.api.auth.SensitiveData;
-import agzam4.api.endpoints.ApiAuth;
-import agzam4.api.endpoints.ApiDebug;
-import agzam4.api.endpoints.ApiInfo;
-import agzam4.api.endpoints.ApiLogs;
 import agzam4.utils.Log;
+import agzam4gen.api.Routers;
 import arc.Core;
 import arc.Settings;
 import arc.struct.Seq;
@@ -137,10 +134,11 @@ public class ApiServer {
     private static void setupRoutes() {
         if (server == null) return;
         
-        new ApiRouter(ApiLogs.class).register(server);
-        new ApiRouter(ApiAuth.class).register(server);
-        new ApiRouter(ApiInfo.class).register(server);
-        new ApiRouter(ApiDebug.class).register(server);
+//        new ApiRouter(ApiLogs.class).register(server);
+//        new ApiRouter(ApiAuth.class).register(server);
+//        new ApiRouter(ApiInfo.class).register(server);
+//        new ApiRouter(ApiDebug.class).register(server);
+        Routers.register(server);
     }
 	
 	

@@ -1,15 +1,14 @@
 package agzam4.api.endpoints;
 
-import agzam4.api.ApiAnnotations.HeadField;
-import agzam4.api.ApiAnnotations.PostEndpoint;
 import agzam4.utils.Log;
-import agzam4proc.api.ApiAnnotations.Router;
+import agzam4gen.api.dependencies.*;
+import agzam4proc.api.ApiAnnotations.*;
 
 @Router("/debug")
 public class ApiDebug {
 	
-	@PostEndpoint
-	public static String ping(@HeadField("Client-Ip") String ip, @HeadField("Session-Id") String session) {
+	@Post
+	public static String ping(@SessionIp String ip, @SessionId String session) {
 		Log.info("[yellow]PING[]");
 		return "Pong " + session + " " + ip;
 	}

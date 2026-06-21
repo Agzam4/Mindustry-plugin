@@ -9,6 +9,7 @@ public class ApiAnnotations {
 	
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target(ElementType.METHOD)
+	@Deprecated
 	public @interface PostEndpoint {
 		String value() default "";
 	}
@@ -33,6 +34,7 @@ public class ApiAnnotations {
 
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target(ElementType.PARAMETER)
+	@Deprecated
 	public @interface HeadField {
 		String value();
 	}

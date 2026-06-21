@@ -1,13 +1,13 @@
 package agzam4.api.endpoints;
 
 import agzam4.api.ApiAnnotations.BodyField;
-import agzam4.api.ApiAnnotations.PostEndpoint;
 import agzam4.api.ApiAnnotations.SseEndpoint;
 import agzam4.api.ApiAnnotations.SseProcessor;
 import agzam4.api.SseSource;
 import agzam4.logs.LogEvents.LogEntity;
 import agzam4.logs.Logs;
-import agzam4proc.api.ApiAnnotations.Router;
+import agzam4gen.api.dependencies.*;
+import agzam4proc.api.ApiAnnotations.*;
 import arc.func.Func;
 import arc.util.Strings;
 
@@ -24,19 +24,10 @@ public class ApiLogs {
 
 	};
 
-	@PostEndpoint
-	public static String timerange(
-			@BodyField("protect") boolean protect, 
-			@BodyField("from") long from, 
-			@BodyField("end") long end, 
-			@BodyField("page") int page, 
-			@BodyField("pageSize") int pageSize
-			) {
+	@Post
+	public static String timerange(@BodyParm boolean protect, @BodyParm long from, @BodyParm long end, @BodyParm int page, @BodyParm int pageSize) {
 		var entities = Logs.selectByTimerange(from, end, page, pageSize);
 		return Strings.format("[@]", entities.toString(",", e -> Logs.entityJson(e, protect)));
 	}
 
-	
-	
-	
 }

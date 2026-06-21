@@ -10,7 +10,7 @@ import javax.lang.model.util.ElementFilter;
 
 import com.squareup.javapoet.AnnotationSpec;
 
-import agzam4proc.api.ApiAnnotations.Parm;
+import agzam4proc.api.ApiAnnotations.CallerParm;
 
 public class Proc {
 

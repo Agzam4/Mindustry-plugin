@@ -25,7 +25,7 @@ import arc.util.Reflect;
 import arc.util.Strings;
 import arc.util.serialization.Jval;
 
-
+@Deprecated
 public class ApiRouter {
 
 	public String prefix;

@@ -21,21 +21,34 @@ public class ApiAnnotations {
 	public @interface Post {
 
 		/** Post endpoint */
-		String value();
+		String value() default "";
 		
 	}
 
 	@Retention(RetentionPolicy.SOURCE)
 	@Target(ElementType.PARAMETER)
-	public @interface Parm {
+	/** Returns name of parameter of upper function (null for endpoints if not set by {@link Parm}) */
+	public @interface CallerParm {}
 
-		/** Returns name of parameter */
-		String value() default "";
-		
+	@Retention(RetentionPolicy.SOURCE)
+	@Target(ElementType.PARAMETER)
+	/** Redefines name of parameter (see also {@link CallerParm}) */
+	public @interface Parm {
+		String value();
 	}
-	
+
+//  TODO
+//	@Retention(RetentionPolicy.SOURCE)
+//	@Target(ElementType.PARAMETER)
+//	public @interface Default {
+//		String value() default "";
+//	}
+
 	@Retention(RetentionPolicy.SOURCE)
 	@Target(ElementType.TYPE)
 	public @interface Dependency {}
-	
+
+	@Retention(RetentionPolicy.SOURCE)
+	@Target(ElementType.METHOD)
+	public @interface DependencyImpl {}
 }

@@ -54,21 +54,23 @@ public class RouterProcessor extends BaseProcessor {
 			
 			 for (ExecutableElement method : ElementFilter.methodsIn(type.getEnclosedElements())) {
 				 if(!method.getModifiers().contains(Modifier.STATIC)) continue;
-				 if(!method.getSimpleName().contentEquals("depends")) continue;
+				 if(method.getAnnotation(DependencyImpl.class) == null) continue;
 
 				 var returnType = typeUtils.erasure(method.getReturnType());
 				 var returnTypeName = TypeName.get(returnType);
 				 
-				 if(returnType.getKind() == TypeKind.VOID) throw new AptError(method, "Method \"depends\" cannot return void");
+				 if(returnType.getKind() == TypeKind.VOID) throw new AptError(method, "Method cannot return void");
 				 if(methods.containsKey(returnTypeName)) throw new AptError(method, "Duplicate of dependency return type: \"@\"", returnTypeName.toString());
 				 
 				 methods.put(returnTypeName, new MethodInfo(type, method));
 			 }
-			 if(methods.size == 0) throw new AptError(type, "");
+			 if(methods.size == 0) throw new AptError(type, "No methods with @ annotation found", DependencyImpl.class);
 		}
 		
 		public TypeSpec buildAnnotation() {
+			String doc = processingEnv.getElementUtils().getDocComment(type);
 			return TypeSpec.annotationBuilder(this.name)
+					.addJavadoc("Auto-generated annotation based on {@link $T}$L", this.type, doc == null ? "" : "<br>\n<br>\n" + doc.trim())
 					.addModifiers(Modifier.PUBLIC)
 					.addAnnotation(Proc.target(ElementType.PARAMETER))
 					.build();
@@ -99,7 +101,6 @@ public class RouterProcessor extends BaseProcessor {
 			Log.info("Resolving @:@", cls.getSimpleName(), name);
 			resolvers = new Seq<>();
 			for (var parm : method.getParameters()) {
-				Log.info("- @", parm.getSimpleName());
 				resolvers.add(new ParmResolver(parm));
 			}
 			return resolvers;
@@ -118,10 +119,14 @@ public class RouterProcessor extends BaseProcessor {
 		
 		@Nullable MethodInfo method;
 		boolean exchange, parm;
+
+
+		final String name;
 		
 		public ParmResolver(VariableElement parameter) {
+			this.name = parameter.getAnnotation(Parm.class) == null ? parameter.getSimpleName().toString() : parameter.getAnnotation(Parm.class).value();
             TypeName paramTypeName = TypeName.get(typeUtils.erasure(parameter.asType()));
-
+            
             boolean found = false;
 		    for (var annotation : parameter.getAnnotationMirrors()) { // FIXME
 				TypeElement annotationElement = (TypeElement) annotation.getAnnotationType().asElement();
@@ -129,10 +134,11 @@ public class RouterProcessor extends BaseProcessor {
 				
 				var typeName = TypeName.get(annotationElement.asType()).toString();
 				
-		        if(annotationClassPath.equals(Parm.class.getCanonicalName())) {
+		        if(annotationClassPath.equals(CallerParm.class.getCanonicalName())) {
 					if(found) throw new AptError(annotationElement, "Parametr can contains only one dependency annotation");
-					Parm parm = parameter.getAnnotation(Parm.class);
+					CallerParm parm = parameter.getAnnotation(CallerParm.class);
 					// TODO
+					this.parm = true;
 					found = true;
 		        	continue;
 		        }
@@ -142,7 +148,7 @@ public class RouterProcessor extends BaseProcessor {
 
 					if(!dependency.methods.containsKey(paramTypeName)) 
 						throw new AptError(
-								annotationElement, 
+								parameter, 
 								"Dependency \"@\" does not contain an implementation for \"@\" type", 
 								dependency.name.toString(), 
 								paramTypeName.toString()
@@ -198,18 +204,33 @@ public class RouterProcessor extends BaseProcessor {
 
 		protected CodeBlock resolve(CodeBlock.Builder builder) {
 			ObjectMap<String, ParmResolver> context = ObjectMap.of(); // name, resolver
-			return statement(context, builder, method);
+			return statement(context, builder, method, null);
 		}
 		
 
-		protected CodeBlock statement(ObjectMap<String, ParmResolver> context, CodeBlock.Builder builder, MethodInfo info) {
-			String name = method.name + context.size;
+		protected CodeBlock statement(ObjectMap<String, ParmResolver> context, CodeBlock.Builder builder, MethodInfo info, String parmname) {
+			String name = info.cls.getSimpleName().toString();
+			name = Character.toLowerCase(name.charAt(0)) + name.substring(1);
+			if(name.endsWith("Dependency")) name = name.substring(0, name.length() - "Dependency".length());
+			int id = 0;
+			if(context.containsKey(name)) {
+				while (context.containsKey(name+id)) id++;
+				name += id;
+			}
 			context.put(name, null);
 
 			Seq<CodeBlock> parms = Seq.with();
 			for (var resolver : info.resolvers) {
 				if(resolver.method != null) {
-					parms.add(statement(context, builder, resolver.method));
+					parms.add(statement(context, builder, resolver.method, resolver.name));
+					continue;
+				}
+				if(resolver.parm) {
+					parms.add(CodeBlock.of("$S", parmname));
+					continue;
+				}
+				if(resolver.exchange) {
+					parms.add(CodeBlock.of("exchange"));
 					continue;
 				}
 				parms.add(CodeBlock.of("null"));
@@ -253,6 +274,8 @@ public class RouterProcessor extends BaseProcessor {
 		dependencyCache.each((t,d) -> d.resolve());
 		Log.info("Resolved!");
 		
+		Seq<ClassName> routers = Seq.with();
+		
 		for (var router : map.get(Router.class)) {
 			if (!(router instanceof TypeElement type)) continue;
 			Router routerAnnotation = type.getAnnotation(Router.class);
@@ -271,7 +294,7 @@ public class RouterProcessor extends BaseProcessor {
 				hasEndpoints = true;
 
 				EndpointInfo info = new EndpointInfo(type, method);
-				Log.info("/@", info.name);
+				Log.info("@/@", prefixValue, info.name);
 
 				
 				registerMethod.addComment("Endpoint: " + info.name);
@@ -291,8 +314,38 @@ public class RouterProcessor extends BaseProcessor {
 						.build();
 
 				write(routerSpec);
+				routers.add(ClassName.get(packageName, generatedClassName));
 			}
 		}
+		// Creating list of routers
+		MethodSpec.Builder registerMethod = MethodSpec.methodBuilder("register")
+				.addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+				.returns(TypeName.VOID)
+				.addParameter(ClassName.get(HttpServer.class), "server");
+
+		for (var element : routers) {
+			registerMethod.addStatement("$T.register(server)", element);
+		}
+		
+		CodeBlock.Builder b = CodeBlock.builder().add("new Class<?>[]{\n");
+		boolean first = true;
+		for (var element : routers) {
+			if (!first) b.add(",\n");
+			b.add("  $T.class", element);
+			first = false;
+		}
+
+		b.add("\n}");
+		TypeName classAny = ParameterizedTypeName.get(ClassName.get(Class.class), WildcardTypeName.subtypeOf(Object.class));
+		TypeSpec type = TypeSpec.classBuilder("Routers")
+				.addModifiers(Modifier.PUBLIC, Modifier.FINAL)
+				.addMethod(registerMethod.build())
+				.addField(FieldSpec.builder(ArrayTypeName.of(classAny), "routers")
+						.addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
+						.initializer(b.build())
+						.build()).build();
+
+		write(type);
 
 	}
 
@@ -301,12 +354,12 @@ public class RouterProcessor extends BaseProcessor {
 
 
 	public static String endpointName(String force, String s) {
-		if(force != null) return force;
+		if(!force.isEmpty()) return force;
 		StringBuilder result = new StringBuilder(s.length() + 1);
 		for(int i = 0; i < s.length(); i++){
 			char c = s.charAt(i);
 			if(i > 0 && Character.isUpperCase(s.charAt(i))){
-				result.append('/');
+				result.append('-');
 			}
 			result.append(Character.toLowerCase(c));
 		}
