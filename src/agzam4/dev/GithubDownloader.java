@@ -8,72 +8,83 @@ import arc.func.Boolf;
 import arc.math.Mathf;
 import arc.util.ArcRuntimeException;
 import arc.util.Http;
+import arc.util.Http.HttpMethod;
+import arc.util.Http.HttpRequest;
 import arc.util.io.Streams;
 import arc.util.serialization.Jval;
 import mindustry.Vars;
 
 public class GithubDownloader {
 
-	 public static void latest(String repo, Boolf<String> assetSearcher, Fi dst) {
-		 CountDownLatch latch = new CountDownLatch(1);
-		 Throwable[] exceptionHolder = new Throwable[1];
-		 Http.get(Vars.ghApi + "/repos/" + repo + "/releases/latest", res -> {
-			 try {
-				 var json = Jval.read(res.getResultAsString());
-				 var assets = json.get("assets").asArray();
+	public static void latest(String repo, Boolf<String> assetSearcher, Fi dst) {
+		CountDownLatch latch = new CountDownLatch(1);
+		Throwable[] exceptionHolder = new Throwable[1];
+		Log.info("[cyan]@[]", Vars.ghApi + "/repos/" + repo + "/releases/latest");
 
-				 var asset = assets.find(j -> assetSearcher.get(j.getString("name", "")));
+		Http.request(HttpMethod.GET, Vars.ghApi + "/repos/" + repo + "/releases/latest")
+		.timeout(10_000)
+		.error(err -> {
+			exceptionHolder[0] = err;
+			latch.countDown();
+		})
+		.submit(res -> {
+			try {
+				var json = Jval.read(res.getResultAsString());
+				var assets = json.get("assets").asArray();
 
-				 if (asset != null) {
-					 var url = asset.getString("browser_download_url");
-					 String fileName = asset.getString("name");
+				var asset = assets.find(j -> assetSearcher.get(j.getString("name", "")));
 
-					 Http.get(url, result -> {
-						 long len = result.getContentLength();
-						 dst.parent().mkdirs();
+				if (asset != null) {
+					var url = asset.getString("browser_download_url");
+					String fileName = asset.getString("name");
 
-						 try (var stream = dst.write(false)) {
-							 Streams.copyProgress(result.getResultAsStream(), stream, len, 4096, p -> {
-								 Log.info("Downloading: [cyan]@[] [blue]@%[]", fileName, Mathf.round(p * 100));
-							 });
-							 Log.info("Saved [cyan]@[]", dst.absolutePath());
-						 } catch (Exception e) {
-							 exceptionHolder[0] = e;
-						 } finally {
-							 latch.countDown();
-						 }
-					 }, err -> {
-						 exceptionHolder[0] = err;
-						 latch.countDown();
-					 });
+					Log.info("[cyan]@[]", url);
+					Http.request(HttpMethod.GET, Vars.ghApi + "/repos/" + repo + "/releases/latest")
+					.timeout(10_000)
+					.error(err -> {
+						exceptionHolder[0] = err;
+						latch.countDown();
+					})
+					.submit(result -> {
+						long len = result.getContentLength();
+						dst.parent().mkdirs();
 
-				 } else {
-					 exceptionHolder[0] = new ArcRuntimeException("Asset not found");
-					 latch.countDown();
-				 }
-			 } catch (Exception e) {
-				 exceptionHolder[0] = e;
-				 latch.countDown();
-			 }
-		 }, err -> {
-			 exceptionHolder[0] = err;
-			 latch.countDown();
-		 });
+						try (var stream = dst.write(false)) {
+							Streams.copyProgress(result.getResultAsStream(), stream, len, 4096, p -> {
+								Log.info("Downloading: [cyan]@[] [blue]@%[]", fileName, Mathf.round(p * 100));
+							});
+							Log.info("Saved [cyan]@[]", dst.absolutePath());
+						} catch (Exception e) {
+							exceptionHolder[0] = e;
+						} finally {
+							latch.countDown();
+						}
+					});
 
-		 try {
-			 latch.await();
-		 } catch (InterruptedException e) {
-			 Thread.currentThread().interrupt();
-			 throw new ArcRuntimeException("Thread interrupted", e);
-		 }
+				} else {
+					exceptionHolder[0] = new ArcRuntimeException("Asset not found");
+					latch.countDown();
+				}
+			} catch (Exception e) {
+				exceptionHolder[0] = e;
+				latch.countDown();
+			}
+		});
 
-		 if (exceptionHolder[0] != null) {
-			 if (exceptionHolder[0] instanceof RuntimeException) {
-				 throw (RuntimeException) exceptionHolder[0];
-			 } else {
-				 throw new ArcRuntimeException("Error", exceptionHolder[0]);
-			 }
-		 }
-	 }
-	 
+		try {
+			latch.await();
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new ArcRuntimeException("Thread interrupted", e);
+		}
+
+		if (exceptionHolder[0] != null) {
+			if (exceptionHolder[0] instanceof RuntimeException) {
+				throw (RuntimeException) exceptionHolder[0];
+			} else {
+				throw new ArcRuntimeException("Error", exceptionHolder[0]);
+			}
+		}
+	}
+
 }
