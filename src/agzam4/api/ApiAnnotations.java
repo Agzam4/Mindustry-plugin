@@ -6,7 +6,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 public class ApiAnnotations {
-
+	
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target(ElementType.METHOD)
 	public @interface PostEndpoint {
@@ -36,5 +36,5 @@ public class ApiAnnotations {
 	public @interface HeadField {
 		String value();
 	}
-
+	
 }

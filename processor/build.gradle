@@ -3,6 +3,7 @@ plugins {
 	id 'eclipse'
 }
 
+
 base.archivesName = "processor"
 
 sourceSets.main.java.srcDirs = ["src"]
@@ -13,11 +14,16 @@ java {
 }
 
 repositories {
-	mavenCentral()
+    addAll(rootProject.repositories)
 }
 
 dependencies {
 	implementation 'com.squareup:javapoet:1.13.0'
 	compileOnly 'com.google.auto.service:auto-service-annotations:1.1.1'
 	annotationProcessor 'com.google.auto.service:auto-service:1.1.1'
+    compileOnly "Anuken:Mindustry:${rootProject.mindustryVersion}"
+}
+
+tasks.named('build') {
+    finalizedBy(rootProject.tasks.named('generateSources'))
 }

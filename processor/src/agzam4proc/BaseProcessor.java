@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.util.ArrayList;
 import java.util.Set;
 
 import javax.annotation.processing.AbstractProcessor;
@@ -14,21 +13,29 @@ import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.TypeSpec;
 
+import arc.struct.ObjectMap;
+import arc.struct.Seq;
+import arc.util.Log;
+
 public abstract class BaseProcessor extends AbstractProcessor {
 	
     public final String packageName = "agzam4gen." + getClass().getPackageName().substring(getClass().getPackageName().indexOf('.')+1);
 
     public static Filer filer;
+    protected int round;
+    protected int rounds = 1;
 
     @Override
     public synchronized void init(ProcessingEnvironment env) {
     	filer = env.getFiler();
+    	round = 0;
     	super.init(env);
     }
     
@@ -36,37 +43,74 @@ public abstract class BaseProcessor extends AbstractProcessor {
 	public SourceVersion getSupportedSourceVersion() {
 		return SourceVersion.RELEASE_17;
 	}
-	
-	ArrayList<Element> _elements = null;
+
+	public abstract Seq<Class<?>> classes();
+
+    @Override
+    public Set<String> getSupportedAnnotationTypes() {
+        return Set.of(classes().map(c -> c.getCanonicalName()).toArray(String.class));
+    }
+    
+
+	Seq<Element> elements = new Seq<Element>();
+	ObjectMap<Class<?>, Seq<Element>> map = new ObjectMap<>();
+	Seq<Element> _elements = null;
+
+	protected Types typeUtils;
 	
 	@Override
-	public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-		if (annotations.isEmpty()) {
-			return false; 
-		}
-		ArrayList<Element> elements = new ArrayList<Element>();
+	public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment env) {
+        if(round++ >= rounds) {
+        	Log.info("@ round skipped", round);
+        	return false; //only process 1 round
+        }
+        this.typeUtils = processingEnv.getTypeUtils();
+		Log.info("Round: @/@ (@)", round, rounds, getClass());
 		try {
+			if (annotations.isEmpty()) {
+				onElement(map);
+				onElements(elements);
+				return true; 
+			}
+			classes().forEach(c -> map.put(c, new Seq<>()));
+
 			for (TypeElement annotation : annotations) {
-				for (Element element : roundEnv.getElementsAnnotatedWith(annotation)) {
+				for (Element element : env.getElementsAnnotatedWith(annotation)) {
+					elements.add(element);
+					var clz = classes().find(c -> Proc.equals(annotation, c));
+					map.get(clz).add(element);
+
 					try {
 						onElement(element);
-						elements.add(element);
-					} catch (Error e) {
+					} catch (AptError e) {
+						err(e.element, e.message);
+						err(element, "@: @", e.element.getSimpleName(), e.message);
+					} catch (Throwable e) {
+						e.printStackTrace();
 						elements.forEach(s -> err(s, e));
 					}
 				}
 			}
+			onElement(map);
 			onElements(elements);
+		} catch (AptError e) {
+			err(e.element, e.message);
 		} catch (Throwable e) {
+			e.printStackTrace();
 			elements.forEach(s -> err(s, e));
 		}
 		return true;
 	}
+	
+	public void onElement(ObjectMap<Class<?>, Seq<Element>> map) throws Throwable {}
 
 	public void onElement(Element element) throws Throwable {}
 
-	public void onElements(ArrayList<Element> elements) throws Throwable {}
-	
+	public void onElements(Seq<Element> elements) throws Throwable {}
+
+	public void info(String str, Object ...args) {
+		Log.info(str, args);
+	}
 
 	public void warn(Element element, String str, Object ...args) {
 		if(element == null) {
@@ -129,6 +173,22 @@ public abstract class BaseProcessor extends AbstractProcessor {
 	}
 
 
+    public void write(String pack, TypeSpec builder) {
+    	try {
+            JavaFile file = JavaFile.builder(packageName + "." + pack, builder).skipJavaLangImports(true).build();
+            String writeString;
+            writeString = file.toString();
+
+            JavaFileObject object = filer.createSourceFile(file.packageName + "." + file.typeSpec.name, file.typeSpec.originatingElements.toArray(new Element[0]));
+            Log.info("+ @", object.getName());
+            Writer stream = object.openWriter();
+            stream.write(writeString);
+            stream.close();
+            warn(null, writeString);
+		} catch (Exception e) {
+			err(null, e);
+		}
+    }
 
     public void write(TypeSpec builder) {
     	try {
@@ -137,6 +197,7 @@ public abstract class BaseProcessor extends AbstractProcessor {
             writeString = file.toString();
 
             JavaFileObject object = filer.createSourceFile(file.packageName + "." + file.typeSpec.name, file.typeSpec.originatingElements.toArray(new Element[0]));
+            Log.info("+ @", object.getName());
             Writer stream = object.openWriter();
             stream.write(writeString);
             stream.close();

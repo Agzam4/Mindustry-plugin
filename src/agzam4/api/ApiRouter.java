@@ -16,6 +16,7 @@ import agzam4.api.ApiAnnotations.PostEndpoint;
 import agzam4.api.ApiAnnotations.SseEndpoint;
 import agzam4.api.ApiAnnotations.SseProcessor;
 import agzam4.utils.Log;
+import agzam4proc.api.ApiSnippets.ApiResponse;
 import arc.func.Func;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
@@ -23,6 +24,7 @@ import arc.util.Nullable;
 import arc.util.Reflect;
 import arc.util.Strings;
 import arc.util.serialization.Jval;
+
 
 public class ApiRouter {
 
@@ -155,26 +157,6 @@ public class ApiRouter {
 	private String enpointName(String name, String method) {
 		if(name.isEmpty()) return Strings.camelToKebab(method).replace('-', '/');
 		return name;
-	}
-	
-	private class ApiResponse extends Exception {
-		
-		String content;
-		int code = 200;
-
-		public ApiResponse(String string) {
-			this.content = string;
-		}
-
-		private ApiResponse wrongParms() {
-			code = 400;
-			return this;
-		}
-		private ApiResponse serverError() {
-			code = 500;
-			return this;
-		}
-		
 	}
 
 	private @Nullable Extracotor bodyExractorFor(Class<?> clz, String n) {

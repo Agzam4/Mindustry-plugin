@@ -5,7 +5,7 @@ import agzam4.api.ApiAnnotations.HeadField;
 import agzam4.api.ApiAnnotations.PostEndpoint;
 import agzam4.api.auth.AuthDatabase;
 import agzam4.api.auth.SensitiveData;
-import agzam4proc.api.annotations.Router;
+import agzam4proc.api.ApiAnnotations.Router;
 import arc.util.serialization.Jval;
 
 @Router("/info")

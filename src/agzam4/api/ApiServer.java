@@ -136,18 +136,11 @@ public class ApiServer {
 
     private static void setupRoutes() {
         if (server == null) return;
-
+        
         new ApiRouter(ApiLogs.class).register(server);
         new ApiRouter(ApiAuth.class).register(server);
         new ApiRouter(ApiInfo.class).register(server);
         new ApiRouter(ApiDebug.class).register(server);
-//        
-//        server.createContext("/", exchange -> {
-//            String response = "Hello from secured localhost!";
-//            exchange.sendResponseHeaders(200, response.getBytes().length);
-//            exchange.getResponseBody().write(response.getBytes());
-//            exchange.getResponseBody().close();
-//        });
     }
 	
 	

@@ -1,50 +1,23 @@
 plugins {
     id 'java'
     id 'eclipse'
-    id 'net.ltgt.apt-eclipse' version '0.21' // for apt
 }
 
 version '1.0'
 
-base.archivesName = "Mindustry-plugin" 
-sourceSets.main.java.srcDirs = ["src"]
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
 }
 
-eclipse {
-    jdt {
-        apt {
-            aptEnabled = true
-            genSrcDir = file('.apt_generated')
-        }
-    }
-    synchronizationTasks 'eclipseJdtApt', 'eclipseFactorypath'
+ext{
+    mindustryVersion = 'v157'
+    generatedSrc = 'gen'
 }
 
-tasks.named('eclipseFactorypath') {
-    doLast {
-        def factorypathFile = file('.factorypath')
-        if (factorypathFile.exists()) {
-            def xml = new XmlParser().parse(factorypathFile)
-            def processorJar = project(':processor').tasks.jar.archiveFile.get().asFile.absolutePath
-            def exists = xml.factorypathentry.any { it.'@id' == processorJar }
-            if (!exists) {
-                xml.appendNode('factorypathentry', [
-                    kind: 'EXTJAR', 
-                    id: processorJar, 
-                    enabled: true, 
-                    runInBatchMode: false
-                ])
-                def printer = new XmlNodePrinter(new PrintWriter(new FileWriter(factorypathFile)))
-                printer.print(xml)
-            }
-        }
-    }
-}
-tasks.named('eclipseFactorypath').configure { dependsOn ':processor:jar' }
+base.archivesName = "Mindustry-plugin" 
+sourceSets.main.java.srcDirs = ["src", generatedSrc]
 
 repositories{
     mavenCentral()
@@ -66,14 +39,12 @@ repositories{
     }
 }
 
-ext{
-    mindustryVersion = 'v157'
-}
 
 dependencies{    
 	implementation project(':processor')
     annotationProcessor project(':processor')
 	annotationProcessor 'com.google.auto.service:auto-service:1.1.1'
+    annotationProcessor "Anuken:Mindustry:$mindustryVersion"
     
     compileOnly "Anuken:Mindustry:$mindustryVersion"
     implementation "org.telegram:telegrambots:6.9.7.1"
@@ -97,22 +68,42 @@ jar{
     }
 }
 
+def generatedSourceDir = file(generatedSrc)
+
+tasks.withType(JavaCompile).configureEach {
+    options.annotationProcessorPath = configurations.annotationProcessor
+    options.generatedSourceOutputDirectory = generatedSourceDir
+}
+
+sourceSets.main.java.srcDirs += generatedSourceDir
+
+clean {
+    delete generatedSourceDir
+}
+
 eclipse {
-    jdt {
-        //apt {
-        //    aptEnabled = true
-        //   	genSrcDir = file('.apt_generated')
-        //}
+    classpath {
+        file {
+            whenMerged { cp ->
+                def srcGenFolder = new org.gradle.plugins.ide.eclipse.model.SourceFolder(generatedSrc, null)
+                if (!cp.entries.any { it instanceof org.gradle.plugins.ide.eclipse.model.SourceFolder && it.path == generatedSrc }) {
+                    cp.entries.add(srcGenFolder)
+                }
+            }
+        }
     }
 }
 
+tasks.register('generateSources') {
+    group = 'build'
+    description = 'Run source generating (APT)'
+    dependsOn tasks.named('compileJava')
+}
+
+
+
 /*
 eclipse {
-    //classpath {
-    //    file.whenMerged { cp ->
-    //        cp.entries.add(new org.gradle.plugins.ide.eclipse.model.SourceFolder('/generated/sources/annotationProcessor/java/main', null))
-    //    }
-    //}
     classpath {
         file.whenMerged { cp ->
             def aptFolder = new org.gradle.plugins.ide.eclipse.model.SourceFolder('.apt_generated', null)
@@ -122,10 +113,6 @@ eclipse {
         }
     }
     jdt {
-        //apt {
-        //    aptEnabled = true
-        //   	genSrcDir = file('.apt_generated')
-        //}
         file {
             withProperties { properties ->
                 properties['org.eclipse.jdt.apt.aptEnabled'] = 'true'
@@ -176,7 +163,6 @@ eclipse {
         }
     }
 }
-//*/
 
 
 task debugg {
@@ -204,3 +190,48 @@ task debugg {
         println "\n=== Not found ===\n"
     }
 }
+//*/
+
+
+
+/*
+
+eclipse {
+    jdt {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+        
+        file {
+            withProperties { properties ->
+                properties.setProperty('org.eclipse.jdt.core.compiler.processAnnotations', 'enabled')
+            }
+        }
+    }
+}
+
+tasks.register('generateEclipseFactorypath') {
+    dependsOn ':processor:jar'
+    
+    inputs.files(configurations.annotationProcessor)
+    outputs.file(file('.factorypath'))
+    
+    doLast {
+        def factorypathFile = file('.factorypath')
+        def writer = new FileWriter(factorypathFile)
+        def xml = new groovy.xml.MarkupBuilder(writer)
+        
+        xml.factorypath {
+            def processorJar = project(':processor').tasks.jar.archiveFile.get().asFile.absolutePath
+            factorypathentry(kind: 'EXTJAR', id: processorJar, enabled: true, runInBatchMode: false)
+            
+            configurations.annotationProcessor.each { file ->
+                factorypathentry(kind: 'EXTJAR', id: file.absolutePath, enabled: true, runInBatchMode: false)
+            }
+        }
+        writer.close()
+    }
+}
+
+tasks.named('eclipseJdt').configure { dependsOn 'generateEclipseFactorypath' }
+
+//*/
