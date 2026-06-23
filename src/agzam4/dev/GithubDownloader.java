@@ -9,7 +9,6 @@ import arc.math.Mathf;
 import arc.util.ArcRuntimeException;
 import arc.util.Http;
 import arc.util.Http.HttpMethod;
-import arc.util.Http.HttpRequest;
 import arc.util.io.Streams;
 import arc.util.serialization.Jval;
 import mindustry.Vars;

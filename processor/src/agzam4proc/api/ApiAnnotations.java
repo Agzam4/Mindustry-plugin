@@ -26,6 +26,19 @@ public class ApiAnnotations {
 	}
 
 	@Retention(RetentionPolicy.SOURCE)
+	@Target(ElementType.FIELD)
+	public @interface Sse {
+
+		/** SSE post endpoint */
+		String value() default "";
+		
+	}
+
+	@Retention(RetentionPolicy.SOURCE)
+	@Target(ElementType.METHOD)
+	public @interface SseHandler {}
+
+	@Retention(RetentionPolicy.SOURCE)
 	@Target(ElementType.PARAMETER)
 	/** Returns name of parameter of upper function (null for endpoints if not set by {@link Parm}) */
 	public @interface CallerParm {}

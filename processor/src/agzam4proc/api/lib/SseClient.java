@@ -1,4 +1,4 @@
-package agzam4.api;
+package agzam4proc.api.lib;
 
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;

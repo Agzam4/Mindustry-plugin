@@ -19,6 +19,7 @@ import javax.tools.JavaFileObject;
 
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.TypeSpec;
+import com.sun.source.util.Trees;
 
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
@@ -31,11 +32,13 @@ public abstract class BaseProcessor extends AbstractProcessor {
     public static Filer filer;
     protected int round;
     protected int rounds = 1;
+    protected Trees trees;
 
     @Override
     public synchronized void init(ProcessingEnvironment env) {
     	filer = env.getFiler();
     	round = 0;
+    	this.trees = Trees.instance(env);
     	super.init(env);
     }
     
@@ -51,12 +54,15 @@ public abstract class BaseProcessor extends AbstractProcessor {
         return Set.of(classes().map(c -> c.getCanonicalName()).toArray(String.class));
     }
     
+    public ProcessingEnvironment processingEnv() {
+    	return processingEnv;
+	}
 
 	Seq<Element> elements = new Seq<Element>();
 	ObjectMap<Class<?>, Seq<Element>> map = new ObjectMap<>();
 	Seq<Element> _elements = null;
 
-	protected Types typeUtils;
+	public Types typeUtils;
 	
 	@Override
 	public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment env) {
@@ -86,7 +92,6 @@ public abstract class BaseProcessor extends AbstractProcessor {
 						err(e.element, e.message);
 						err(element, "@: @", e.element.getSimpleName(), e.message);
 					} catch (Throwable e) {
-						e.printStackTrace();
 						elements.forEach(s -> err(s, e));
 					}
 				}
@@ -96,8 +101,8 @@ public abstract class BaseProcessor extends AbstractProcessor {
 		} catch (AptError e) {
 			err(e.element, e.message);
 		} catch (Throwable e) {
-			e.printStackTrace();
-			elements.forEach(s -> err(s, e));
+			err(null, e);
+//			elements.forEach(s -> );
 		}
 		return true;
 	}
@@ -139,11 +144,12 @@ public abstract class BaseProcessor extends AbstractProcessor {
 	public void err(Element element, Throwable e) {
 		try (StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
 			e.printStackTrace(pw);
-			String stackTraceString = sw.toString();
-	        err(element, stackTraceString);
+			String stackTraceString = Seq.with(sw.toString().split("\n")).select(l -> !l.contains("at org.gradle") && !l.contains("at jdk.compiler")).toString("\n");
+	         if(element != null) err(element, stackTraceString);
+	        Log.err(stackTraceString);
 		} catch (IOException ioException) {
 			ioException.printStackTrace();
-	        err(element, "Error error");
+	        if(element != null) err(element, "Error error");
 		}
 	    
 	}
@@ -197,7 +203,7 @@ public abstract class BaseProcessor extends AbstractProcessor {
             writeString = file.toString();
 
             JavaFileObject object = filer.createSourceFile(file.packageName + "." + file.typeSpec.name, file.typeSpec.originatingElements.toArray(new Element[0]));
-            Log.info("+ @", object.getName());
+//            Log.info("+ @", object.getName());
             Writer stream = object.openWriter();
             stream.write(writeString);
             stream.close();

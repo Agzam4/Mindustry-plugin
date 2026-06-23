@@ -7,7 +7,7 @@ import com.sun.net.httpserver.HttpExchange;
 
 import agzam4gen.api.dependencies.*;
 import agzam4proc.api.ApiAnnotations.*;
-import agzam4proc.api.ApiSnippets.ApiResponse;
+import agzam4proc.api.lib.ApiResponse;
 import arc.util.Strings;
 import arc.util.serialization.Jval;
 

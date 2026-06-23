@@ -6,11 +6,11 @@ import java.lang.annotation.Target;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 
 import com.squareup.javapoet.AnnotationSpec;
-
-import agzam4proc.api.ApiAnnotations.CallerParm;
 
 public class Proc {
 
@@ -37,4 +37,22 @@ public class Proc {
 	            .build();
 	}
 
+	public static DeclaredType findSuperType(TypeMirror typeMirror, String targetCanonicalName) {
+	    if (!(typeMirror instanceof DeclaredType)) return null;
+	    DeclaredType declaredType = (DeclaredType) typeMirror;
+	    TypeElement element = (TypeElement) declaredType.asElement();
+	    
+	    if(element.getQualifiedName().toString().equals(targetCanonicalName)) return declaredType;
+	    
+	    DeclaredType superType = findSuperType(element.getSuperclass(), targetCanonicalName);
+	    if(superType != null) return superType;
+	    
+	    for(TypeMirror iface : element.getInterfaces()) {
+	        DeclaredType superInterface = findSuperType(iface, targetCanonicalName);
+	        if(superInterface != null) return superInterface;
+	    }
+	    return null;
+	}
+
+	
 }

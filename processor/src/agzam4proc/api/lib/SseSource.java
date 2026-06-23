@@ -1,4 +1,4 @@
-package agzam4.api;
+package agzam4proc.api.lib;
 
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -6,9 +6,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.sun.net.httpserver.HttpExchange;
 
 import arc.func.Func;
+import arc.struct.Seq;
 
 public class SseSource<T> {
 
+	public static final Seq<Runnable> pingListeners = Seq.with();
+	
     private final ConcurrentHashMap<HttpExchange, SseClient<T>> activeClients = new ConcurrentHashMap<>();
     
     public void register(HttpExchange exchange, Func<T, String> processor) throws IOException {
@@ -19,7 +22,7 @@ public class SseSource<T> {
     	exchange.sendResponseHeaders(200, 0);
         SseClient<T> client = new SseClient<>(exchange, processor);
         activeClients.put(exchange, client);
-        ApiServer.pingListeners.add(this::pingDisconnects);
+        pingListeners.add(this::pingDisconnects);
     }
 
     public void broadcast(T event) {
