@@ -94,7 +94,7 @@ eclipse {
     }
 }
 
-tasks.register('generateSources') {
+tasks.register('aptGenerateSources') {
     group = 'build'
     description = 'Run source generating (APT)'
     dependsOn tasks.named('compileJava')

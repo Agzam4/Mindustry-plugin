@@ -25,5 +25,5 @@ dependencies {
 }
 
 tasks.named('build') {
-    finalizedBy(rootProject.tasks.named('generateSources'))
+    finalizedBy(rootProject.tasks.named('aptGenerateSources'))
 }
