@@ -7,80 +7,85 @@ import com.squareup.javapoet.TypeName;
 import com.sun.net.httpserver.HttpExchange;
 
 import agzam4proc.api.ApiSnippets;
-import agzam4proc.api.utils.Interfaces.CodeProvider;
 import agzam4proc.api.utils.Interfaces.CodeProviderContext;
+import agzam4proc.api.utils.init.*;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
 import arc.util.Log;
 
 public class EndpointProcessor {
 
-	protected final ObjectMap<TypeName, DagNode<VarriableInit, ConstantValue>> envVariables = ObjectMap.of();
+	protected final ObjectMap<TypeName, DagNode<VariableInit>> envVariables = ObjectMap.of();
 
 	protected final MethodInfo method;
 	protected final String name;
+	
+	protected boolean debug = false;
 
 	public EndpointProcessor(String prefixValue, String methodName, MethodInfo method) {
 		this.method = method;
 		this.name = endpointName(methodName, method.name);
 
 		envVariables.put(
-				TypeName.get(HttpExchange.class), 
-				DagNode.<VarriableInit, ConstantValue>constant(
-						new VarriableInit(new CodeProvider() {
-							
-							@Override
-							public CodeBlockBuilder build(CodeProviderContext context, CodeBlockBuilder builder) {
-								builder.addCode("$T.registerEndpoint(server, $S, $L -> {$>\n", 
-										TypeName.get(ApiSnippets.class), 
-										prefixValue + "/" + name,
-										context.node.value.value
-										);
-								CodeBlockBuilder inside = new CodeBlockBuilder();
-								builder.add(inside);
-								builder.addStatement("$<})");
-								return inside;
-							}
-						}), 
-						ConstantValue.varriable("exchange"))
-				);
-		method.resolve(envVariables.keys().toSeq().asSet());
+				TypeName.get(HttpExchange.class),
+				new DagNode<VariableInit>(new ConsumerProvider(
+						"exchange",
+						CodeBlock.of("$T.registerEndpoint", TypeName.get(ApiSnippets.class)),
+						new ConstProvider("server"), 
+						new StringProvider(prefixValue + "/" + name)
+				))
+		);
+		
 	}
 
 	public CodeBlock build() {
+		method.resolve(envVariables.keys().toSeq().asSet());
 		var root = new CodeBlockBuilder();
 		var current = root;
-		var graph = buildGraph(new VarriableInit(method, true), null);
-		var builders = graph.linearize();
+		var graph = buildGraph(new CallProvider(method).asReturn(), null);
 		
-		Log.info("Building...");
+		var builders = graph.linearize((n1,n2) -> (n1.value instanceof ConsumerProvider ? 1 : 0) - (n2.value instanceof ConsumerProvider ? 1 : 0));
 		
-		ObjectMap<String, Integer> namespace = ObjectMap.of("server", 1);
+//		Func2<Integer, DagNode<VariableInit>, Integer> comp = (score, node) -> score + (node.value instanceof ConsumerProvider ? 1 : 0);
+//		var builders = graph.linearize((n1,n2) -> {
+//			if(debug) {
+//				 Log.info("@ (@) vs @ (@)", n1, n1.reduce(0, comp), n2, n2.reduce(0, comp));
+//			}
+//			return 
+//					n1.reduce(0, comp) -
+//					n2.reduce(0, comp);
+//		}
+//				);
+		
+		if(debug) Log.info("Building...");
+		if(debug) Log.info("Seq: @", builders.toString(": ", n -> n.value.toString()));
+		if(debug) Log.info("Seq: @", builders.toString());
+		
+		var namespace = Namespace.of("server");
 		
 		for (int i = 0; i < builders.size; i++) {
-			if(builders.get(i).payload == null) continue;
 			var context = new CodeProviderContext(builders.get(i), namespace);
-			current = builders.get(i).payload.build(context, current);
-			
+			if(debug) Log.info("@. @ (@)", i+1, builders.get(i).value, builders.get(i).value.hashCode());
+			current = builders.get(i).value.builder(context, current);
 		}
 		
 		var block = root.build();
 		return block;
 	}
 
-	public DagNode<VarriableInit, ConstantValue> buildGraph(VarriableInit varriable, String parmname) {
+	public DagNode<VariableInit> buildGraph(CallProvider varriable, String parmname) {
 //		DagNode<VarriableInit, ConstantValue> current = DagNode.branch(varriable);
-		var childNodes = new Seq<DagNode<VarriableInit,ConstantValue>>();
+		var childNodes = new Seq<DagNode<VariableInit>>();
 
-		for (var resolver : varriable.info.resolvers) {
+		for (var resolver : varriable.method.resolvers) {
 			if (resolver.method != null) {
-				var g = buildGraph(new VarriableInit(resolver.method, false), resolver.name);
+				var g = buildGraph(new CallProvider(resolver.method), resolver.name);
 				Objects.requireNonNull(g);
 				childNodes.add(g);
 				continue;
 			}
 			if (resolver.parm) {
-				childNodes.add(DagNode.constant(ConstantValue.string(parmname)));
+				childNodes.add(new DagNode<>(new StringProvider(parmname)));
 				continue;
 			}
 			if (resolver.allowed != null) {
@@ -90,14 +95,14 @@ public class EndpointProcessor {
 				continue;
 			}
 			Log.warn("Not found parm handler");
-			childNodes.add(DagNode.constant(ConstantValue.none()));
+			childNodes.add(new DagNode<>(new NullProvider()));
 		}
 
 		return DagNode.of(childNodes, varriable);//current.link(childNodes);
 	}
 
 
-	private String endpointName(String force, String s) {
+	public static String endpointName(String force, String s) {
 		if(!force.isEmpty()) return force;
 		StringBuilder result = new StringBuilder(s.length() + 1);
 		for(int i = 0; i < s.length(); i++){

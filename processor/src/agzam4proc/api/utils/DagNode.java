@@ -1,77 +1,40 @@
 package agzam4proc.api.utils;
 
+import java.util.Comparator;
 import java.util.Objects;
 
+import arc.func.Boolf;
+import arc.func.Func2;
 import arc.struct.Seq;
 import arc.util.Log;
 import arc.util.Nullable;
 
-public class DagNode<T, C> {
+public class DagNode<T extends Equality<T>> {
+	
+	public T value;
 
-	/** An additional value that not used in comparisons */
-	public T payload;
+	public final Seq<DagNode<T>> children = new Seq<>();
 
-	@Nullable
-	public C value;
-
-	@Nullable 
-	public final Seq<DagNode<T, C>> children;
-
-	/** branch constructor **/
-	public DagNode(T payload) {
-		this.payload = payload;
-		this.children = new Seq<>();
-		this.value = null;
-	}
-
-	/** Constant constructor **/
-	protected DagNode(T payload, Seq<DagNode<T, C>> children, C value) {
-		this.payload = payload;
-		this.children = children;
+	public DagNode(T value) {
+		Objects.requireNonNull(value);
 		this.value = value;
 	}
 
-	public static <T, C> DagNode<T, C> constant(T payload, C value) {
-		return new DagNode<>(payload, (Seq<DagNode<T, C>>) null, value);
-	}
-
-	public static <T, C> DagNode<T, C> constant(C value) {
-		return new DagNode<T, C>(null, null, value);
-	}
-
-	private DagNode(T payload, @Nullable C value, @Nullable Seq<DagNode<T, C>> children) {
-		this.payload = payload;
-		this.value = value;
-		this.children = children;
-	}
-
-	public static <T, C> DagNode<T, C> branch(T payload) {
-		return new DagNode<T, C>(payload, null, new Seq<DagNode<T, C>>());
-	}
-
-	public static <T, C> DagNode<T, C> createConstant(T payload, C value) {
-		return new DagNode<>(payload, value, null);
-	}
-
-	public boolean isConstant() {
-		return children == null;
-	}
-
 	@Nullable
-	private DagNode<T, C> findSharedSubtree(Seq<DagNode<T, C>> scope, DagNode<T, C> target) {
+	private DagNode<T> findSharedSubtree(Seq<DagNode<T>> scope, DagNode<T> target) {
 		for (int i = 0; i < scope.size; i++) {
-			DagNode<T, C> current = scope.get(i);
+			DagNode<T> current = scope.get(i);
 			Log.info("> @", current);
 			if (current.eql(target)) {
 				Log.info("FOUND");
-				target.payload = current.payload;
+				target.value = current.value;
 				return current;
 			}
 			if (current.children != null) {
-				DagNode<T, C> found = findSharedSubtree(current.children, target);
+				DagNode<T> found = findSharedSubtree(current.children, target);
 				if (found != null) {
 					Log.info("FOUND");
-					target.payload = found.payload;
+					target.value = found.value;
 					return found;
 				}
 			}
@@ -80,11 +43,16 @@ public class DagNode<T, C> {
 	}
 
 
+	@SafeVarargs
+	public static <T extends Equality<T>> DagNode<T> of(T payload, DagNode<T> ...childNodes) {
+		return of(Seq.with(childNodes), payload);
+	}
+
 	/**
 	 * Links child nodes to the current<br>
 	 * performs full graph deduplication, and returns the interned node
 	 */
-	public static <T, C> DagNode<T, C> of(Seq<DagNode<T, C>> childNodes, T payload) {
+	public static <T extends Equality<T>> DagNode<T> of(Seq<DagNode<T>> childNodes, T payload) {
 		for (int i = 0; i < childNodes.size; i++) {
 			for (int ii = 0; ii < childNodes.size; ii++) {
 				var found = childNodes.get(i).find(childNodes.get(ii));
@@ -93,13 +61,15 @@ public class DagNode<T, C> {
 				}
 			}
 		}
-		return new DagNode<T, C>(payload, null, childNodes);
+		var node = new DagNode<T>(payload);
+		node.children.addAll(childNodes);
+		return node;
 	}
 
 	@Nullable
-	private DagNode<T, C> find(DagNode<T, C> node) {
+	private DagNode<T> find(DagNode<T> node) {
 		if(eql(node)) return this;
-		if(!node.isConstant()) {
+		if(node.children.size != 0) {
 			for (int i = 0; i < node.children.size; i++) {
 				var childDuplicate = this.find(node.children.get(i));
 				if (childDuplicate != null) {
@@ -110,7 +80,7 @@ public class DagNode<T, C> {
 				return this;
 			}
 		}
-		if(!isConstant()) {
+		if(this.children.size != 0) {
 			for (int i = 0; i < this.children.size; i++) {
 				var found = this.children.get(i).find(node);
 				if (found != null) return found;
@@ -119,29 +89,45 @@ public class DagNode<T, C> {
 		return null;
 	}
 
-
-	@Override
-	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
-		DagNode<?, ?> node = (DagNode<?, ?>) o;
-		if (!Objects.equals(value, node.value)) return false;
-		if (children == null && node.children == null) return true;
-		if (children == null || node.children == null) return false;
-		if (children.size != node.children.size) return false;
+	@Nullable
+	public DagNode<T> find(Boolf<DagNode<T>> boolf) {
+		if(boolf.get(this)) return this;
 		for (int i = 0; i < children.size; i++) {
-			if (!children.get(i).equals(node.children.get(i))) return false;
+			var n = children.get(i).find(boolf);
+			if(n != null) return n;
 		}
-		return true;
+		return null;
 	}
 
+	@Nullable
+	public <R> R reduce(R r, Func2<R, DagNode<T>, R> func) {
+		r = func.get(r, this);
+		for (int i = 0; i < children.size; i++) {
+			r = children.get(i).reduce(r, func);
+		}
+		return r;
+	}
 
-	public boolean eql(DagNode<T, C> node) {
+//	@Override
+//	public boolean equals(Object o) {
+//		if (this == o) return true;
+//		if (o == null || getClass() != o.getClass()) return false;
+//		DagNode<?, ?> node = (DagNode<?, ?>) o;
+//		if (!Objects.equals(constant, node.constant)) return false;
+//		if (children == null && node.children == null) return true;
+//		if (children == null || node.children == null) return false;
+//		if (children.size != node.children.size) return false;
+//		for (int i = 0; i < children.size; i++) {
+//			if (!children.get(i).equals(node.children.get(i))) return false;
+//		}
+//		return true;
+//	}
+
+
+	public boolean eql(DagNode<T> node) {
 		if (this == node) return true;
 		if (node == null) return false;
-		if (!Objects.equals(value, node.value)) return false;
-		if (children == null && node.children == null) return true;
-		if (children == null || node.children == null) return false;
+		if (!node.value.eql(value)) return false;
 		if (children.size != node.children.size) return false;
 		for (int i = 0; i < children.size; i++) {
 			if (!children.get(i).eql(node.children.get(i))) return false;
@@ -151,8 +137,8 @@ public class DagNode<T, C> {
 
 	@Override
 	public String toString() {
-		if (isConstant()) return "CONST-" + "[" + value + "]";
-		StringBuilder sb = new StringBuilder().append("(");
+//		if (isConstant()) return "CONST-" + "[" + constant + "]";
+		StringBuilder sb = new StringBuilder(value.toString()).append("(");
 		for (int i = 0; i < children.size; i++) {
 			sb.append(children.get(i));
 			if (i < children.size - 1) sb.append(", ");
@@ -160,20 +146,42 @@ public class DagNode<T, C> {
 		return sb.append(")").toString();
 	}
 
-	public Seq<DagNode<T, C>> linearize() {
-		Seq<DagNode<T, C>> output = new Seq<>();
+	public Seq<DagNode<T>> linearize() {
+		Seq<DagNode<T>> output = new Seq<>();
 		linearize(output);
 		return output;
 	}
 
-	private void linearize(Seq<DagNode<T, C>> output) {
-		if (output.contains(this)) return;
-		if (children != null) {
-			for (int i = 0; i < children.size; i++) {
-				children.get(i).linearize(output);
-			}
+	public Seq<DagNode<T>> linearize(Comparator<? super DagNode<T>> comp) {
+		Seq<DagNode<T>> output = new Seq<>();
+		linearize(output, comp);
+		return output;
+	}
+	
+	public Seq<DagNode<T>> linearizeMinChildren() {
+		Seq<DagNode<T>> output = new Seq<>();
+		linearize(output, (n1,n2) -> Integer.compare(n1.children.size, n2.children.size));
+		return output;
+	}
+
+	private void linearize(Seq<DagNode<T>> output) {
+//		if (children.size == 0) return;
+		if(output.contains(this)) return;
+		for (int i = 0; i < children.size; i++) {
+			children.get(i).linearize(output);
 		}
 		output.add(this);
 	}
+	
+	private void linearize(Seq<DagNode<T>> output, Comparator<? super DagNode<T>> comp) {
+		if(output.contains(this)) return;
+		var sorted = Seq.with(children).sort(comp);
+//		Log.info("Nodes on level: @", sorted.toString(", ", n -> n.value.toString()));
+		for (int i = 0; i < sorted.size; i++) {
+			sorted.get(i).linearize(output, comp);
+		}
+		output.add(this);
+	}
+	
 
 }

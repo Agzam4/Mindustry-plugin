@@ -1,5 +1,6 @@
 package agzam4proc.api.lib;
 
+@SuppressWarnings("serial")
 public class ApiResponse extends Exception {
 	
 	public String content;

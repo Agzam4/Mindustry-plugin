@@ -5,16 +5,16 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.sun.net.httpserver.HttpExchange;
 
-import arc.func.Func;
 import arc.struct.Seq;
 
 public class SseSource<T> {
 
 	public static final Seq<Runnable> pingListeners = Seq.with();
 	
+	
     private final ConcurrentHashMap<HttpExchange, SseClient<T>> activeClients = new ConcurrentHashMap<>();
     
-    public void register(HttpExchange exchange, Func<T, String> processor) throws IOException {
+    public void register(HttpExchange exchange, SseSourceHandler<T> processor) throws IOException {
     	exchange.getResponseHeaders().set("Content-Type", "text/event-stream");
     	exchange.getResponseHeaders().set("Cache-Control", "no-cache");
     	exchange.getResponseHeaders().set("Connection", "keep-alive");

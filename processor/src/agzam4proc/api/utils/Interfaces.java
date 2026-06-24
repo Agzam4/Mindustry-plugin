@@ -1,6 +1,6 @@
 package agzam4proc.api.utils;
 
-import arc.struct.ObjectMap;
+import agzam4proc.api.utils.init.VariableInit;
 
 public class Interfaces {
 	
@@ -13,10 +13,10 @@ public class Interfaces {
 	
 	public static class CodeProviderContext {
 		
-		public DagNode<VarriableInit, ConstantValue> node;
-		public ObjectMap<String, Integer> namespace = new ObjectMap<>();
+		public DagNode<VariableInit> node;
+		public Namespace namespace = new Namespace();
 		
-		public CodeProviderContext(DagNode<VarriableInit, ConstantValue> node, ObjectMap<String, Integer> namespace) {
+		public CodeProviderContext(DagNode<VariableInit> node, Namespace namespace) {
 			this.node = node;
 			this.namespace = namespace;
 		}

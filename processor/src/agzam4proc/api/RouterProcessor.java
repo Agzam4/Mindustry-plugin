@@ -2,24 +2,17 @@ package agzam4proc.api;
 
 import javax.annotation.processing.Processor;
 import javax.lang.model.element.*;
-import javax.lang.model.type.DeclaredType;
-import javax.lang.model.type.TypeMirror;
+import javax.lang.model.type.*;
 import javax.lang.model.util.ElementFilter;
 
 import com.google.auto.service.AutoService;
 import com.squareup.javapoet.*;
-import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
-import agzam4proc.AptError;
-import agzam4proc.BaseProcessor;
-import agzam4proc.Proc;
+import agzam4proc.*;
 import agzam4proc.api.ApiAnnotations.*;
 import agzam4proc.api.lib.SseSource;
-import agzam4proc.api.utils.DependenciesContext;
-import agzam4proc.api.utils.EndpointProcessor;
-import agzam4proc.api.utils.MethodInfo;
-import arc.struct.ObjectMap;
-import arc.struct.Seq;
+import agzam4proc.api.utils.*;
+import arc.struct.*;
 import arc.util.Log;
 
 @AutoService(Processor.class)
@@ -88,10 +81,12 @@ public class RouterProcessor extends BaseProcessor {
 				    TypeElement fieldTypeElement = (TypeElement) declaredType.asElement();
 				    var methods = ElementFilter.methodsIn(fieldTypeElement.getEnclosedElements());
 
-
-//				    for (ExecutableElement methodElement : methods) {
+				    for (ExecutableElement methodElement : methods) {
+				        if(methodElement.getAnnotation(SseHandler.class) == null) continue;
+						registerMethod.addCode(new SseEndpointProcessor(prefixValue, type, field, field.getAnnotation(Sse.class), TypeName.get(genericType), new MethodInfo(context, type, methodElement)).build());
+				    }
+				    
 //						Log.info("@<@> @", fieldTypeElement, genericType, methodElement.getSimpleName());
-//				        if (methodElement.getAnnotation(SseHandler.class) != null) {
 //				            
 //				            String exchange = typeVars.get(TypeName.get(HttpExchange.class));
 //				            EndpointInfo info = new EndpointInfo(endpoint.value(), type, methodElement, ObjectMap.of(

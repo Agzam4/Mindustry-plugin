@@ -5,15 +5,13 @@ import java.nio.charset.StandardCharsets;
 
 import com.sun.net.httpserver.HttpExchange;
 
-import arc.func.Func;
-
 public class SseClient<T> {
 	
     private final HttpExchange exchange;
     private final OutputStream os;
-    public final Func<T, String> processor; 
+    public final SseSourceHandler<T> processor; 
 
-    public SseClient(HttpExchange exchange, Func<T, String> processor) {
+    public SseClient(HttpExchange exchange, SseSourceHandler<T> processor) {
         this.exchange = exchange;
         this.os = exchange.getResponseBody();
         this.processor = processor;

@@ -11,9 +11,9 @@ import arc.util.Log;
 
 public class MethodInfo {
 	
-	final ExecutableElement method;
-	final String name;
-	final TypeElement cls;
+	public final ExecutableElement method;
+	public final String name;
+	public final TypeElement cls;
 	private DependenciesContext context;
 	
 	public MethodInfo(DependenciesContext context, TypeElement cls, ExecutableElement method) {
