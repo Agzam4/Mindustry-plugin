@@ -24,23 +24,40 @@ public class RouterProcessor extends BaseProcessor {
 
 	@Override
 	public Seq<Class<?>> classes() {
-		return Seq.with(Router.class, Dependency.class);
+		return Seq.with(Router.class, Dependency.class, Type.class);
 	}
 	
 	private DependenciesContext context;
+	private Scheme scheme;
 
 	@Override
 	public void onElement(ObjectMap<Class<?>, Seq<Element>> map) throws Throwable {
 		if(context == null) context = new DependenciesContext(this);
+		if(scheme == null) scheme = new Scheme(typeUtils);
 		
-		// Round 1 - generating annotations from @Dependencies classes
+		// Round 1
 		if(round == 1) {
+			// generating annotations from @Dependencies classes
 			for (var dependency : map.get(Dependency.class)) {
 				if (!(dependency instanceof TypeElement type)) continue;
 				write("dependencies", context.addDependency(type).buildAnnotation());
 			}
+			// generating type classes information
+			for (var e : map.get(Type.class)) {
+				if (!(e instanceof TypeElement type)) continue;
+				scheme.register(type);
+//				write("dependencies", context.addDependency(type).buildAnnotation());
+			}
+			
+			scheme.eachinfo(i -> {
+				var b = JsonBuilderProcessor.builder(i);
+				write("json", b.build());
+			});
+			
 			return;
 		}
+		
+		
 
 		// Round 2 - generating endpoints
 		context.resolve();

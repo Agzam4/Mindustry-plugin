@@ -64,4 +64,9 @@ public class ApiAnnotations {
 	@Retention(RetentionPolicy.SOURCE)
 	@Target(ElementType.METHOD)
 	public @interface DependencyImpl {}
+	
+
+	@Retention(RetentionPolicy.SOURCE)
+	@Target(ElementType.TYPE)
+	public @interface Type {}
 }
