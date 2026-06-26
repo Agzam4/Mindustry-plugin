@@ -25,4 +25,21 @@ public class ApiAuth {
         AuthDatabase.remove(id);
         return Jval.newObject().put("ok", true).toString();
     }
+    
+    @Type
+    public static class OkResponse {
+
+    	public boolean ok;
+    	
+    }
+    
+    
+    @Type
+    public static class SessionResponse extends OkResponse {
+
+    	public String id;
+    	public String uuid;
+    	
+    }
+    
 }
