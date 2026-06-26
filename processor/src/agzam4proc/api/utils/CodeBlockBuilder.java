@@ -31,6 +31,7 @@ public class CodeBlockBuilder {
 	}
 	
 	private void validate(String format, Object ...args) {
+		CodeBlock.of(format, args);
 		int amount = 0;
 		final String allowed = "TNLS";
 		String fs = "";
