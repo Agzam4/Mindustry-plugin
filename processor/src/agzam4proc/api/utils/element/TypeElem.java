@@ -1,0 +1,219 @@
+package agzam4proc.api.utils.element;
+
+import java.util.Arrays;
+
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.Modifier;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
+import javax.lang.model.util.ElementFilter;
+
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.TypeName;
+import com.squareup.javapoet.TypeSpec;
+
+import arc.struct.ObjectMap;
+import arc.struct.Seq;
+
+public class TypeElem extends Elem {
+
+	private static final ObjectMap<Typepath, TypeElem> exsisting = ObjectMap.of();
+
+	private static TypeElem primitive(String name) {
+		Typepath path = Typepath.of("", name);
+		TypeElem e = new TypeElem();
+		exsisting.put(path, e);
+		e.typepath = path;
+		e.typeName = switch (name) {
+			case "int" -> TypeName.INT;
+			case "long" -> TypeName.LONG;
+			case "float" -> TypeName.FLOAT;
+			case "double" -> TypeName.DOUBLE;
+			case "boolean" -> TypeName.BOOLEAN;
+			case "byte" -> TypeName.BYTE;
+			case "short" -> TypeName.SHORT;
+			case "char" -> TypeName.CHAR;
+			case "void" -> TypeName.VOID;
+			default -> throw new IllegalArgumentException("Unknown primitive: " + name);
+		};
+		e.name = name;
+		e.methods = new Seq<>();
+		e.fields = new Seq<>();
+		return e;
+	}
+
+	public static final TypeElem typeInt = primitive("int"), 
+			typeLong = primitive("long"), 
+			typeFloat = primitive("float"), 
+			typeDouble = primitive("double"), 
+			tyoeBoolean = primitive("boolean"),
+			typeByte = primitive("byte"), 
+			typeShort = primitive("short"), 
+			typeChar = primitive("char"),
+			typeVoid = primitive("void");
+
+	public Typepath typepath;
+	public TypeName typeName;
+	public String name;
+	public Seq<ExecutableElem> methods;
+	public Seq<VariableElem> fields;
+
+	private Typepath superclassPath;
+	private TypeElem superclass;
+
+	private TypeElem() {}
+
+	public static TypeElem of(TypeElement e) {
+		Typepath path = Typepath.of(e);
+		if (exsisting.containsKey(path)) return exsisting.get(path);
+		TypeElem instance = new TypeElem();
+		exsisting.put(path, instance);
+		instance.init(e);
+		return instance;
+	}
+
+	private void init(TypeElement e) {
+		super.init(e);
+		this.name = e.getSimpleName().toString();
+		this.typepath = Typepath.of(e);
+		this.typeName = TypeElem.toClassName(typepath);
+		this.methods = Seq.with(ElementFilter.methodsIn(e.getEnclosedElements()))
+				.map(m -> ExecutableElem.of(m));
+		this.fields = Seq.with(ElementFilter.fieldsIn(e.getEnclosedElements()))
+				.map(f -> VariableElem.of(f));
+		TypeMirror superMirror = e.getSuperclass();
+		if (superMirror.getKind() != TypeKind.NONE && !superMirror.toString().equals("java.lang.Object")) {
+			this.superclassPath = Typepath.of(superMirror);
+		}
+	}
+
+	public static TypeElem of(TypeMirror mirror) {
+		if (mirror.getKind() == TypeKind.NONE) return null;
+		return switch (mirror.getKind()) {
+			case BOOLEAN -> tyoeBoolean;
+			case BYTE -> typeByte;
+			case SHORT -> typeShort;
+			case INT -> typeInt;
+			case LONG -> typeLong;
+			case CHAR -> typeChar;
+			case FLOAT -> typeFloat;
+			case DOUBLE -> typeDouble;
+			case VOID -> typeVoid;
+			default -> {
+				if (!(mirror instanceof DeclaredType dt)) yield null;
+				yield of((TypeElement) dt.asElement());
+			}
+		};
+	}
+
+	public static TypeElem of(String packageName, String simpleName, String... simpleNames) {
+		Typepath path = simpleNames.length == 0
+				? Typepath.of(packageName, simpleName)
+				: Typepath.of(packageName, join(simpleName, simpleNames));
+		if (exsisting.containsKey(path)) return exsisting.get(path);
+		TypeElem instance = new TypeElem();
+		exsisting.put(path, instance);
+		instance.typepath = path;
+		instance.typeName = TypeElem.toClassName(path);
+		instance.name = path.simpleName;
+		instance.methods = new Seq<>();
+		instance.fields = new Seq<>();
+		return instance;
+	}
+
+	public static TypeElem of(ClassName className) {
+		Typepath path = Typepath.of(className);
+		if (exsisting.containsKey(path)) return exsisting.get(path);
+		TypeElem instance = new TypeElem();
+		exsisting.put(path, instance);
+		instance.typepath = path;
+		instance.typeName = className;
+		instance.name = path.simpleName;
+		instance.methods = new Seq<>();
+		instance.fields = new Seq<>();
+		return instance;
+	}
+
+	public static TypeElem virtual(String simpleName) {
+		for (var entry : exsisting) {
+			if (entry.value.name.equals(simpleName) && entry.value.isVirtual()) return entry.value;
+		}
+		return null;
+	}
+
+	public TypeElem superclass() {
+		if (superclass != null) return superclass;
+		if (superclassPath == null) return null;
+		if (exsisting.containsKey(superclassPath)) {
+			superclass = exsisting.get(superclassPath);
+		}
+		return superclass;
+	}
+
+	public void superclass(TypeElem parent) {
+		this.superclass = parent;
+		this.superclassPath = parent.typepath;
+	}
+
+	public VariableElem field(String name) {
+		return fields.find(f -> f.name.equals(name));
+	}
+
+	public ExecutableElem method(String name) {
+		return methods.find(m -> m.name.equals(name));
+	}
+
+	public void addMethod(ExecutableElem method) {
+		methods.add(method);
+	}
+
+	public void addField(VariableElem field) {
+		fields.add(field);
+	}
+
+	private static String[] join(String first, String... rest) {
+		String[] result = new String[1 + rest.length];
+		result[0] = first;
+		System.arraycopy(rest, 0, result, 1, rest.length);
+		return result;
+	}
+
+	private static ClassName toClassName(Typepath path) {
+		if(path.enclosing.length == 0) return ClassName.get(path.packageName, path.simpleName);
+		String[] all = java.util.Arrays.copyOf(path.enclosing, path.enclosing.length + 1);
+		all[path.enclosing.length] = path.simpleName;
+		return ClassName.get(path.packageName, all[0], Arrays.copyOfRange(all, 1, all.length));
+	}
+
+	public String packageName() {
+		return typepath.packageName;
+	}
+
+	public TypeSpec build() {
+		if(element() != null && element().getKind() == ElementKind.ANNOTATION_TYPE) {
+			var b = TypeSpec.annotationBuilder(name).addModifiers(Modifier.PUBLIC);
+			for(var method : methods) b.addMethod(method.build());
+			return b.build();
+		}
+		var b = TypeSpec.classBuilder(name).addModifiers(Modifier.PUBLIC, Modifier.FINAL);
+		TypeElem sup = superclass();
+		if(sup != null) b.superclass(sup.typeName);
+		for(var field : fields) {
+			// XXX: generate call of real for non-virtual?
+			if(field.isVirtual()) b.addField(field.build());
+		}
+		for (var method : methods) {
+			// XXX: generate call of real for non-virtual?
+			if(method.isVirtual()) b.addMethod(method.build());
+		}
+		return b.build();
+	}
+
+	@Override
+	public String toString() {
+		return getClass().getSimpleName() + "[" + typepath.binary + "]";
+	}
+	
+}
