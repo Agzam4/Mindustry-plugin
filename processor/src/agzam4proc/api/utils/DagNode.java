@@ -53,18 +53,23 @@ public class DagNode<T extends Equality<T>> {
 	 * performs full graph deduplication, and returns the interned node
 	 */
 	public static <T extends Equality<T>> DagNode<T> of(Seq<DagNode<T>> childNodes, T payload) {
-		for (int i = 0; i < childNodes.size; i++) {
-			for (int ii = 0; ii < childNodes.size; ii++) {
-				var found = childNodes.get(i).find(childNodes.get(ii));
+		var node = new DagNode<T>(payload);
+		node.add(childNodes);
+		return node;
+	}
+	
+	public void add(Seq<DagNode<T>> childNodes) {
+		children.addAll(childNodes);
+		for (int i = 0; i < children.size; i++) {
+			for (int ii = 0; ii < children.size; ii++) {
+				var found = children.get(i).find(children.get(ii));
 				if(found != null) {
-					childNodes.set(i, found);
+					children.set(i, found);
 				}
 			}
 		}
-		var node = new DagNode<T>(payload);
-		node.children.addAll(childNodes);
-		return node;
 	}
+	
 
 	@Nullable
 	private DagNode<T> find(DagNode<T> node) {
