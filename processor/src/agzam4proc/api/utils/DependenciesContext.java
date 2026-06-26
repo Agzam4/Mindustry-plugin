@@ -8,31 +8,32 @@ import com.squareup.javapoet.TypeName;
 import com.sun.net.httpserver.HttpExchange;
 
 import agzam4proc.BaseProcessor;
-import arc.struct.ObjectMap;
-import arc.struct.ObjectSet;
+import agzam4proc.api.utils.element.*;
+import arc.struct.*;
 
 public class DependenciesContext {
 
 	public final ObjectMap<TypeName, String> typeVars = ObjectMap.of(TypeName.get(HttpExchange.class), "exchange");
 	public final ObjectSet<TypeName> allowedTypes = typeVars.keys().toSeq().asSet();
-	
+
 	public final String packageName;
 	public final Types typeUtils;
 	public ProcessingEnvironment processingEnv;
-	
-	private ObjectMap<String, DependencyInfo> dependencyCache = ObjectMap.of();
+	public Scheme scheme;
 
-	
+	private ObjectMap<Typepath, DependencyInfo> dependencyCache = ObjectMap.of();
+
+
 	public DependenciesContext(BaseProcessor processor) {
 		this.packageName = processor.packageName;
 		this.typeUtils = processor.typeUtils;
 		this.processingEnv = processor.processingEnv();
+		this.scheme = new Scheme(typeUtils);
 	}
 
 	public DependencyInfo addDependency(TypeElement type) {
-		var info = new DependencyInfo(this, type);
-		dependencyCache.put(info.annotation, info);
-		dependencyCache.put(info.name, info); // FIXME
+		var info = new DependencyInfo(this, TypeElem.of(type));
+		dependencyCache.put(info.annotation.path, info);
 		return info;
 	}
 
@@ -40,12 +41,20 @@ public class DependenciesContext {
 		dependencyCache.each((t,d) -> d.resolve());
 	}
 
-	public boolean hasDependency(String typeName) {
-		return dependencyCache.containsKey(typeName);
+	public boolean hasDependency(AnnotationElem<?> annotation) {
+		return dependencyCache.containsKey(annotation.path);
 	}
 
-	public DependencyInfo dependency(String typeName) {
-		return dependencyCache.get(typeName);
+	public DependencyInfo dependency(AnnotationElem<?> annotation) {
+		return dependencyCache.get(annotation.path);
 	}
-	
+
+	public boolean hasDependency(Typepath path) {
+		return dependencyCache.containsKey(path);
+	}
+
+	public DependencyInfo dependency(Typepath path) {
+		return dependencyCache.get(path);
+	}
+
 }

@@ -1,31 +1,29 @@
 package agzam4proc.api.utils;
 
 import javax.lang.model.element.Modifier;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.util.ElementFilter;
 
 import com.squareup.javapoet.TypeName;
 
+import agzam4proc.api.utils.element.TypeElem;
+import agzam4proc.api.utils.element.VariableElem;
 import arc.func.Cons;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
 
 public class TypeInfo {
 
-	public final TypeElement type;
+	public final TypeElem type;
 	public final TypeName typeName;
 	
 	public TypeInfo superclass;
 	public final ObjectMap<TypeName, TypeInfo> subclasses = ObjectMap.of();
-	public final Seq<VariableElement> fields;
-	public final Seq<VariableElement> allfields;
+	public final Seq<VariableElem> fields;
+	public final Seq<VariableElem> allfields;
 	
-	public TypeInfo(TypeElement type) {
+	public TypeInfo(TypeElem type) {
 		this.type = type;
-		this.typeName = TypeName.get(type.asType());
-		this.fields = Seq.with(ElementFilter.fieldsIn(type.getEnclosedElements()))
-				.select(f -> !f.getModifiers().contains(Modifier.STATIC) && !f.getModifiers().contains(Modifier.TRANSIENT));
+		this.typeName = type.typeName;
+		this.fields = type.fields.select(f -> !f.hasModifiers(Modifier.STATIC) && !f.hasModifiers(Modifier.TRANSIENT));
 		this.allfields = Seq.with(fields);
 	}
 
@@ -34,7 +32,7 @@ public class TypeInfo {
 		subclasses.put(info.typeName, info);
 	}
 	
-	public void eachfield(Cons<? super VariableElement> e) {
+	public void eachfield(Cons<? super VariableElem> e) {
 		fields.each(e);
 		if(superclass != null) superclass.eachfield(e);
 	}

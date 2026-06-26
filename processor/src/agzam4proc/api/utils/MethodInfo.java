@@ -1,38 +1,47 @@
 package agzam4proc.api.utils;
 
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeElement;
-
 import com.squareup.javapoet.TypeName;
 
+import agzam4proc.api.utils.element.ExecutableElem;
+import agzam4proc.api.utils.element.TypeElem;
 import arc.struct.ObjectSet;
 import arc.struct.Seq;
 import arc.util.Log;
 
-public class MethodInfo {
+public class MethodInfo implements Equality<MethodInfo> {
 	
-	public final ExecutableElement method;
+	private final ExecutableElem method;
 	public final String name;
-	public final TypeElement cls;
-	private DependenciesContext context;
+	public final TypeElem cls;
+	public final DependenciesContext context;
+
+	public final TypeElem returnType;
+	public final TypeName enclosingType;
 	
-	public MethodInfo(DependenciesContext context, TypeElement cls, ExecutableElement method) {
+	public MethodInfo(DependenciesContext context, TypeElem cls, ExecutableElem method) {
 		this.context = context;
 		this.method = method;
 		this.cls = cls;
-		this.name = method.getSimpleName().toString();
+		this.name = method.name;
+		this.returnType = method.returnType;
+		this.enclosingType = method.enclosingType;
 	}
 	
-	Seq<ParmResolver> resolvers = null;
+	public Seq<ParmResolver> resolvers = null;
 	
-	protected Seq<ParmResolver> resolve(ObjectSet<TypeName> allowed) {
+	public Seq<ParmResolver> resolve(ObjectSet<TypeName> allowed) {
 		if(resolvers != null) return resolvers;
-		Log.info("Resolving @:@", cls.getSimpleName(), name);
+		Log.info("Resolving @:@", cls.name, name);
 		resolvers = new Seq<>();
-		for (var parm : method.getParameters()) {
+		for (var parm : method.parameters()) {
 			resolvers.add(new ParmResolver(context, parm, allowed));
 		}
 		return resolvers;
+	}
+
+	@Override
+	public boolean eql(MethodInfo other) {
+		return method.equals(other.method);
 	}
 	
 }

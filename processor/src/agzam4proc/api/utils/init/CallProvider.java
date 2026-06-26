@@ -1,11 +1,10 @@
 package agzam4proc.api.utils.init;
 
 import com.squareup.javapoet.CodeBlock;
-import com.squareup.javapoet.TypeName;
 
 import agzam4proc.api.utils.CodeBlockBuilder;
-import agzam4proc.api.utils.Interfaces.CodeProviderContext;
 import agzam4proc.api.utils.MethodInfo;
+import agzam4proc.api.utils.Interfaces.CodeProviderContext;
 import arc.struct.Seq;
 
 public class CallProvider extends VariableInit {
@@ -18,7 +17,7 @@ public class CallProvider extends VariableInit {
 	
 	public CallProvider(MethodInfo method) {
 		this.method = method;
-        String baseName = method.cls.getSimpleName().toString();
+        String baseName = method.cls.name;
         baseName = Character.toLowerCase(baseName.charAt(0)) + baseName.substring(1);
         if(baseName.endsWith("Dependency")) baseName = baseName.substring(0, baseName.length() - "Dependency".length());
         this.prefname = baseName;
@@ -48,22 +47,20 @@ public class CallProvider extends VariableInit {
             argumentBlocks.add(child.value.result());
         }
 
-        var returnType = method.method.getReturnType();
-        var enclosingType = method.method.getEnclosingElement().asType();
 
         String currentVarName = this.name;
         if(asReturn) {
 	        builder.addStatement("return $T.$N($L)", 
-	                TypeName.get(enclosingType),
+	        		method.enclosingType,
 	                method.name,
 	                CodeBlock.join(argumentBlocks, ", ")
 	        );
         	return builder;
         }
         builder.addStatement("$T $N = $T.$N($L)", 
-                TypeName.get(returnType), 
+        		method.returnType.typeName, 
                 currentVarName,
-                TypeName.get(enclosingType),
+                method.enclosingType,
                 method.name,
                 CodeBlock.join(argumentBlocks, ", ")
         );
@@ -78,7 +75,7 @@ public class CallProvider extends VariableInit {
 	@Override
 	public boolean eql(VariableInit other) {
 		if(!(other instanceof CallProvider o)) return false;
-		return o.method.method.equals(method.method);
+		return o.method.eql(method);
 	}
 
 	@Override

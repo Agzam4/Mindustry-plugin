@@ -3,8 +3,6 @@ package agzam4proc.api;
 import javax.annotation.processing.Processor;
 import javax.lang.model.element.*;
 import javax.lang.model.type.*;
-import javax.lang.model.util.ElementFilter;
-
 import com.google.auto.service.AutoService;
 import com.squareup.javapoet.*;
 import com.sun.net.httpserver.HttpServer;
@@ -12,6 +10,9 @@ import agzam4proc.*;
 import agzam4proc.api.ApiAnnotations.*;
 import agzam4proc.api.lib.SseSource;
 import agzam4proc.api.utils.*;
+import agzam4proc.api.utils.JsonBuilderProcessor.GeneratedJsonBuilder;
+import agzam4proc.api.utils.element.*;
+import agzam4proc.api.utils.element.ExecutableElem;
 import arc.struct.*;
 import arc.util.Log;
 
@@ -24,16 +25,14 @@ public class RouterProcessor extends BaseProcessor {
 
 	@Override
 	public Seq<Class<?>> classes() {
-		return Seq.with(Router.class, Dependency.class, Type.class);
+		return Seq.with(Router.class, Dependency.class, Type.class, GeneratedJsonBuilder.class);
 	}
 	
 	private DependenciesContext context;
-	private Scheme scheme;
 
 	@Override
 	public void onElement(ObjectMap<Class<?>, Seq<Element>> map) throws Throwable {
 		if(context == null) context = new DependenciesContext(this);
-		if(scheme == null) scheme = new Scheme(typeUtils);
 		
 		// Round 1
 		if(round == 1) {
@@ -45,12 +44,12 @@ public class RouterProcessor extends BaseProcessor {
 			// generating type classes information
 			for (var e : map.get(Type.class)) {
 				if (!(e instanceof TypeElement type)) continue;
-				scheme.register(type);
+				context.scheme.register(TypeElem.of(type));
 //				write("dependencies", context.addDependency(type).buildAnnotation());
 			}
 			
-			scheme.eachinfo(i -> {
-				var b = JsonBuilderProcessor.builder(i);
+			context.scheme.eachinfo(i -> {
+				var b = JsonBuilderProcessor.builder("json", i);
 				write("json", b.build());
 			});
 			
@@ -60,12 +59,22 @@ public class RouterProcessor extends BaseProcessor {
 		
 
 		// Round 2 - generating endpoints
+//		for (var generatedJsonBuilder : map.get(GeneratedJsonBuilder.class)) {
+//			if(generatedJsonBuilder instanceof ExecutableElement method) {
+//				GeneratedJsonBuilder builder = method.getAnnotation(GeneratedJsonBuilder.class);
+//				JsonBuilderProcessor.builder(context.scheme.get(TypeName.get(builder.value()))).toString 
+//				= new MethodInfo(context, TypeElem.of((TypeElement) method.getEnclosingElement()), new ExecutableElem(method));
+//			}
+//		}
 		context.resolve();
-		
+		Log.info("Resolved!");
 		Seq<ClassName> routers = Seq.with();
 		
 		for (var router : map.get(Router.class)) {
-			if (!(router instanceof TypeElement type)) continue;
+			if (!(router instanceof TypeElement typeElement)) continue;
+			var type = TypeElem.of(typeElement);
+			Log.info("Router: @", type);
+			
 			Router routerAnnotation = type.getAnnotation(Router.class);
 			String prefixValue = (routerAnnotation != null) ? routerAnnotation.value() : "/";
 
@@ -77,70 +86,47 @@ public class RouterProcessor extends BaseProcessor {
 			boolean hasEndpoints = false;
 			
 			// SSE
-			for (var field : ElementFilter.fieldsIn(type.getEnclosedElements())) {
-				var endpoint = field.getAnnotation(Sse.class);
-				if (endpoint == null) continue;
+			for (var field : type.fields) {
+				var sseAnn = field.getAnnotation(Sse.class);
+				if (sseAnn == null) continue;
 				hasEndpoints = true;
-				Log.info("@/@", prefixValue, field.getSimpleName());
+				Log.info("@/@", prefixValue, field.name);
 
-				if (field.asType() instanceof DeclaredType declaredType) {
-				    DeclaredType sseSourceType = Proc.findSuperType(field.asType(), SseSource.class.getCanonicalName());
-				    
-				    if (sseSourceType == null) {
-				        throw new AptError(field, "Field must inherit from SseSource");
-				    }
+				if (field.type == null) throw field.error("Field \"@\" has no type", field.name);
+				Element ftElem = field.type.element();
+				if (ftElem == null) throw field.error("Field type \"@\" has no backing element", field.type.name);
+				TypeMirror ftMirror = ftElem.asType();
 
-				    if (sseSourceType.getTypeArguments().isEmpty()) {
-				        throw new AptError(field, "Missing generic type on SseSource");
-				    }
-				    TypeMirror genericType = sseSourceType.getTypeArguments().get(0);
+				DeclaredType sseSourceType = Proc.findSuperType(ftMirror, SseSource.class.getCanonicalName());
+				if (sseSourceType == null) throw field.error("Field \"@\" must inherit from SseSource", field.name);
+				if (sseSourceType.getTypeArguments().isEmpty()) {
+					throw field.error("Missing generic type on SseSource in field \"@\"", field.name);
+				}
+				TypeMirror genericType = sseSourceType.getTypeArguments().get(0);
 
-				    TypeElement fieldTypeElement = (TypeElement) declaredType.asElement();
-				    var methods = ElementFilter.methodsIn(fieldTypeElement.getEnclosedElements());
-
-				    for (ExecutableElement methodElement : methods) {
-				        if(methodElement.getAnnotation(SseHandler.class) == null) continue;
-						registerMethod.addCode(new SseEndpointProcessor(prefixValue, type, field, field.getAnnotation(Sse.class), TypeName.get(genericType), new MethodInfo(context, type, methodElement)).build());
-				    }
-				    
-//						Log.info("@<@> @", fieldTypeElement, genericType, methodElement.getSimpleName());
-//				            
-//				            String exchange = typeVars.get(TypeName.get(HttpExchange.class));
-//				            EndpointInfo info = new EndpointInfo(endpoint.value(), type, methodElement, ObjectMap.of(
-//				                    TypeName.get(HttpExchange.class), exchange,
-//				                    TypeName.get(genericType), "message"
-//				            ));
-//
-//				            registerMethod.addComment("POST " + info.name);
-//				            registerMethod.addCode("$T.registerSseEndpoint(server, $S, $L -> {\n", 
-//				                    TypeName.get(ApiSnippets.class), prefixValue + "/" + info.name, exchange);
-//
-//				            registerMethod.addCode("$T.$L.register($L, message -> {\n", type, field.getSimpleName(), exchange);
-//
-//				            CodeBlock.Builder builder = CodeBlock.builder();
-//				            var varname = info.resolve(builder);
-//				            registerMethod.addCode(builder.build());
-//							registerMethod.addStatement("return $L", varname);
-//
-//				            registerMethod.addStatement("})");
-//				            registerMethod.addStatement("})");
-//				            
-//				        }
-//				    }
+				for (var method : field.type.methods) {
+					if (!method.hasAnnotation(SseHandler.class)) continue;
+					registerMethod.addCode(new SseEndpointProcessor(
+							prefixValue, type, field, sseAnn,
+							TypeName.get(genericType),
+							new MethodInfo(context, field.type, method)
+					).build());
 				}
 			}
 			
 			
 			// POST
-			for (var method : ElementFilter.methodsIn(type.getEnclosedElements())) {
-				var endpoint = method.getAnnotation(Post.class);
-				if(endpoint == null) continue;
-				registerMethod.addCode(new EndpointProcessor(prefixValue, endpoint.value(), new MethodInfo(context, type, method)).build());
+			for (var method : type.methods) {
+				if(!method.hasAnnotation(Post.class)) continue;
+				registerMethod.addCode(new EndpointProcessor(
+						prefixValue, 
+						method.getAnnotation(Post.class).value(), 
+						new MethodInfo(context, type, method)).build());
 				hasEndpoints = true;
 			}
 
 			if (hasEndpoints) {
-				String generatedClassName = type.getSimpleName().toString() + "Router";
+				String generatedClassName = type.name + "Router";
 				TypeSpec routerSpec = TypeSpec.classBuilder(generatedClassName)
 						.addModifiers(Modifier.PUBLIC, Modifier.FINAL)
 						.addMethod(registerMethod.build())

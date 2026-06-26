@@ -42,7 +42,19 @@ public class EndpointProcessor {
 		method.resolve(envVariables.keys().toSeq().asSet());
 		var root = new CodeBlockBuilder();
 		var current = root;
-		var graph = buildGraph(new CallProvider(method).asReturn(), null);
+		
+		DagNode<VariableInit> resultNode = null;
+		var resultMethod = new CallProvider(method);
+		var resultType = method.returnType;
+		if(!resultType.typeName.equals(TypeName.get(String.class))) {
+			var builder = JsonBuilderProcessor.builders.get(resultType).builder;
+			var toString = builder.methods.find(m -> m.returnType.typeName.equals(TypeName.get(String.class)));
+			resultNode = new DagNode<VariableInit>(resultMethod);
+			resultMethod = new CallProvider(new MethodInfo(method.context, builder, toString));
+		}
+		
+		
+		var graph = buildGraph(resultNode, resultMethod.asReturn(), null);
 		
 		var builders = graph.linearize((n1,n2) -> (n1.value instanceof ConsumerProvider ? 1 : 0) - (n2.value instanceof ConsumerProvider ? 1 : 0));
 		
@@ -73,13 +85,14 @@ public class EndpointProcessor {
 		return block;
 	}
 
-	public DagNode<VariableInit> buildGraph(CallProvider varriable, String parmname) {
+	public DagNode<VariableInit> buildGraph(DagNode<VariableInit> root, CallProvider varriable, String parmname) {
 //		DagNode<VarriableInit, ConstantValue> current = DagNode.branch(varriable);
 		var childNodes = new Seq<DagNode<VariableInit>>();
+		if(root != null) childNodes.addAll(root.children);
 
 		for (var resolver : varriable.method.resolvers) {
 			if (resolver.method != null) {
-				var g = buildGraph(new CallProvider(resolver.method), resolver.name);
+				var g = buildGraph(null, new CallProvider(resolver.method), resolver.name);
 				Objects.requireNonNull(g);
 				childNodes.add(g);
 				continue;
@@ -97,7 +110,6 @@ public class EndpointProcessor {
 			Log.warn("Not found parm handler");
 			childNodes.add(new DagNode<>(new NullProvider()));
 		}
-
 		return DagNode.of(childNodes, varriable);//current.link(childNodes);
 	}
 
