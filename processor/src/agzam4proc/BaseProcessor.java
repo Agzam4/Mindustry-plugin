@@ -71,14 +71,17 @@ public abstract class BaseProcessor extends AbstractProcessor {
         	return false; //only process 1 round
         }
         this.typeUtils = processingEnv.getTypeUtils();
-		Log.info("Round: @/@ (@)", round, rounds, getClass());
+		Log.info("&lb[@] Round: @/@ (@)", this, round, rounds, getClass());
 		try {
 			if (annotations.isEmpty()) {
 				onElement(map);
 				onElements(elements);
 				return true; 
 			}
-			classes().forEach(c -> map.put(c, new Seq<>()));
+			classes().forEach(c -> {
+				if(map.containsKey(c)) return;
+				map.put(c, new Seq<>());
+			});
 
 			for (TypeElement annotation : annotations) {
 				for (Element element : env.getElementsAnnotatedWith(annotation)) {
@@ -144,7 +147,11 @@ public abstract class BaseProcessor extends AbstractProcessor {
 	public void err(Element element, Throwable e) {
 		try (StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
 			e.printStackTrace(pw);
-			String stackTraceString = Seq.with(sw.toString().split("\n")).select(l -> !l.contains("at org.gradle") && !l.contains("at jdk.compiler")).toString("\n");
+			String stackTraceString = Seq.with(sw.toString().split("\n")).select(l -> !l.contains("at org.gradle") 
+					&& !l.contains("at jdk.compiler") 
+					&& !l.contains("at com.squareup")
+					&& !l.contains("at java.base")
+					).toString("\n");
 	         if(element != null) err(element, stackTraceString);
 	        Log.err(stackTraceString);
 		} catch (IOException ioException) {
@@ -186,7 +193,7 @@ public abstract class BaseProcessor extends AbstractProcessor {
             writeString = file.toString();
 
             JavaFileObject object = filer.createSourceFile(file.packageName + "." + file.typeSpec.name, file.typeSpec.originatingElements.toArray(new Element[0]));
-            Log.info("+ @", object.getName());
+            Log.info("&g+ @", object.getName());
             Writer stream = object.openWriter();
             stream.write(writeString);
             stream.close();
