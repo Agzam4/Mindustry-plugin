@@ -46,15 +46,18 @@ public class EndpointProcessor {
 		DagNode<VariableInit> resultNode = null;
 		var resultMethod = new CallProvider(method);
 		var resultType = method.returnType();
-		if(!resultType.typeName.equals(TypeName.get(String.class))) {
-			var builder = JsonBuilderProcessor.builders.get(resultType).builder;
-			var toString = builder.methods.find(m -> m.returnType.typeName.equals(TypeName.get(String.class)));
-			resultNode = new DagNode<VariableInit>(resultMethod);
-			resultMethod = new CallProvider(new MethodInfo(method.context, builder, toString));
+		if(resultType != null && !resultType.typeName.equals(TypeName.get(String.class))) {
+			var jbp = JsonBuilderProcessor.builders.get(resultType);
+			if(jbp != null && jbp.stringMethod != null) {
+				resultNode = buildGraph(null, new CallProvider(method), null);
+				var toStringInfo = new MethodInfo(method.context, jbp.builder, jbp.stringMethod);
+				resultMethod = new CallProvider(toStringInfo);
+			}
 		}
 		
-		
-		var graph = buildGraph(resultNode, resultMethod.asReturn(), null);
+		var graph = resultNode != null
+				? DagNode.of(Seq.with(resultNode), resultMethod.asReturn())
+				: buildGraph(null, resultMethod.asReturn(), null);
 		
 		var builders = graph.linearize((n1,n2) -> (n1.value instanceof ConsumerProvider ? 1 : 0) - (n2.value instanceof ConsumerProvider ? 1 : 0));
 		
