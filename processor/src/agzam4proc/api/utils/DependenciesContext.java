@@ -28,7 +28,7 @@ public class DependenciesContext {
 		this.packageName = processor.packageName;
 		this.typeUtils = processor.typeUtils;
 		this.processingEnv = processor.processingEnv();
-		this.scheme = new Scheme(typeUtils);
+		this.scheme = new Scheme();
 	}
 
 	public DependencyInfo addDependency(TypeElement type) {

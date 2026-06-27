@@ -1,9 +1,5 @@
 package agzam4proc.api.utils;
 
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.util.Types;
-
 import com.squareup.javapoet.TypeName;
 
 import agzam4proc.api.ApiAnnotations.Type;
@@ -14,11 +10,6 @@ import arc.struct.ObjectMap;
 public class Scheme {
 
 	private ObjectMap<TypeName, TypeInfo> schemes = ObjectMap.of();
-	private Types typeUtils;
-	
-	public Scheme(Types typeUtils) {
-		this.typeUtils = typeUtils;
-	}
 	
 	public void register(TypeElem type) {
 		var info = new TypeInfo(type);

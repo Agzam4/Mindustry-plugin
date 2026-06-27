@@ -12,7 +12,6 @@ import agzam4proc.api.lib.SseSource;
 import agzam4proc.api.utils.*;
 import agzam4proc.api.utils.JsonBuilderProcessor.GeneratedJsonBuilder;
 import agzam4proc.api.utils.element.*;
-import agzam4proc.api.utils.element.ExecutableElem;
 import arc.struct.*;
 import arc.util.Log;
 
@@ -36,18 +35,18 @@ public class RouterProcessor extends BaseProcessor {
 		
 		// Round 1
 		if(round == 1) {
-			// generating annotations from @Dependencies classes
+			// Phase 1: generating annotations from @Dependencies classes
 			for (var dependency : map.get(Dependency.class)) {
 				if (!(dependency instanceof TypeElement type)) continue;
 				write("dependencies", context.addDependency(type).buildAnnotation());
 			}
-			// generating type classes information
+			// Phase 2: generating type classes information
 			for (var e : map.get(Type.class)) {
 				if (!(e instanceof TypeElement type)) continue;
 				context.scheme.register(TypeElem.of(type));
 //				write("dependencies", context.addDependency(type).buildAnnotation());
 			}
-			
+			// Phase: 3: generating json builders
 			context.scheme.eachinfo(i -> {
 				var b = JsonBuilderProcessor.builder("json", i);
 				write("json", b.build());
@@ -66,10 +65,12 @@ public class RouterProcessor extends BaseProcessor {
 //				= new MethodInfo(context, TypeElem.of((TypeElement) method.getEnclosingElement()), new ExecutableElem(method));
 //			}
 //		}
-		context.resolve();
-		Log.info("Resolved!");
-		Seq<ClassName> routers = Seq.with();
 		
+		// Phase 1: resolving
+		context.resolve();
+
+		// Phase 2: creating routers
+		Seq<ClassName> routers = Seq.with();
 		for (var router : map.get(Router.class)) {
 			if (!(router instanceof TypeElement typeElement)) continue;
 			var type = TypeElem.of(typeElement);

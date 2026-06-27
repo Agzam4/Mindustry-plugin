@@ -11,20 +11,16 @@ import arc.util.Log;
 public class MethodInfo implements Equality<MethodInfo> {
 	
 	private final ExecutableElem method;
-	public final String name;
 	public final TypeElem cls;
 	public final DependenciesContext context;
 
-	public final TypeElem returnType;
-	public final TypeName enclosingType;
+	public final String name;
 	
 	public MethodInfo(DependenciesContext context, TypeElem cls, ExecutableElem method) {
 		this.context = context;
 		this.method = method;
 		this.cls = cls;
 		this.name = method.name;
-		this.returnType = method.returnType;
-		this.enclosingType = method.enclosingType;
 	}
 	
 	public Seq<ParmResolver> resolvers = null;
@@ -33,7 +29,7 @@ public class MethodInfo implements Equality<MethodInfo> {
 		if(resolvers != null) return resolvers;
 		Log.info("Resolving @:@", cls.name, name);
 		resolvers = new Seq<>();
-		for (var parm : method.parameters()) {
+		for (var parm : method.parms) {
 			resolvers.add(new ParmResolver(context, parm, allowed));
 		}
 		return resolvers;
@@ -42,6 +38,14 @@ public class MethodInfo implements Equality<MethodInfo> {
 	@Override
 	public boolean eql(MethodInfo other) {
 		return method.equals(other.method);
+	}
+	
+	public TypeName enclosingType() {
+		return method.enclosingType;
+	}
+
+	public TypeElem returnType() {
+		return method.returnType;
 	}
 	
 }

@@ -19,12 +19,12 @@ import arc.struct.Seq;
 
 public class TypeElem extends Elem {
 
-	private static final ObjectMap<Typepath, TypeElem> exsisting = ObjectMap.of();
+	private static final ObjectMap<Typepath, TypeElem> existing = ObjectMap.of();
 
 	private static TypeElem primitive(String name) {
 		Typepath path = Typepath.of("", name);
 		TypeElem e = new TypeElem();
-		exsisting.put(path, e);
+		existing.put(path, e);
 		e.typepath = path;
 		e.typeName = switch (name) {
 			case "int" -> TypeName.INT;
@@ -48,7 +48,7 @@ public class TypeElem extends Elem {
 			typeLong = primitive("long"), 
 			typeFloat = primitive("float"), 
 			typeDouble = primitive("double"), 
-			tyoeBoolean = primitive("boolean"),
+			typeBoolean = primitive("boolean"),
 			typeByte = primitive("byte"), 
 			typeShort = primitive("short"), 
 			typeChar = primitive("char"),
@@ -67,9 +67,9 @@ public class TypeElem extends Elem {
 
 	public static TypeElem of(TypeElement e) {
 		Typepath path = Typepath.of(e);
-		if (exsisting.containsKey(path)) return exsisting.get(path);
+		if (existing.containsKey(path)) return existing.get(path);
 		TypeElem instance = new TypeElem();
-		exsisting.put(path, instance);
+		existing.put(path, instance);
 		instance.init(e);
 		return instance;
 	}
@@ -92,7 +92,7 @@ public class TypeElem extends Elem {
 	public static TypeElem of(TypeMirror mirror) {
 		if (mirror.getKind() == TypeKind.NONE) return null;
 		return switch (mirror.getKind()) {
-			case BOOLEAN -> tyoeBoolean;
+			case BOOLEAN -> typeBoolean;
 			case BYTE -> typeByte;
 			case SHORT -> typeShort;
 			case INT -> typeInt;
@@ -112,9 +112,9 @@ public class TypeElem extends Elem {
 		Typepath path = simpleNames.length == 0
 				? Typepath.of(packageName, simpleName)
 				: Typepath.of(packageName, join(simpleName, simpleNames));
-		if (exsisting.containsKey(path)) return exsisting.get(path);
+		if (existing.containsKey(path)) return existing.get(path);
 		TypeElem instance = new TypeElem();
-		exsisting.put(path, instance);
+		existing.put(path, instance);
 		instance.typepath = path;
 		instance.typeName = TypeElem.toClassName(path);
 		instance.name = path.simpleName;
@@ -125,9 +125,9 @@ public class TypeElem extends Elem {
 
 	public static TypeElem of(ClassName className) {
 		Typepath path = Typepath.of(className);
-		if (exsisting.containsKey(path)) return exsisting.get(path);
+		if (existing.containsKey(path)) return existing.get(path);
 		TypeElem instance = new TypeElem();
-		exsisting.put(path, instance);
+		existing.put(path, instance);
 		instance.typepath = path;
 		instance.typeName = className;
 		instance.name = path.simpleName;
@@ -137,7 +137,7 @@ public class TypeElem extends Elem {
 	}
 
 	public static TypeElem virtual(String simpleName) {
-		for (var entry : exsisting) {
+		for (var entry : existing) {
 			if (entry.value.name.equals(simpleName) && entry.value.isVirtual()) return entry.value;
 		}
 		return null;
@@ -146,8 +146,8 @@ public class TypeElem extends Elem {
 	public TypeElem superclass() {
 		if (superclass != null) return superclass;
 		if (superclassPath == null) return null;
-		if (exsisting.containsKey(superclassPath)) {
-			superclass = exsisting.get(superclassPath);
+		if (existing.containsKey(superclassPath)) {
+			superclass = existing.get(superclassPath);
 		}
 		return superclass;
 	}

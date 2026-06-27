@@ -33,10 +33,6 @@ public class ExecutableElem extends Elem {
 		this.parms = Seq.with(e.getParameters()).map(p -> VariableElem.of(p));
 	}
 
-	public Seq<VariableElem> parameters() {
-		return parms;
-	}
-
 	public void addStatement(String format, Object... args) {
 		if (body == null) body = new CodeBlockBuilder();
 		body.addStatement(format, args);

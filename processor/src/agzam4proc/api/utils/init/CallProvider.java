@@ -51,16 +51,16 @@ public class CallProvider extends VariableInit {
         String currentVarName = this.name;
         if(asReturn) {
 	        builder.addStatement("return $T.$N($L)", 
-	        		method.enclosingType,
+	        		method.enclosingType(),
 	                method.name,
 	                CodeBlock.join(argumentBlocks, ", ")
 	        );
         	return builder;
         }
         builder.addStatement("$T $N = $T.$N($L)", 
-        		method.returnType.typeName, 
+        		method.returnType().typeName, 
                 currentVarName,
-                method.enclosingType,
+                method.enclosingType(),
                 method.name,
                 CodeBlock.join(argumentBlocks, ", ")
         );
