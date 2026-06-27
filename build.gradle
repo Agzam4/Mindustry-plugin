@@ -73,6 +73,7 @@ def generatedSourceDir = file(generatedSrc)
 tasks.withType(JavaCompile).configureEach {
     options.annotationProcessorPath = configurations.annotationProcessor
     options.generatedSourceOutputDirectory = generatedSourceDir
+    options.compilerArgs += "-AtypescriptOutDir=${project.rootDir}/web/src/api/gen"
 }
 
 sourceSets.main.java.srcDirs += generatedSourceDir

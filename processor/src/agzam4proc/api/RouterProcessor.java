@@ -1,5 +1,7 @@
 package agzam4proc.api;
 
+import java.util.Set;
+
 import javax.annotation.processing.Processor;
 import javax.lang.model.element.*;
 import javax.lang.model.type.*;
@@ -9,6 +11,7 @@ import com.sun.net.httpserver.HttpServer;
 import agzam4proc.*;
 import agzam4proc.api.ApiAnnotations.*;
 import agzam4proc.api.lib.SseSource;
+import agzam4proc.api.proto.*;
 import agzam4proc.api.utils.*;
 import agzam4proc.api.utils.JsonBuilderProcessor.GeneratedJsonBuilder;
 import agzam4proc.api.utils.element.*;
@@ -26,6 +29,11 @@ public class RouterProcessor extends BaseProcessor {
 	public Seq<Class<?>> classes() {
 		return Seq.with(Router.class, Dependency.class, Type.class, GeneratedJsonBuilder.class);
 	}
+
+    @Override
+    public Set<String> getSupportedOptions() {
+        return Set.of("typescriptOutDir");
+    }
 	
 	private DependenciesContext context;
 
@@ -71,6 +79,7 @@ public class RouterProcessor extends BaseProcessor {
 
 		// Phase 2: creating routers
 		Seq<ClassName> routers = Seq.with();
+		Seq<EndpointInfo> endpointInfos = new Seq<>();
 		for (var router : map.get(Router.class)) {
 			if (!(router instanceof TypeElement typeElement)) continue;
 			var type = TypeElem.of(typeElement);
@@ -119,6 +128,9 @@ public class RouterProcessor extends BaseProcessor {
 			// POST
 			for (var method : type.methods) {
 				if(!method.hasAnnotation(Post.class)) continue;
+				String epMethodName = EndpointProcessor.endpointName(method.getAnnotation(Post.class).value(), method.name);
+				String epUrl = prefixValue + "/" + epMethodName;
+				endpointInfos.add(new EndpointInfo(epUrl, method.returnType, method.parms));
 				registerMethod.addCode(new EndpointProcessor(
 						prefixValue, 
 						method.getAnnotation(Post.class).value(), 
@@ -166,6 +178,12 @@ public class RouterProcessor extends BaseProcessor {
 						.build()).build();
 
 		write(type);
+
+		try {
+			new TypescriptGenerator(context.scheme, endpointInfos, processingEnv()).write();
+		} catch (Exception e) {
+			Log.err("Failed to generate TypeScript API", e);
+		}
 
 	}
 
