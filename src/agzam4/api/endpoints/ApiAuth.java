@@ -6,18 +6,19 @@ import agzam4.api.auth.AuthDatabase;
 import agzam4.api.auth.AuthTokens;
 import agzam4gen.api.dependencies.*;
 import agzam4proc.api.ApiAnnotations.*;
+import agzam4proc.api.lib.ApiResponse;
 import arc.util.serialization.Jval;
 
 @Router("/auth")
 public class ApiAuth {
 	
     @Post
-    public static String createSession(@BodyParm String token, @SessionIp String ip) {
+    public static SessionResponse createSession(@BodyParm String token, @SessionIp String ip) throws ApiResponse {
         String uuid = AuthTokens.verify(token);
-        if(uuid == null) return Jval.newObject().put("error", "Неверный токен, зайди в игру и пропиши /auth").toString();
+        if(uuid == null) throw new ApiResponse("Неверный токен, зайди в игру и пропиши /auth");
         String sessionId = UUID.randomUUID().toString().replace("-", "");
         AuthDatabase.createSession(sessionId, uuid, ip);
-        return Jval.newObject().put("id", sessionId).put("uuid", uuid).toString();
+        return new SessionResponse(sessionId, uuid); //Jval.newObject().put("id", sessionId).put("uuid", uuid).toString();
     }
 
     @Post
@@ -39,6 +40,11 @@ public class ApiAuth {
 
     	public String id;
     	public String uuid;
+    	
+    	public SessionResponse(String id, String uuid) {
+    		this.id = id;
+    		this.uuid = uuid;
+		}
     	
     }
     
