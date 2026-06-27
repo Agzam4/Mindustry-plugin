@@ -6,7 +6,7 @@ import javax.lang.model.element.Modifier;
 
 import com.squareup.javapoet.*;
 
-import agzam4proc.api.utils.element.TypeElem;
+import agzam4proc.api.utils.element.*;
 import arc.struct.*;
 import arc.util.serialization.Jval;
 import arc.util.serialization.Jval.Jformat;
@@ -31,7 +31,7 @@ public class JsonBuilderProcessor {
 
 	public final TypeInfo info;
 	public final TypeElem type, builder;
-	public MethodInfo toString;
+	public ExecutableElem stringMethod;
 	public String packageName;
 	
 	public JsonBuilderProcessor(String packageName, TypeInfo info) {
@@ -89,6 +89,13 @@ public class JsonBuilderProcessor {
 				.addParameter(type.typeName, "object");
 		string.addStatement("return json(object).toString($T.plain)", TypeName.get(Jformat.class));
 		
+		var objectParm = VariableElem.virtual("object", type);
+		var strType = TypeElem.of(ClassName.get(String.class));
+		var jvalType = TypeElem.of(ClassName.get(Jval.class));
+		builder.methods.add(ExecutableElem.virtual("json", jvalType, builder.typeName, Seq.with(objectParm)));
+		stringMethod = ExecutableElem.virtual("string", strType, builder.typeName, Seq.with(objectParm));
+		builder.methods.add(stringMethod);
+
 		return TypeSpec.classBuilder(builder.name)
 				.addJavadoc("Auto-generated annotation based on {@link $T}$L", this.info.type.typeName, doc == null ? "" : "<br>\n<br>\n" + doc.trim())
 				.addModifiers(Modifier.PUBLIC)
