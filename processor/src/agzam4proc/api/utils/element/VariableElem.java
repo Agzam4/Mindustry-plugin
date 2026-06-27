@@ -18,6 +18,13 @@ public class VariableElem extends Elem {
 		return instance;
 	}
 
+	public static VariableElem virtual(String name, TypeElem type) {
+		VariableElem instance = new VariableElem();
+		instance.name = name;
+		instance.type = type;
+		return instance;
+	}
+
 	private void init(VariableElement e) {
 		super.init(e);
 		this.name = e.getSimpleName().toString();

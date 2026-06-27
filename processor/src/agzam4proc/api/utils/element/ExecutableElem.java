@@ -25,6 +25,15 @@ public class ExecutableElem extends Elem {
 		return instance;
 	}
 
+	public static ExecutableElem virtual(String name, TypeElem returnType, TypeName enclosingType, Seq<VariableElem> parms) {
+		ExecutableElem instance = new ExecutableElem();
+		instance.name = name;
+		instance.returnType = returnType;
+		instance.enclosingType = enclosingType;
+		instance.parms = parms != null ? parms : new Seq<>();
+		return instance;
+	}
+
 	private void init(ExecutableElement e) {
 		super.init(e);
 		this.name = e.getSimpleName().toString();
