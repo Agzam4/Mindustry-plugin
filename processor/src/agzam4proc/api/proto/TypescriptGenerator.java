@@ -57,6 +57,36 @@ public class TypescriptGenerator extends Generator {
 	}
 
 	private void generateApi(StringBuilder sb) {
+		sb.append("// -- Helpers --\n\n");
+
+		sb.append("async function postJson<T>(url: string, body: any): Promise<[T, null] | [null, NetError]> {\n");
+		sb.append("  try {\n");
+		sb.append("    const res = await fetch(url, {\n");
+		sb.append("      method: \"POST\",\n");
+		sb.append("      headers: { \"Content-Type\": \"application/json\" },\n");
+		sb.append("      body: JSON.stringify(body)\n");
+		sb.append("    })\n");
+		sb.append("    if (!res.ok) return [null, { code: res.status, message: res.statusText }]\n");
+		sb.append("    return [await res.json(), null]\n");
+		sb.append("  } catch (e) {\n");
+		sb.append("    return [null, { code: 0, message: e instanceof Error ? e.message : String(e) }]\n");
+		sb.append("  }\n");
+		sb.append("}\n\n");
+
+		sb.append("async function postText(url: string, body: any): Promise<[string, null] | [null, NetError]> {\n");
+		sb.append("  try {\n");
+		sb.append("    const res = await fetch(url, {\n");
+		sb.append("      method: \"POST\",\n");
+		sb.append("      headers: { \"Content-Type\": \"application/json\" },\n");
+		sb.append("      body: JSON.stringify(body)\n");
+		sb.append("    })\n");
+		sb.append("    if (!res.ok) return [null, { code: res.status, message: res.statusText }]\n");
+		sb.append("    return [await res.text(), null]\n");
+		sb.append("  } catch (e) {\n");
+		sb.append("    return [null, { code: 0, message: e instanceof Error ? e.message : String(e) }]\n");
+		sb.append("  }\n");
+		sb.append("}\n\n");
+
 		sb.append("// -- API Methods --\n\n");
 
 		var tree = new Node("");
@@ -94,26 +124,21 @@ public class TypescriptGenerator extends Generator {
 	}
 
 	private void renderMethod(StringBuilder sb, EndpointInfo ep, String name, String indent) {
-		sb.append(indent).append(name).append(": async (body: {");
+		sb.append(indent).append(name).append(": (body: {");
 		for(int i = 0; i < ep.params.size; i++) {
 			var p = ep.params.get(i);
 			sb.append(" ").append(p.name).append(": ").append(javaToTs(p.type));
 			if(i < ep.params.size - 1) sb.append(";");
 		}
-		sb.append(" }): Promise<[").append(javaToTs(ep.returnType)).append(", null] | [null, NetError]> => {\n");
-
-		sb.append(indent).append("  try {\n");
-		sb.append(indent).append("    const res = await fetch(\"").append(ep.url).append("\", {\n");
-		sb.append(indent).append("      method: \"POST\",\n");
-		sb.append(indent).append("      headers: { \"Content-Type\": \"application/json\" },\n");
-		sb.append(indent).append("      body: JSON.stringify(body)\n");
-		sb.append(indent).append("    })\n");
-		sb.append(indent).append("    if (!res.ok) return [null, { code: res.status, message: res.statusText }]\n");
-		sb.append(indent).append("    return [").append(tsResult(ep.returnType)).append(", null]\n");
-		sb.append(indent).append("  } catch (e) {\n");
-		sb.append(indent).append("    return [null, { code: 0, message: e instanceof Error ? e.message : String(e) }]\n");
-		sb.append(indent).append("  }\n");
-		sb.append(indent).append("},\n");
+		sb.append(" }) => ");
+		if(isVoidType(ep.returnType)) {
+			sb.append("postJson(\"").append(ep.url).append("\", body)");
+		} else if(isStringType(ep.returnType)) {
+			sb.append("postText(\"").append(ep.url).append("\", body)");
+		} else {
+			sb.append("postJson<").append(javaToTs(ep.returnType)).append(">(\"").append(ep.url).append("\", body)");
+		}
+		sb.append(",\n");
 	}
 
 	private String javaToTs(TypeElem type) {
@@ -129,12 +154,12 @@ public class TypescriptGenerator extends Generator {
 		return type.name;
 	}
 
-	private String tsResult(TypeElem type) {
-		if(type == null) return "null";
-		var tn = type.typeName;
-		if(tn.equals(TypeName.get(String.class))) return "await res.text()";
-		if(tn.equals(TypeName.VOID)) return "null";
-		return "await res.json()";
+	private boolean isStringType(TypeElem type) {
+		return type != null && type.typeName.equals(TypeName.get(String.class));
+	}
+
+	private boolean isVoidType(TypeElem type) {
+		return type == null || type.typeName.equals(TypeName.VOID);
 	}
 
 	private boolean isSynthetic(TypeElem type) {
