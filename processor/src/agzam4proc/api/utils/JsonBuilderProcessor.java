@@ -8,11 +8,14 @@ import com.squareup.javapoet.*;
 
 import agzam4proc.api.utils.element.*;
 import arc.struct.*;
+import arc.util.Log;
 import arc.util.serialization.Jval;
 import arc.util.serialization.Jval.Jformat;
 
 public class JsonBuilderProcessor {
 
+	private static int maxArrayDimension = 3;
+	
 	@Retention(RetentionPolicy.SOURCE)
 	@Target(ElementType.METHOD)
 	public @interface GeneratedJsonBuilder {
@@ -31,7 +34,7 @@ public class JsonBuilderProcessor {
 
 	public final TypeInfo info;
 	public final TypeElem type, builder;
-	public ExecutableElem stringMethod;
+	public ExecutableElem[] stringMethod = new ExecutableElem[maxArrayDimension+1]; // T, T[], T[][]
 	public String packageName;
 	
 	public JsonBuilderProcessor(String packageName, TypeInfo info) {
@@ -39,73 +42,73 @@ public class JsonBuilderProcessor {
 		this.type = info.type;
 		this.packageName = packageName;
 		this.builder = TypeElem.of(packageName, type.name + "JsonBuilder");
+		Log.info(" - @", info.type);
 	}
 
 	public TypeSpec build() {
 		final TypeName jval = TypeName.get(Jval.class);
-	    
-		ObjectSet<TypeName> valueOf = ObjectSet.with(Seq.<Class<?>>with(int.class, long.class, float.class, String.class, boolean.class).map(c -> TypeName.get(c)));
+
+		ObjectSet<TypeName> valueOf = ObjectSet.with(Seq.<Class<?>>with(
+				int.class, long.class, float.class, boolean.class,
+				Integer.class, Long.class, Float.class, Boolean.class,
+				String.class
+				).map(c -> TypeName.get(c)));
 		String doc = null;// TODO: type.processingEnv.getElementUtils().getDocComment(type);
 		
 
-		MethodSpec.Builder json = MethodSpec.methodBuilder("json")
-				.addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-				.returns(jval)
-				.addParameter(type.typeName, "object");
+		// Method "json"
+		for (int dimension = 0; dimension <= maxArrayDimension; dimension++) {
+			ExecutableElem method = ExecutableElem.virtual("json", TypeElem.of(ClassName.get(Jval.class)), builder.typeName);
+			method.addModifiers(Modifier.PUBLIC, Modifier.STATIC);
+			builder.addMethod(method);
 
-		MethodSpec.Builder of = MethodSpec.methodBuilder("of")
-				.addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-				.returns(jval);
+			var _parm = method.addParm(dimension == 0 ? "object" : "array", TypeElem.arrayOf(type, dimension)).name;
+			
+			String _json = method.namespace.get("json");
+			method.addStatement("var $L = $T.$L()", _json, TypeName.get(Jval.class), dimension == 0 ? "newObject" : "newArray");
+			if(dimension == 0) {
+				info.eachfield(f -> {
+					if(!valueOf.contains(f.type.typeName)) throw f.error("Unsupported field type: " + f.type);
+					method.addStatement("json.add($S, $T.valueOf($L.$L))", f.name, jval, _parm, f.name);
+				});
+			} else {
+				var _i = method.namespace.get("i");
+				method.addCode("for(int $L = 0; $L < $L.length; $L++)\n$>", _i, _i, _parm, _i);
+				method.addStatement("json.add(json($L[$L]))$<", _parm, _i);
+			}
+			method.addStatement("return $L", _json);
+		}
 		
-		Namespace argsNamespace = new Namespace();
-		info.eachfield(f -> argsNamespace.get(f.name));
-		String varname = argsNamespace.get("json");
+		// Method "string"
+		for (int dimension = 0; dimension <= maxArrayDimension; dimension++) {
+			ExecutableElem method = ExecutableElem.virtual("string", TypeElem.of(ClassName.get(String.class)), builder.typeName);
+			method.addModifiers(Modifier.PUBLIC, Modifier.STATIC);
+			builder.addMethod(method);
+			var _parm = method.addParm(dimension == 0 ? "object" : "array", TypeElem.arrayOf(type, dimension)).name;
+			method.addStatement("return json($L).toString($T.plain)", _parm, TypeName.get(Jformat.class));
+			stringMethod[dimension] = method;
+		}
 		
-		json.addStatement("var json = $T.newObject()", TypeName.get(Jval.class));
-		of.addStatement("var $L = $T.newObject()", varname, TypeName.get(Jval.class));
-		
+		// Method "of"
+		ExecutableElem method = ExecutableElem.virtual("of", TypeElem.of(ClassName.get(String.class)), builder.typeName);
+		method.addModifiers(Modifier.PUBLIC, Modifier.STATIC);
+		builder.addMethod(method);
+		String _json = method.namespace.get("json");
+		method.addStatement("var $L = $T.newObject()", _json, TypeName.get(Jval.class));
+
 		info.eachfield(f -> {
 			String name = f.name;
 			if(valueOf.contains(f.type.typeName)) {
-				json.addStatement("json.add($S, $T.valueOf(object.$L))", name, jval, name);
-				of.addParameter(f.type.typeName, name);
-				of.addStatement("$L.add($S, $T.valueOf($L))", varname, name, jval, name);
+				var _parm = method.addParm(name, f.type).name;
+				method.addStatement("$L.add($S, $T.valueOf($L))", _json, _parm, jval, _parm);
 				return;
 			}
 			throw f.error("Unsupported field type: " + f.type);
 		});
+		method.addStatement("return $L.toString($T.plain)", _json, TypeName.get(Jformat.class));
 		
 
-		json.addStatement("return json");
-		of.addStatement("return json");
-		
-		MethodSpec.Builder string = MethodSpec.methodBuilder("string")
-				.addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-//				.addAnnotation(GeneratedJsonBuilder.class)
-				.addAnnotation(AnnotationSpec.builder(GeneratedJsonBuilder.class)
-						.addMember("value", "$T.class", type.typeName)
-						.build())
-				.returns(String.class)
-				.addParameter(type.typeName, "object");
-		string.addStatement("return json(object).toString($T.plain)", TypeName.get(Jformat.class));
-		
-		var objectParm = VariableElem.virtual("object", type);
-		var strType = TypeElem.of(ClassName.get(String.class));
-		var jvalType = TypeElem.of(ClassName.get(Jval.class));
-		builder.methods.add(ExecutableElem.virtual("json", jvalType, builder.typeName, Seq.with(objectParm)));
-		stringMethod = ExecutableElem.virtual("string", strType, builder.typeName, Seq.with(objectParm));
-		builder.methods.add(stringMethod);
-
-		return TypeSpec.classBuilder(builder.name)
-				.addJavadoc("Auto-generated annotation based on {@link $T}$L", this.info.type.typeName, doc == null ? "" : "<br>\n<br>\n" + doc.trim())
-				.addModifiers(Modifier.PUBLIC)
-				.addMethod(json.build())
-				.addMethod(of.build())
-				.addMethod(string.build())
-				.build();
-		
-		
-//		CodeBlock block
+		return builder.build();
 	}
 	
 }

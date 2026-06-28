@@ -46,13 +46,13 @@ public class EndpointProcessor {
 		DagNode<VariableInit> resultNode = null;
 		var resultMethod = new CallProvider(method);
 		var resultType = method.returnType();
-		if(resultType != null && !resultType.typeName.equals(TypeName.get(String.class))) {
-			var jbp = JsonBuilderProcessor.builders.get(resultType);
-			if(jbp != null && jbp.stringMethod != null) {
-				resultNode = buildGraph(null, new CallProvider(method), null);
-				var toStringInfo = new MethodInfo(method.context, jbp.builder, jbp.stringMethod);
-				resultMethod = new CallProvider(toStringInfo);
-			}
+		if(!resultType.typeName.equals(TypeName.get(String.class))) {
+			Log.info("Return type not string", resultType.typepath.binary);
+			var jbp = JsonBuilderProcessor.builders.get(resultType.noDimension());
+			if(jbp == null) throw method.method.error("No string builders found for @", method.returnType());
+			resultNode = buildGraph(null, new CallProvider(method), null);
+			var toStringInfo = new MethodInfo(method.context, jbp.builder, jbp.stringMethod[method.returnType().dimension()]);
+			resultMethod = new CallProvider(toStringInfo);
 		}
 		
 		var graph = resultNode != null

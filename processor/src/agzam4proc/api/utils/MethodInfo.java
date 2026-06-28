@@ -10,7 +10,7 @@ import arc.util.Log;
 
 public class MethodInfo implements Equality<MethodInfo> {
 	
-	private final ExecutableElem method;
+	public final ExecutableElem method;
 	public final TypeElem cls;
 	public final DependenciesContext context;
 

@@ -27,6 +27,8 @@ import arc.util.Log;
 
 public abstract class BaseProcessor extends AbstractProcessor {
 	
+	public static final boolean logFiles = false;
+	
     public final String packageName = "agzam4gen." + getClass().getPackageName().substring(getClass().getPackageName().indexOf('.')+1);
 
     public static Filer filer;
@@ -193,7 +195,7 @@ public abstract class BaseProcessor extends AbstractProcessor {
             writeString = file.toString();
 
             JavaFileObject object = filer.createSourceFile(file.packageName + "." + file.typeSpec.name, file.typeSpec.originatingElements.toArray(new Element[0]));
-            Log.info("&g+ @", object.getName());
+            if(logFiles) Log.info("&g+ @", object.getName());
             Writer stream = object.openWriter();
             stream.write(writeString);
             stream.close();
