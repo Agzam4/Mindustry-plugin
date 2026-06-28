@@ -5,6 +5,7 @@ import java.util.Arrays;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
@@ -90,10 +91,36 @@ public final class Typepath {
 	}
 
 	public static Typepath of(TypeMirror mirror) {
+		if(mirror.getKind() == TypeKind.ARRAY) {
+			int depth = 0;
+			TypeMirror m = mirror;
+			while(m.getKind() == TypeKind.ARRAY) {
+				depth++;
+				m = ((ArrayType)m).getComponentType();
+			}
+			return arrayOf(of(m), depth);
+		}
 		if(mirror instanceof DeclaredType dt) return of((TypeElement) dt.asElement());
 		if(mirror.getKind() == TypeKind.NONE) return null;
 		if(mirror.getKind().isPrimitive()) return of("", mirror.toString());
 		throw new IllegalArgumentException("Unsupported TypeMirror: " + mirror.getKind() + " " + mirror);
+	}
+
+	public static Typepath arrayOf(Typepath component, int depth) {
+		if(depth <= 0) return component;
+		String suffix = "[]".repeat(depth);
+		String key = component.type + suffix;
+		if(cache.containsKey(key)) return cache.get(key);
+		String[] classes;
+		if(component.enclosing.length == 0) {
+			classes = new String[]{component.simpleName + suffix};
+		} else {
+			classes = Arrays.copyOf(component.enclosing, component.enclosing.length + 1);
+			classes[component.enclosing.length] = component.simpleName + suffix;
+		}
+		var tp = new Typepath(component.packageName, classes);
+		cache.put(key, tp);
+		return tp;
 	}
 
 	public static Typepath of(ClassName cn) {

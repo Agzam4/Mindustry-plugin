@@ -5,17 +5,22 @@ import java.util.Arrays;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 
+import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
+import agzam4proc.AptError;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
+import arc.util.Log;
+import arc.util.Nullable;
 
 public class TypeElem extends Elem {
 
@@ -56,12 +61,16 @@ public class TypeElem extends Elem {
 
 	public Typepath typepath;
 	public TypeName typeName;
+	
 	public String name;
 	public Seq<ExecutableElem> methods;
 	public Seq<VariableElem> fields;
 
 	private Typepath superclassPath;
 	private TypeElem superclass;
+	
+	private int dimension;
+	private TypeElem componentType;
 
 	private TypeElem() {}
 
@@ -101,9 +110,20 @@ public class TypeElem extends Elem {
 			case FLOAT -> typeFloat;
 			case DOUBLE -> typeDouble;
 			case VOID -> typeVoid;
+			case ARRAY -> {
+				int depth = 0;
+				TypeMirror m = mirror;
+				while(m.getKind() == TypeKind.ARRAY) {
+					depth++;
+					m = ((ArrayType)m).getComponentType();
+				}
+				var component = of(m);
+				yield component != null ? arrayOf(component, depth) : null;
+			}
 			default -> {
-				if (!(mirror instanceof DeclaredType dt)) yield null;
-				yield of((TypeElement) dt.asElement());
+				if (mirror instanceof DeclaredType dt) yield of((TypeElement) dt.asElement());
+				Log.warn("Unknow mirror type: @", mirror);
+				yield null;
 			}
 		};
 	}
@@ -155,6 +175,30 @@ public class TypeElem extends Elem {
 	public void superclass(TypeElem parent) {
 		this.superclass = parent;
 		this.superclassPath = parent.typepath;
+	}
+
+	public boolean isArray() { return componentType != null; }
+	
+	public TypeElem componentType() { return componentType; }
+
+	public static TypeElem arrayOf(TypeElem component, int depth) {
+		if(depth <= 0) return component;
+		Typepath path = Typepath.arrayOf(component.typepath, depth);
+		if(existing.containsKey(path)) return existing.get(path);
+		var elem = new TypeElem();
+		existing.put(path, elem);
+		elem.typepath = path;
+		elem.typeName = arrayTypeName(component.typeName, depth);
+		elem.name = component.name + "[]".repeat(depth);
+		elem.dimension = depth;
+		elem.componentType = depth > 1 ? arrayOf(component, depth - 1) : component;
+		elem.methods = new Seq<>();
+		elem.fields = new Seq<>();
+		return elem;
+	}
+
+	private static TypeName arrayTypeName(TypeName component, int depth) {
+		return depth <= 0 ? component : ArrayTypeName.of(arrayTypeName(component, depth - 1));
 	}
 
 	public VariableElem field(String name) {
@@ -213,7 +257,7 @@ public class TypeElem extends Elem {
 
 	@Override
 	public String toString() {
-		return getClass().getSimpleName() + "[" + typepath.binary + "]";
+		return getClass().getSimpleName() + "(" + typepath.binary + "[]".repeat(dimension) + ")";
 	}
 	
 }
