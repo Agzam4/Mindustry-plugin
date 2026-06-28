@@ -25,12 +25,13 @@ public class ExecutableElem extends Elem {
 		return instance;
 	}
 
-	public static ExecutableElem virtual(String name, TypeElem returnType, TypeName enclosingType, Seq<VariableElem> parms) {
+	public static ExecutableElem virtual(String name, TypeElem returnType, TypeName enclosingType) {
 		ExecutableElem instance = new ExecutableElem();
 		instance.name = name;
 		instance.returnType = returnType;
 		instance.enclosingType = enclosingType;
-		instance.parms = parms != null ? parms : new Seq<>();
+//		, Seq<VariableElem> parms
+		instance.parms = new Seq<>();
 		return instance;
 	}
 
@@ -42,13 +43,8 @@ public class ExecutableElem extends Elem {
 		this.parms = Seq.with(e.getParameters()).map(p -> VariableElem.of(p));
 	}
 
-	public void addStatement(String format, Object... args) {
-		if (body == null) body = new CodeBlockBuilder();
-		body.addStatement(format, args);
-	}
-
 	public MethodSpec build() {
-		var b = MethodSpec.methodBuilder(name).addModifiers(Modifier.PUBLIC);
+		var b = MethodSpec.methodBuilder(name).addModifiers(modifiers);
 		if(returnType != null) b.returns(returnType.typeName);
 		for(var parm : parms) {
 			if(parm.type == null) continue;
@@ -69,4 +65,11 @@ public class ExecutableElem extends Elem {
 	public int hashCode() {
 		return element() != null ? element().hashCode() : name.hashCode();
 	}
+
+	public VariableElem addParm(String prefName, TypeElem type) {
+		var parm =  VariableElem.virtual(namespace.get(prefName), type);
+		parms.add(parm);
+		return parm;
+	}
+
 }

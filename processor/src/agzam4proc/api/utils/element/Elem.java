@@ -9,6 +9,7 @@ import javax.lang.model.element.Modifier;
 
 import agzam4proc.AptError;
 import agzam4proc.api.utils.CodeBlockBuilder;
+import agzam4proc.api.utils.Namespace;
 import arc.struct.ObjectSet;
 import arc.struct.Seq;
 import arc.util.Log;
@@ -21,10 +22,12 @@ public class Elem {
 	private Element element;
 
 	protected ObjectSet<Typepath> annotations = ObjectSet.with();
-	private ObjectSet<Modifier> modifiers = ObjectSet.with();
+	protected ObjectSet<Modifier> modifiers = ObjectSet.with();
 	
-	/** Generated method body (for virtual elements) */
+	/** Generated body (for virtual elements) */
 	public CodeBlockBuilder body;
+	/** Namespace for body (for virtual elements) */
+	public Namespace namespace = new Namespace();
 
 	protected Elem() {}
 
@@ -48,6 +51,16 @@ public class Elem {
 		}
 	}
 
+	public void addStatement(String format, Object... args) {
+		if (body == null) body = new CodeBlockBuilder();
+		body.addStatement(format, args);
+	}
+
+	public void addCode(String format, Object... args) {
+		if (body == null) body = new CodeBlockBuilder();
+		body.addCode(format, args);
+	}
+	
 	public Element element() {
 		return element;
 	}
@@ -79,6 +92,11 @@ public class Elem {
 		return false;
 	}
 
+	public Elem addModifiers(Modifier... m) {
+		for (int i = 0; i < m.length; i++) modifiers.add(m[i]);
+		return this;
+	}
+	
 	public AptError error(String message, Object... args) {
 		return new AptError(element, message, args);
 	}

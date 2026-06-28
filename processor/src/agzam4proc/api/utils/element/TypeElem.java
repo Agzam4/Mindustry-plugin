@@ -16,11 +16,9 @@ import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
-import agzam4proc.AptError;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
 import arc.util.Log;
-import arc.util.Nullable;
 
 public class TypeElem extends Elem {
 
@@ -178,9 +176,16 @@ public class TypeElem extends Elem {
 	}
 
 	public boolean isArray() { return componentType != null; }
-	
-	public TypeElem componentType() { return componentType; }
 
+	public TypeElem componentType() { return componentType; }
+	
+	public TypeElem noDimension() { return componentType == null ? this : componentType; }
+
+	/**
+	 * @param component
+	 * @param depth - <code>T</code> for <code>0</code>, <code>T[]</code> for <code>1</code>, <code>T[][]</code> for <code>2</code>
+	 * @return
+	 */
 	public static TypeElem arrayOf(TypeElem component, int depth) {
 		if(depth <= 0) return component;
 		Typepath path = Typepath.arrayOf(component.typepath, depth);
@@ -258,6 +263,10 @@ public class TypeElem extends Elem {
 	@Override
 	public String toString() {
 		return getClass().getSimpleName() + "(" + typepath.binary + "[]".repeat(dimension) + ")";
+	}
+	
+	public int dimension() {
+		return dimension;
 	}
 	
 }
