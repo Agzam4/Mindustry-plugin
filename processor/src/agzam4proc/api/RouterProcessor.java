@@ -43,18 +43,18 @@ public class RouterProcessor extends BaseProcessor {
 		
 		// Round 1
 		if(round == 1) {
-			// Phase 1: generating annotations from @Dependencies classes
+			Log.info("&lc Phase 1: generating annotations from @Dependencies classes");
 			for (var dependency : map.get(Dependency.class)) {
 				if (!(dependency instanceof TypeElement type)) continue;
 				write("dependencies", context.addDependency(type).buildAnnotation());
 			}
-			// Phase 2: generating type classes information
+			Log.info("&lc Phase 2: generating type classes information");
 			for (var e : map.get(Type.class)) {
 				if (!(e instanceof TypeElement type)) continue;
 				context.scheme.register(TypeElem.of(type));
 //				write("dependencies", context.addDependency(type).buildAnnotation());
 			}
-			// Phase: 3: generating json builders
+			Log.info("&lc Phase 3: generating json builders");
 			context.scheme.eachinfo(i -> {
 				var b = JsonBuilderProcessor.builder(context.packageName + ".json", i);
 				write("json", b.build());
