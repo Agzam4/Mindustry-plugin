@@ -4,6 +4,7 @@ import agzam4.database.DBFields.*;
 import agzam4.logs.LogsAnnotations.JsonProp;
 import agzam4.logs.LogsAnnotations.Sensitive;
 import agzam4.logs.LogsAnnotations.Sensitive.SensitiveProtector;
+import agzam4proc.api.ApiAnnotations.Type;
 import arc.util.Time;
 import mindustry.gen.Player;
 
@@ -23,6 +24,7 @@ public class LogEvents {
 			GameBeginLogEvent.class,
 	};
 	
+	@Type
 	public static class LogEntity {
 		
 
@@ -39,12 +41,14 @@ public class LogEvents {
 	}
 	
 
+	@Type
 	public static class LogEvent {
 		
 		public long timestamp = Time.millis();
 		
 	}
 
+	@Type
 	public static class ServerStartLogEvent extends LogEvent {
 
 		public ServerStartLogEvent() {}
@@ -52,6 +56,7 @@ public class LogEvents {
 	}
 
 
+	@Type
 	public static class ChatMessageLogEvent extends LogEvent {
 
 		@JsonProp
@@ -68,6 +73,7 @@ public class LogEvents {
 		
 	}
 
+	@Type
 	public static class PlayerCommandLogEvent extends LogEvent {
 
 		@JsonProp
@@ -84,6 +90,7 @@ public class LogEvents {
 		
 	}
 
+	@Type
 	public static class AdminCommandLogEvent extends LogEvent {
 
 		@JsonProp
@@ -100,6 +107,7 @@ public class LogEvents {
 		
 	}
 
+	@Type
 	public static class KickLogEvent extends LogEvent {
 
 		@JsonProp
@@ -122,6 +130,7 @@ public class LogEvents {
 	}
 	
 
+	@Type
 	public static class VotekickLogEvent extends LogEvent {
 
 		@JsonProp
@@ -140,6 +149,7 @@ public class LogEvents {
 	}
 
 
+	@Type
 	public static class PlayerLeaveLogEvent extends LogEvent {
 
 		@JsonProp
@@ -157,6 +167,7 @@ public class LogEvents {
 	}
 
 
+	@Type
 	public static class PlayerJoinLogEvent extends LogEvent {
 
 		@JsonProp
@@ -173,6 +184,7 @@ public class LogEvents {
 		
 	}
 
+	@Type
 	public static class GameOverLogEvent extends LogEvent {
 
 		@JsonProp
@@ -188,6 +200,8 @@ public class LogEvents {
 		}
 		
 	}
+	
+	@Type
 	public static class GameBeginLogEvent extends LogEvent {
 
 		@JsonProp
