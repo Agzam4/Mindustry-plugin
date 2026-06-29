@@ -53,7 +53,7 @@ public class Dependencies {
 		public static int dependsInt(@Body Jval jval, @CallerParm String name) {
 			return jval.getInt(name, 0);
 		}
-		
+
 		@DependencyImpl
 		public static long dependsLong(@Body Jval jval, @CallerParm String name) {
 			return jval.getLong(name, 0L);
@@ -62,6 +62,38 @@ public class Dependencies {
 		@DependencyImpl
 		public static boolean dependsBoolean(@Body Jval jval, @CallerParm String name) {
 			return jval.getBool(name, false);
+		}
+
+		@DependencyImpl
+		public static String[] dependsStrings(@Body Jval jval, @CallerParm String name) {
+			var array = jval.asArray();
+			var strings = new String[array.size];
+			for (int i = 0; i < strings.length; i++) strings[i] = array.get(i).asString();
+			return strings;
+		}
+		
+		@DependencyImpl
+		public static int[] dependsInts(@Body Jval jval, @CallerParm String name) {
+			var array = jval.asArray();
+			var ints = new int[array.size];
+			for (int i = 0; i < ints.length; i++) ints[i] = array.get(i).asInt();
+			return ints;
+		}
+
+		@DependencyImpl
+		public static long[] dependsLongs(@Body Jval jval, @CallerParm String name) {
+			var array = jval.asArray();
+			var longs = new long[array.size];
+			for (int i = 0; i < longs.length; i++) longs[i] = array.get(i).asLong();
+			return longs;
+		}
+		
+		@DependencyImpl
+		public static boolean[] dependsBooleans(@Body Jval jval, @CallerParm String name) {
+			var array = jval.asArray();
+			var booleans = new boolean[array.size];
+			for (int i = 0; i < booleans.length; i++) booleans[i] = array.get(i).asBool();
+			return booleans;
 		}
 		
 	}
