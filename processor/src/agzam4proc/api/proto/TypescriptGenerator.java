@@ -89,6 +89,13 @@ public class TypescriptGenerator extends Generator {
 
 		sb.append("// -- API Methods --\n\n");
 
+		var tree = buildTree();
+		sb.append("export const Api = {\n");
+		renderTree(sb, tree, "  ");
+		sb.append("}\n");
+	}
+
+	protected Node buildTree() {
 		var tree = new Node("");
 		for(var ep : endpoints) {
 			String path = ep.url;
@@ -104,10 +111,7 @@ public class TypescriptGenerator extends Generator {
 				if(last) cur.endpoint = ep;
 			}
 		}
-
-		sb.append("export const Api = {\n");
-		renderTree(sb, tree, "  ");
-		sb.append("}\n");
+		return tree;
 	}
 
 	private void renderTree(StringBuilder sb, Node node, String indent) {
@@ -141,8 +145,9 @@ public class TypescriptGenerator extends Generator {
 		sb.append(",\n");
 	}
 
-	private String javaToTs(TypeElem type) {
+	protected String javaToTs(TypeElem type) {
 		if(type == null) return "void";
+		if(type.isArray()) return javaToTs(type.componentType()) + "[]";
 		var tn = type.typeName;
 		if(tn.equals(TypeName.get(String.class))) return "string";
 		if(tn.equals(TypeName.INT) || tn.equals(TypeName.INT.box())) return "number";
@@ -154,11 +159,11 @@ public class TypescriptGenerator extends Generator {
 		return type.name;
 	}
 
-	private boolean isStringType(TypeElem type) {
+	protected boolean isStringType(TypeElem type) {
 		return type != null && type.typeName.equals(TypeName.get(String.class));
 	}
 
-	private boolean isVoidType(TypeElem type) {
+	protected boolean isVoidType(TypeElem type) {
 		return type == null || type.typeName.equals(TypeName.VOID);
 	}
 
@@ -166,7 +171,7 @@ public class TypescriptGenerator extends Generator {
 		return type.typepath != null && type.typepath.isSystemPackage();
 	}
 
-	private static class Node {
+	public static class Node {
 		final String name;
 		EndpointInfo endpoint;
 		final Seq<Node> children = new Seq<>();

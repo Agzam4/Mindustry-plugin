@@ -184,6 +184,11 @@ public class RouterProcessor extends BaseProcessor {
 		} catch (Exception e) {
 			Log.err("Failed to generate TypeScript API", e);
 		}
+		try {
+			new ReactGenerator(context.scheme, endpointInfos, processingEnv()).write();
+		} catch (Exception e) {
+			Log.err("Failed to generate React hooks", e);
+		}
 
 	}
 
