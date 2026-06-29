@@ -52,7 +52,7 @@ public class Dev {
 		
 		Log.info("Java files:\n[cyan]@[]", pluginFiles.toString("\n"));
 
-		ProcessController plugin = new ProcessController("Mindustry-plugin", "java", "-jar", "server-release.jar", "host").io().responder(input -> {
+		ProcessController plugin = new ProcessController("Mindustry-plugin", "java", "--enable-native-access=ALL-UNNAMED", "-jar", "server-release.jar", "host").io().responder(input -> {
 			if(input.contains("Opened a server")) return props.get("args");
 			if(input.contains("Selected next map to be")) return "js Vars.state.rules.infiniteResources = true";
 			if(input.contains(props.get("admin.name")) && !input.contains("status")) return "admin add " + props.get("admin.name");
@@ -70,7 +70,7 @@ public class Dev {
 			}
 		}, pluginFiles);
 		
-		ProcessController proxy = new ProcessController("Proxy", "proxy").out();
+		ProcessController proxy = new ProcessController("Proxy", "proxy"); //.out();
 		proxy.workdir = proxyRoot;
 		
 		ObjectMap<String, String> goenv = ObjectMap.of(
