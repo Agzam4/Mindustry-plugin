@@ -75,7 +75,7 @@ public class ApiServer {
     			setupRoutes();
 
     			server.start();
-    			Log.info("Api server started at http://127.0.0.1:@", currentPort);
+    			Log.info("Api server started at [cyan]http://127.0.0.1:@", currentPort);
     			
     			executor.execute(new Runnable() {
     			    @Override
@@ -133,6 +133,7 @@ public class ApiServer {
 
     private static void setupRoutes() {
         if (server == null) return;
+        Log.info("Setup routes...");
         Routers.register(server);
     }
 	
