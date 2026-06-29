@@ -61,7 +61,7 @@ public class TypescriptGenerator extends Generator {
 
 		sb.append("async function postJson<T>(url: string, body: any): Promise<[T, null] | [null, NetError]> {\n");
 		sb.append("  try {\n");
-		sb.append("    const res = await fetch(url, {\n");
+		sb.append("    const res = await fetch('/api' + url, {\n");
 		sb.append("      method: \"POST\",\n");
 		sb.append("      headers: { \"Content-Type\": \"application/json\" },\n");
 		sb.append("      body: JSON.stringify(body)\n");
