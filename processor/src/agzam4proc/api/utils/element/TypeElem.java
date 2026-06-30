@@ -72,6 +72,10 @@ public class TypeElem extends Elem {
 
 	private TypeElem() {}
 
+	public static TypeElem of(Class<?> clz) {
+		return of(ClassName.get(clz));
+	}
+	
 	public static TypeElem of(TypeElement e) {
 		Typepath path = Typepath.of(e);
 		if (existing.containsKey(path)) return existing.get(path);
