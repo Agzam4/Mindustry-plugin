@@ -5,9 +5,12 @@ import java.nio.file.*;
 
 import javax.annotation.processing.ProcessingEnvironment;
 
+import com.sun.net.httpserver.HttpExchange;
+
 import arc.struct.Seq;
 import arc.util.Strings;
 import agzam4proc.api.utils.Scheme;
+import agzam4proc.api.utils.element.TypeElem;
 
 public class ReactGenerator extends TypescriptGenerator {
 
@@ -96,19 +99,51 @@ public class ReactGenerator extends TypescriptGenerator {
 		sb.append(inner).append("const [error, setError] = useState<NetError | null>(null)\n");
 		sb.append(inner).append("const [loading, setLoading] = useState(false)\n");
 
-		sb.append(inner).append("const execute = useCallback(async (body: {");
-		for (int i = 0; i < ep.params.size; i++) {
-			var p = ep.params.get(i);
-			sb.append(" ").append(p.name).append(": ").append(javaToTs(p.type));
-			if (i < ep.params.size - 1) sb.append(";");
+
+		var body = ep.params.select(p -> p.type != TypeElem.of(HttpExchange.class));
+//		if(body.isEmpty()) {
+//			sb.append(indent).append(name).append(": () => ");
+//			bodyArg = "\")";
+//		} else {
+//			sb.append(indent).append(name).append(": (body: {");
+//			for(int i = 0; i < body.size; i++) {
+//				var p = body.get(i);
+//				sb.append(" ").append(p.name).append(": ").append(javaToTs(p.type));
+//				if(i < body.size - 1) sb.append(";");
+//			}
+//			sb.append(" }) => ");
+//			bodyArg = "\", body)";
+//		}
+//		if(isVoidType(ep.returnType)) {
+//			sb.append("postJson(\"").append(ep.url).append(bodyArg);
+//		} else if(isStringType(ep.returnType)) {
+//			sb.append("postText(\"").append(ep.url).append(bodyArg);
+//		} else {
+//			sb.append("postJson<").append(javaToTs(ep.returnType)).append(">(\"").append(ep.url).append(bodyArg);
+//		}
+//		sb.append(",\n");
+	
+
+		String bodyArg;
+		if(body.isEmpty()) {
+			bodyArg = "()\n";
+			sb.append(inner).append("const execute = useCallback(async () => {\n");
+		} else {
+			bodyArg = "(body)\n";
+			sb.append(inner).append("const execute = useCallback(async (body: {");
+			for (int i = 0; i < body.size; i++) {
+				var p = body.get(i);
+				sb.append(" ").append(p.name).append(": ").append(javaToTs(p.type));
+				if (i < body.size - 1) sb.append(";");
+			}
+			sb.append(" }) => {\n");
 		}
-		sb.append(" }) => {\n");
 		sb.append(inner).append("  setLoading(true)\n");
 
 		if (isVoid) {
-			sb.append(inner).append("  const [_, err] = await Api.").append(apiPath).append("(body)\n");
+			sb.append(inner).append("  const [_, err] = await Api.").append(apiPath).append(bodyArg);
 		} else {
-			sb.append(inner).append("  const [res, err] = await Api.").append(apiPath).append("(body)\n");
+			sb.append(inner).append("  const [res, err] = await Api.").append(apiPath).append(bodyArg);
 		}
 
 		sb.append(inner).append("  if (err) setError(err)\n");

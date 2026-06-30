@@ -3,6 +3,7 @@ package agzam4proc.api.proto;
 import javax.annotation.processing.ProcessingEnvironment;
 
 import com.squareup.javapoet.TypeName;
+import com.sun.net.httpserver.HttpExchange;
 
 import agzam4proc.api.utils.Scheme;
 import agzam4proc.api.utils.element.TypeElem;
@@ -59,7 +60,7 @@ public class TypescriptGenerator extends Generator {
 	private void generateApi(StringBuilder sb) {
 		sb.append("// -- Helpers --\n\n");
 
-		sb.append("async function postJson<T>(url: string, body: any): Promise<[T, null] | [null, NetError]> {\n");
+		sb.append("async function postJson<T>(url: string, body: any = {}): Promise<[T, null] | [null, NetError]> {\n");
 		sb.append("  try {\n");
 		sb.append("    const res = await fetch('/api' + url, {\n");
 		sb.append("      method: \"POST\",\n");
@@ -73,7 +74,7 @@ public class TypescriptGenerator extends Generator {
 		sb.append("  }\n");
 		sb.append("}\n\n");
 
-		sb.append("async function postText(url: string, body: any): Promise<[string, null] | [null, NetError]> {\n");
+		sb.append("async function postText(url: string, body: any = {}): Promise<[string, null] | [null, NetError]> {\n");
 		sb.append("  try {\n");
 		sb.append("    const res = await fetch(url, {\n");
 		sb.append("      method: \"POST\",\n");
@@ -128,19 +129,27 @@ public class TypescriptGenerator extends Generator {
 	}
 
 	private void renderMethod(StringBuilder sb, EndpointInfo ep, String name, String indent) {
-		sb.append(indent).append(name).append(": (body: {");
-		for(int i = 0; i < ep.params.size; i++) {
-			var p = ep.params.get(i);
-			sb.append(" ").append(p.name).append(": ").append(javaToTs(p.type));
-			if(i < ep.params.size - 1) sb.append(";");
-		}
-		sb.append(" }) => ");
-		if(isVoidType(ep.returnType)) {
-			sb.append("postJson(\"").append(ep.url).append("\", body)");
-		} else if(isStringType(ep.returnType)) {
-			sb.append("postText(\"").append(ep.url).append("\", body)");
+		var body = ep.params.select(p -> p.type != TypeElem.of(HttpExchange.class));
+		String bodyArg;
+		if(body.isEmpty()) {
+			sb.append(indent).append(name).append(": () => ");
+			bodyArg = "\")";
 		} else {
-			sb.append("postJson<").append(javaToTs(ep.returnType)).append(">(\"").append(ep.url).append("\", body)");
+			sb.append(indent).append(name).append(": (body: {");
+			for(int i = 0; i < body.size; i++) {
+				var p = body.get(i);
+				sb.append(" ").append(p.name).append(": ").append(javaToTs(p.type));
+				if(i < body.size - 1) sb.append(";");
+			}
+			sb.append(" }) => ");
+			bodyArg = "\", body)";
+		}
+		if(isVoidType(ep.returnType)) {
+			sb.append("postJson(\"").append(ep.url).append(bodyArg);
+		} else if(isStringType(ep.returnType)) {
+			sb.append("postText(\"").append(ep.url).append(bodyArg);
+		} else {
+			sb.append("postJson<").append(javaToTs(ep.returnType)).append(">(\"").append(ep.url).append(bodyArg);
 		}
 		sb.append(",\n");
 	}
