@@ -2,12 +2,18 @@ package agzam4proc.api.utils;
 
 import java.util.Objects;
 
+import javax.lang.model.element.Modifier;
+
+import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.TypeName;
 import com.sun.net.httpserver.HttpExchange;
 
+import agzam4proc.AptError;
 import agzam4proc.api.ApiSnippets;
 import agzam4proc.api.utils.Interfaces.CodeProviderContext;
+import agzam4proc.api.utils.element.ExecutableElem;
+import agzam4proc.api.utils.element.TypeElem;
 import agzam4proc.api.utils.init.*;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
@@ -45,14 +51,28 @@ public class EndpointProcessor {
 		
 		DagNode<VariableInit> resultNode = null;
 		var resultMethod = new CallProvider(method);
+		if(method.method.parms.size == 0) throw method.method.error("Endpoints must contains Dependency or @ in parameters", HttpExchange.class.getSimpleName());
 		var resultType = method.returnType();
 		if(!resultType.typeName.equals(TypeName.get(String.class))) {
-			Log.info("Return type not string", resultType.typepath.binary);
-			var jbp = JsonBuilderProcessor.builders.get(resultType.noDimension());
-			if(jbp == null) throw method.method.error("No string builders found for @", resultType.noDimension());
-			resultNode = buildGraph(null, new CallProvider(method), null);
-			var toStringInfo = new MethodInfo(method.context, jbp.builder, jbp.stringMethod[method.returnType().dimension()]);
-			resultMethod = new CallProvider(toStringInfo);
+			if(resultType == TypeElem.typeLong) {
+				resultNode = buildGraph(null, new CallProvider(method), null);
+				var objects = TypeElem.of(Objects.class);
+				if(objects.methods.size == 0) {
+					var toString = ExecutableElem.virtual("toString", TypeElem.of(String.class), objects.typeName);
+					objects.addMethod(toString);
+					toString.addParm(name, TypeElem.of(Object.class));
+				}
+				Log.info(objects.methods);
+				var toStringInfo = new MethodInfo(method.context, objects, objects.methods.find(m -> m.name.equals("toString")));
+				resultMethod = new CallProvider(toStringInfo);
+			} else {
+				Log.info("Return type not string", resultType.typepath.binary);
+				var jbp = JsonBuilderProcessor.builders.get(resultType.noDimension());
+				if(jbp == null) throw method.method.error("No string builders found for @", resultType.noDimension());
+				resultNode = buildGraph(null, new CallProvider(method), null);
+				var toStringInfo = new MethodInfo(method.context, jbp.builder, jbp.stringMethod[method.returnType().dimension()]);
+				resultMethod = new CallProvider(toStringInfo);
+			}
 		}
 		
 		var graph = resultNode != null
