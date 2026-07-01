@@ -37,7 +37,7 @@ public class LogEvents {
 
 		public @FIELD long timestamp;
 	
-		public int logId = -1;
+		public long globalId = -1;
 	}
 	
 
