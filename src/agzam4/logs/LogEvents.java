@@ -38,6 +38,12 @@ public class LogEvents {
 		public @FIELD long timestamp;
 	
 		public long globalId = -1;
+		
+		
+		@Override
+		public String toString() {
+			return "log-" + globalId;
+		}
 	}
 	
 
