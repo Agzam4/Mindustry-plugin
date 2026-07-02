@@ -63,6 +63,7 @@ public class JsonBuilderProcessor {
 			builder.addMethod(method);
 
 			var _parm = method.addParm(dimension == 0 ? "object" : "array", TypeElem.arrayOf(type, dimension)).name;
+			method.addStatement("if($L == null) return $T.NULL", _parm, jval);
 			
 			String _json = method.namespace.get("json");
 			method.addStatement("var $L = $T.$L()", _json, TypeName.get(Jval.class), dimension == 0 ? "newObject" : "newArray");
