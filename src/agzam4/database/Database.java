@@ -19,24 +19,16 @@ import arc.util.Nullable;
 public class Database implements AutoCloseable {
 
 	private @Nullable Connection connection;
-	private Fi path;
 
 	public Database(Fi path) throws ClassNotFoundException, SQLException {
-		this.path = path;
 		Class.forName("org.sqlite.JDBC");
         String url = "jdbc:sqlite:" + path.absolutePath();
-//        try {
         var c = DriverManager.getConnection(url);
-        Log.info("Connected to SQL: [blue]@[]", path.name());
         connection = c;
-//        } catch (SQLException e) {
-//        	Log.err(e);
-//        }
 	}
 	
 	@Override
 	public void close() throws Exception {
-        Log.info("Disconnected from: [blue]@[]", path.name());
 		connection.close();		
 	}
 	
