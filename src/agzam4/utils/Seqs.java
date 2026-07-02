@@ -17,9 +17,9 @@ public class Seqs {
     		int mid = (low + high) >>> 1;
     		T midVal = a.get(mid);
     		int cmp = c.get(midVal);
-    		if (cmp < 0)
+    		if (cmp > 0)
     			low = mid + 1;
-    		else if (cmp > 0)
+    		else if (cmp < 0)
     			high = mid - 1;
     		else
     			return mid; // key found
