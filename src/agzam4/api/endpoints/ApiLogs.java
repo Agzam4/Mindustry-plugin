@@ -1,11 +1,15 @@
 package agzam4.api.endpoints;
 
+import com.sun.net.httpserver.HttpExchange;
+
 import agzam4.logs.LogEvents.LogEntity;
 import agzam4.logs.Logs;
 import agzam4gen.api.dependencies.*;
 import agzam4proc.api.ApiAnnotations.*;
 import agzam4proc.api.lib.SseSource;
+import arc.util.Log;
 import arc.util.Strings;
+import mindustry.ui.fragments.ChatFragment;
 
 @Router("/logs")
 public class ApiLogs {
@@ -26,22 +30,15 @@ public class ApiLogs {
 		}
 
 	};
-	
+
 	@Post
-	public static String timerange(@BodyParm boolean protect, @BodyParm long from, @BodyParm long end, @BodyParm int page, @BodyParm int pageSize) {
-		var entities = Logs.selectByTimerange(from, end, page, pageSize);
-		return Strings.format("[@]", entities.toString(",", e -> Logs.entityJson(e, protect)));
+	public static long lastId(HttpExchange e) {
+		return Logs.lastId();
 	}
 	
 	@Post 
-	public static LogEntity[] list(@BodyParm int afterId, @BodyParm int limit) {
-		return new LogEntity[] {}; // TODO
+	public static LogEntity[] search(@BodyParm int id, @BodyParm int limit, @BodyParm long t1, @BodyParm long t2, @BodyParm int[] tags, @BodyParm String query) {
+		return Logs.logsBy(id, limit, t1, t2, tags);
 	}
-	
-	@Post 
-	public static LogEntity[] search(@BodyParm int afterId, @BodyParm int limit, @BodyParm long from, @BodyParm long to, @BodyParm long[] tags, @BodyParm String query) {
-		return new LogEntity[] {}; // TODO: possibly more parameters (for json content possible)
-	}
-	
 
 }
