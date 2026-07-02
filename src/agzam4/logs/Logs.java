@@ -1,6 +1,7 @@
 package agzam4.logs;
 
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import agzam4.api.endpoints.ApiLogs;
@@ -10,9 +11,11 @@ import agzam4.logs.LogEvents.*;
 import agzam4.utils.Log;
 import agzam4.utils.Seqs;
 import arc.files.Fi;
+import arc.math.Mathf;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
 import arc.util.ArcRuntimeException;
+import arc.util.Nullable;
 import arc.util.Strings;
 import arc.util.Threads;
 import arc.util.serialization.Base64Coder;
@@ -57,8 +60,11 @@ public class Logs {
 			instances.sort((i1,i2) -> Long.compare(i1.minTimestamp, i2.minTimestamp));
 
 			long shift = 0;
+			LogInstance prev = null;
 			for (int i = 0; i < instances.size; i++) {
 				instances.get(i).globalIdShift = shift;
+				instances.get(i).prev = prev;
+				prev = instances.get(i);
 				shift += instances.get(i).totalRows;
 			}
 
@@ -138,6 +144,7 @@ public class Logs {
 	public static long lastId() {
 		synchronized (lock) {
 			if (current == null) return 0;
+			Log.info("[yellow]Last: @", current.globalIdLimit());
 			return current.globalIdLimit();
 		}
 	}
@@ -165,13 +172,19 @@ public class Logs {
 	 * @return unsorted limit-length interval with nullable items [id, id+limit) from database that filter by (tags + timerange [t1,t2])<br>example: [e, e, e, e, null]
 	 */
 	public static LogEntity[] logsBy(long gid, int limit, long t1, long t2, int[] tags) {
-		if(limit > MAX_LOGS) throw amoutOfRequestedLimit; // No more 2 databases per call
+		Log.info("=== Reqested: [cyan]@;@[] @", gid - limit + 1, gid, limit > MAX_LOGS);
+		
+		if(limit > MAX_LOGS) throw amoutOfRequestedLimit; // No more 2 databases per call (if old not too small)
 
 		LogEntity[] result = new LogEntity[limit];
 
 		if(gid < 0) return result;
 
-		final LogInstance first, second;
+		// global interval [a,b], where a - oldest log (a.id < b.id)
+		long a = gid - limit + 1; // inclusive
+		long b = gid; // inclusive
+		
+		LogInstance log;
 		synchronized (lock) {
 			int firstIndex = -1;
 			firstIndex = Seqs.binarySearch(instances, i -> {
@@ -179,14 +192,23 @@ public class Logs {
 				if(gid < i.globalIdLimit()) return 0;
 				return 1;
 			});
-			if(firstIndex < 0) return result;
-
-			first = instances.get(firstIndex);
-			second = firstIndex - 1 >= 0 ? instances.get(firstIndex - 1) : null;
+			if(firstIndex < 0) {
+				if(gid > Logs.current.globalIdLimit()) {
+					log = Logs.current;
+					limit -= b - log.globalIdLimit() + 1; // remove non-existent
+					Log.info("Overtime rederict to [blue]@", Logs.current.id);
+				} else {
+					Log.info("[red]Not found[] @ of @", gid, Logs.current);
+					return result;
+				}
+			} else {
+				log = instances.get(firstIndex);
+			}
 		}
-
-		if(first == null) return result; // No logs in id range found
-		if(!first.hasAnyTimestamp(t1, t2)) return result;
+		
+//		Log.info("Reqested: [cyan]@;@[] @, @ t=[@,@] log-t=[@,@]", gid - limit + 1, gid, first, t1, t2, first.minTimestamp, first.maxTimestamp);
+		
+		if(!log.collideTimestamp(t1, t2)) return result;
 
 
 		// First database search
@@ -209,43 +231,34 @@ public class Logs {
 		//         GID
 
 		// Taking "F" part
-		final int firstB = (int) (gid - first.globalIdShift);
-		final int firstA = Math.max(0, firstB - limit + 1);
+		while (true) {
+			final int currentA = Mathf.clamp((int) (a - log.globalIdShift), 0, log.totalRows - 1);
+			final int currentB = Mathf.clamp((int) (b - log.globalIdShift), 0, log.totalRows - 1);
+			Log.info("Get [cyan][@,@][gray] [@,@][][] from [blue]@ log[gray] -@", currentA+1, currentB+1, a, b, log.id + (log == Logs.current ? " (latest)" : ""), log.globalIdShift);
 
-		try {
-			if(!first.isOpen()) first.open();
-			first.logs.select(sql, e -> {
-				e.globalId = first.globalIdShift + e.id;
-				result[size[0]++] = e;
-			}, firstA, firstB, t1, t2);
-		} catch (Exception e) {
-			Log.err("Error reading page backwards from instance " + first.id, e);
-		} finally {
-			first.close();
+			synchronized (lock) {
+				try {
+					if(!log.isOpen()) log.open();
+					final long shift = log.globalIdShift - 1; // in database first is 1
+					log.logs.select(sql, e -> {
+						e.globalId = shift + e.id;
+						result[size[0]++] = e;
+					}, currentA + 1, currentB + 1, t1, t2);
+				} catch (Exception e) {
+					Log.err("Error reading page backwards from instance " + log.id, e);
+				} finally {
+					if(log != current) log.close();
+				}
+			}
+			Log.info("Load [blue]@[] [gray]-@", limit, currentB - currentA + 1);
+			int cover =  currentB - currentA + 1;
+			limit -= cover;
+			b -= cover; // mover right border to left
+			
+			if(limit <= 0) return result; // all covered
+			log = log.prev;
+			if(log == null) return result;
 		}
-
-		int itemsCovered = firstB - firstA + 1;
-		if(itemsCovered >= limit || second == null) return result; // limit completed or not more logs
-		if(!second.hasAnyTimestamp(t1, t2)) return result;
-
-		// Taking "S" part
-		int secondB = (int) (second.globalIdLimit() - 1 - second.globalIdShift);
-		int remainingIds = limit - itemsCovered;
-		int secondA = Math.max(0, secondB - remainingIds + 1);
-
-		try {
-			if(!second.isOpen()) second.open();
-			second.logs.select(sql, e -> {
-				e.globalId = second.globalIdShift + e.id;
-				result[size[0]++] = e;
-			}, secondA, secondB, t1, t2);
-		} catch (Exception e) {
-			Log.err("Error reading page backwards from instance " + second.id, e);
-		} finally {
-			second.close();
-		}
-
-		return result;
 	}
 
 
@@ -265,6 +278,7 @@ public class Logs {
 		public Table<LogEntity> logs;
 
 		// Meta
+		public @Nullable LogInstance prev;
 		public int totalRows = 0;
 		public long minTimestamp = 0;
 		public long maxTimestamp = 0;
@@ -274,12 +288,10 @@ public class Logs {
 			this.id = fileIndex;
 		}
 
-		public boolean hasTimestamp(long t) {
-			return minTimestamp <= t && t <= maxTimestamp;
-		}
-
-		public boolean hasAnyTimestamp(long t1, long t2) {
-			return hasTimestamp(t1) || hasTimestamp(t2);
+		public boolean collideTimestamp(long t1, long t2) {
+			if(t2 < minTimestamp) return false;
+			if(t1 > maxTimestamp) return false;
+			return true;
 		}
 
 		public boolean isOpen() {
