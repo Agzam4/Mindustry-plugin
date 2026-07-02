@@ -536,15 +536,15 @@ public class CommandsManager {
 		
 		public CommandRunner<Player> run() {
 			if(!admin) return (args, player) -> {
-				Bots.notify(NotifyTag.playerCommand, "<b><u>" + TelegramBot.strip(player.plainName()) + "</u></b>: <code>" + build(args) + "</code>");
+				Bots.notify(NotifyTag.playerCommand, "<b><u>" + TelegramBot.strip(player.plainName()) + "</u></b>: <code>" + buildHtml(args) + "</code>");
 				Logs.event(new PlayerCommandLogEvent(player, build(args)));
 				run.accept(args, player);
 			};
 			return (args, player) -> {
 				if(!check(player)) return;
 				Bots.notify(NotifyTag.adminCommand, 
-						player.admin() ? null : Strings.format("#helper <b><u>@</u></b>: <code>@</code>", TelegramBot.strip(player.name), build(args)),
-						Strings.format("@ <b><u>@</u></b>: <code>@</code>", player.admin() ? "#admin" : "#helper", TelegramBot.strip(player.name), build(args))
+						player.admin() ? null : Strings.format("#helper <b><u>@</u></b>: <code>@</code>", TelegramBot.strip(player.name), buildHtml(args)),
+						Strings.format("@ <b><u>@</u></b>: <code>@</code>", player.admin() ? "#admin" : "#helper", TelegramBot.strip(player.name), buildHtml(args))
 				);
 				Logs.event(new AdminCommandLogEvent(player, build(args)));
 				run.accept(args, player);
@@ -567,8 +567,18 @@ public class CommandsManager {
 			return null;
 		}
 		
-		
+
 		private String build(String[] args) {
+			StringBuilder command = new StringBuilder("");
+			command.append(text);
+			for (int i = 0; i < args.length; i++) {
+				command.append(' ');
+				command.append(args[i] == null ? "null" : args[i]);
+			}
+			return command.toString();
+		}
+		
+		private String buildHtml(String[] args) {
 			StringBuilder command = new StringBuilder("&#47;");
 			command.append(text);
 			for (int i = 0; i < args.length; i++) {
