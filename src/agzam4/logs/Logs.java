@@ -193,7 +193,7 @@ public class Logs {
 				return 1;
 			});
 			if(firstIndex < 0) {
-				if(gid > Logs.current.globalIdLimit()) {
+				if(a <= Logs.current.globalIdLimit()-1) {
 					log = Logs.current;
 					limit -= b - log.globalIdLimit() + 1; // remove non-existent
 					Log.info("Overtime rederict to [blue]@", Logs.current.id);
