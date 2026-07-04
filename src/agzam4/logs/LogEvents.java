@@ -1,5 +1,7 @@
 package agzam4.logs;
 
+import agzam4.api.auth.SensitiveData;
+import agzam4.api.auth.SensitiveData.SensitiveType;
 import agzam4.database.DBFields.*;
 import agzam4.logs.LogsAnnotations.JsonProp;
 import agzam4.logs.LogsAnnotations.Sensitive;
@@ -66,14 +68,13 @@ public class LogEvents {
 	public static class ChatMessageLogEvent extends LogEvent {
 
 		@JsonProp
-		@Sensitive(SensitiveProtector.uuid)
-		public String player;
+		public int player;
 		
 		@JsonProp
 		public String message;
 
 		public ChatMessageLogEvent(Player sender, String message) {
-			this.player = sender.uuid();
+			this.player = SensitiveData.insertOrGet(sender.uuid(), SensitiveType.uuid);
 			this.message = message;
 		}
 		
@@ -83,14 +84,13 @@ public class LogEvents {
 	public static class PlayerCommandLogEvent extends LogEvent {
 
 		@JsonProp
-		@Sensitive(SensitiveProtector.uuid)
-		public String player;
+		public int player;
 		
 		@JsonProp
 		public String command;
 
 		public PlayerCommandLogEvent(Player sender, String command) {
-			this.player = sender.uuid();
+			this.player = SensitiveData.insertOrGet(sender.uuid(), SensitiveType.uuid);
 			this.command = command;
 		}
 		
@@ -100,14 +100,13 @@ public class LogEvents {
 	public static class AdminCommandLogEvent extends LogEvent {
 
 		@JsonProp
-		@Sensitive(SensitiveProtector.uuid)
-		public String player;
+		public int player;
 		
 		@JsonProp
 		public String command;
 
 		public AdminCommandLogEvent(Player sender, String command) {
-			this.player = sender.uuid();
+			this.player = SensitiveData.insertOrGet(sender.uuid(), SensitiveType.uuid);
 			this.command = command;
 		}
 		
@@ -117,8 +116,7 @@ public class LogEvents {
 	public static class KickLogEvent extends LogEvent {
 
 		@JsonProp
-		@Sensitive(SensitiveProtector.uuid)
-		public String actor, target;
+		public int actor, target;
 		
 		@JsonProp
 		public String reason;
@@ -127,8 +125,8 @@ public class LogEvents {
 		public long seconds;
 
 		public KickLogEvent(Player actor, Player target, String reason, long seconds) {
-			this.actor = actor.uuid();
-			this.target = target.uuid();
+			this.actor = SensitiveData.insertOrGet(actor.uuid(), SensitiveType.uuid);
+			this.target = SensitiveData.insertOrGet(target.uuid(), SensitiveType.uuid);
 			this.reason = reason;
 			this.seconds = seconds;
 		}
@@ -140,15 +138,14 @@ public class LogEvents {
 	public static class VotekickLogEvent extends LogEvent {
 
 		@JsonProp
-		@Sensitive(SensitiveProtector.uuid)
-		public String actor, target;
+		public int actor, target;
 		
 		@JsonProp
 		public String reason;
 		
 		public VotekickLogEvent(Player actor, Player target, String reason) {
-			this.actor = actor.uuid();
-			this.target = target.uuid();
+			this.actor = SensitiveData.insertOrGet(actor.uuid(), SensitiveType.uuid);
+			this.target = SensitiveData.insertOrGet(target.uuid(), SensitiveType.uuid);
 			this.reason = reason;
 		}
 		
@@ -159,14 +156,13 @@ public class LogEvents {
 	public static class PlayerLeaveLogEvent extends LogEvent {
 
 		@JsonProp
-		@Sensitive(SensitiveProtector.uuid)
-		public String player;
+		public int player;
 		
 		@JsonProp
 		public int players;
 		
 		public PlayerLeaveLogEvent(Player player, int players) {
-			this.player = player.uuid();
+			this.player = SensitiveData.insertOrGet(player.uuid(), SensitiveType.uuid);
 			this.players = players;
 		}
 		
@@ -177,14 +173,13 @@ public class LogEvents {
 	public static class PlayerJoinLogEvent extends LogEvent {
 
 		@JsonProp
-		@Sensitive(SensitiveProtector.uuid)
-		public String player;
+		public int player;
 		
 		@JsonProp
 		public int players;
 		
 		public PlayerJoinLogEvent(Player player, int players) {
-			this.player = player.uuid();
+			this.player = SensitiveData.insertOrGet(player.uuid(), SensitiveType.uuid);
 			this.players = players;
 		}
 		

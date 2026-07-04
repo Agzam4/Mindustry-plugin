@@ -420,6 +420,8 @@ public class Game {
 	
 	public static @Nullable String nameByUuid(@Nullable String uuid) {
 		if(uuid == null) return null;
+		var data = PlayersData.data(uuid);
+		if(data != null && data.name != null) return data.name;
 		var info = Vars.netServer.admins.playerInfo.get(uuid);
 		if(info == null) return null;
 		return info.lastName;

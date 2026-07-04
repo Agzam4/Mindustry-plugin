@@ -137,9 +137,9 @@ public class LogBuilder<T> {
 		for (int i = 0; i < extractors.length; i++) {
 			Object val = extractors[i].get(t);
 			if(val == null) continue;
-			if(sensitive[i]) {
-				val = SensitiveData.insertOrGet((String) val, sensitiveTypes[i]);
-			}
+//			if(sensitive[i]) {
+//				val = SensitiveData.insertOrGet((String) val, sensitiveTypes[i]);
+//			}
 			extracted[i] = val;
 			size += precomputedHeaders[i].length() + 1; // part + ","
 			size += types[i].buffer.get(val);

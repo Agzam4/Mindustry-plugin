@@ -26,13 +26,19 @@ public class SensitiveData {
 		table = db.createTable("sensitive", SensitiveEntity.class);
 	}
 
-	public static synchronized int insertOrGet(String value, String type) {
+	public enum SensitiveType {
+		
+		uuid, ip
+		
+	}
+	
+	public static synchronized int insertOrGet(String value, SensitiveType type) {
 		var existing = table.query("value", value);
 		if(!existing.isEmpty()) return existing.first().id;
 
 		var entity = new SensitiveEntity();
 		entity.value = value;
-		entity.type = type;
+		entity.type = type.name();
 		table.putNoKey(entity);
 
 		var after = table.query("value", value);

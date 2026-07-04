@@ -16,6 +16,7 @@ public class LogsAnnotations {
 
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target(ElementType.FIELD)
+	@Deprecated
 	public @interface Sensitive {
 		
 		SensitiveProtector value();

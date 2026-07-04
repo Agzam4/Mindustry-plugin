@@ -197,9 +197,7 @@ public class Logs {
 	 * @return unsorted limit-length interval with nullable items [id, id+limit) from database that filter by (tags + timerange [t1,t2])<br>example: [e, e, e, e, null]
 	 */
 	public static LogEntity[] logsBy(long gid, int limit, long t1, long t2, int[] tags) {
-		Log.info("=== Reqested: [cyan]@;@[] @", gid - limit + 1, gid, limit > maxRows);
-		
-		if(limit > maxPageSize) throw amoutOfRequestedLimit; // No more 2 databases per call (if old not too small)
+		if(limit > maxPageSize) throw amoutOfRequestedLimit;
 
 		LogEntity[] result = new LogEntity[limit];
 
@@ -221,17 +219,13 @@ public class Logs {
 				if(a <= Logs.current.globalIdLimit()-1) {
 					log = Logs.current;
 					limit -= b - log.globalIdLimit() + 1; // remove non-existent
-					Log.info("Overtime rederict to [blue]@", Logs.current.id);
 				} else {
-					Log.info("[red]Not found[] @ of @", gid, Logs.current);
-					return result;
+					return result; // No logs found
 				}
 			} else {
 				log = instances.get(firstIndex);
 			}
 		}
-		
-//		Log.info("Reqested: [cyan]@;@[] @, @ t=[@,@] log-t=[@,@]", gid - limit + 1, gid, first, t1, t2, first.minTimestamp, first.maxTimestamp);
 		
 		if(!log.collideTimestamp(t1, t2)) return result;
 
@@ -261,27 +255,12 @@ public class Logs {
 			sqlBuilder.append(")");
 		}
 		
-		
 		final String sql = sqlBuilder.toString();
-		// TODO: tags filter to SQL
 
-		// Case 1
-		// [second][first]
-		// ---------FFFF-
-		//             ^
-		//            GID
-
-		// Case 2
-		// [second][first] 
-		// ------SSFF----
-		//          ^
-		//         GID
-
-		// Taking "F" part
 		while (true) {
 			final int currentA = Mathf.clamp((int) (a - log.globalIdShift), 0, log.totalRows - 1);
 			final int currentB = Mathf.clamp((int) (b - log.globalIdShift), 0, log.totalRows - 1);
-			Log.info("Get [cyan][@,@][gray] [@,@][][] from [blue]@ log[gray] -@", currentA+1, currentB+1, a, b, log.id + (log == Logs.current ? " (latest)" : ""), log.globalIdShift);
+//			Log.info("Get [cyan][@,@][gray] [@,@][][] from [blue]@ log[gray] -@", currentA+1, currentB+1, a, b, log.id + (log == Logs.current ? " (latest)" : ""), log.globalIdShift);
 
 			synchronized (lock) {
 				try {
@@ -299,7 +278,6 @@ public class Logs {
 					if(log != current) log.close();
 				}
 			}
-			Log.info("Load [blue]@[] [gray]-@", limit, currentB - currentA + 1);
 			int cover =  currentB - currentA + 1;
 			limit -= cover;
 			b -= cover; // mover right border to left
