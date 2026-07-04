@@ -3,9 +3,13 @@ package agzam4.api;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.sun.net.httpserver.HttpServer;
 
@@ -70,7 +74,7 @@ public class ApiServer {
     			
     			server = HttpServer.create(address, 0);
 
-    			executor = Threads.boundedExecutor("http-api", maxThreads);
+    			executor = create("http-api", maxThreads);
     			server.setExecutor(executor);
     			setupRoutes();
 
@@ -93,6 +97,21 @@ public class ApiServer {
     			Log.err(e);
     		}
     	}
+    }
+    
+    public static ThreadPoolExecutor create(String poolName, int maxThreads) {
+        final AtomicInteger threadNumber = new AtomicInteger(1);
+        return new ThreadPoolExecutor(0, maxThreads, 30, TimeUnit.SECONDS, new LinkedBlockingQueue<>(32),
+                runnable -> {
+                    String name = poolName + "-worker-" + threadNumber.getAndIncrement();
+                    Thread thread = new Thread(runnable, name);
+                    thread.setPriority(Thread.MIN_PRIORITY); 
+                    thread.setDaemon(true); 
+                    thread.setUncaughtExceptionHandler((t, e) -> Log.err(e));
+                    return thread;
+                },
+                new ThreadPoolExecutor.DiscardOldestPolicy() 
+            );
     }
 
     public static void stop() {
