@@ -213,9 +213,31 @@ public class Logs {
 
 		// First database search
 		int[] size = new int[1];
+		Object[] args = new Object[2 + (t1 == 0 ? 0 : 1) + (t2 == 0 ? 0 : 1) + tags.length];
+		int argIndex = 2; // skip BETWEEN ? AND ?
 
 		// Select between A (inclusive) and B (inclusive) + filters
-		final String sql = "WHERE id BETWEEN ? AND ? AND timestamp >= ? AND timestamp <= ?";
+		StringBuilder sqlBuilder = new StringBuilder("WHERE id BETWEEN ? AND ?");
+		if(t1 != 0) {
+			sqlBuilder.append(" AND timestamp >= ?");
+			args[argIndex++] = t1;
+		}
+		if(t2 != 0) {
+			sqlBuilder.append(" AND timestamp <= ?");
+			args[argIndex++] = t2;
+		}
+		if(tags.length != 0) {
+			sqlBuilder.append(" AND tag IN (");
+			for (int i = 0; i < tags.length; i++) {
+				if(i != 0) sqlBuilder.append(",");
+				sqlBuilder.append("?");
+				args[argIndex++] = tags[i];
+			}
+			sqlBuilder.append(")");
+		}
+		
+		
+		final String sql = sqlBuilder.toString();
 		// TODO: tags filter to SQL
 
 		// Case 1
@@ -240,10 +262,12 @@ public class Logs {
 				try {
 					if(!log.isOpen()) log.open();
 					final long shift = log.globalIdShift - 1; // in database first is 1
+					args[0] = currentA + 1;
+					args[1] = currentB + 1;
 					log.logs.select(sql, e -> {
 						e.globalId = shift + e.id;
 						result[size[0]++] = e;
-					}, currentA + 1, currentB + 1, t1, t2);
+					}, args);
 				} catch (Exception e) {
 					Log.err("Error reading page backwards from instance " + log.id, e);
 				} finally {
