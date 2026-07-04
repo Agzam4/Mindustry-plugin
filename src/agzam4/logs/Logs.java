@@ -1,7 +1,6 @@
 package agzam4.logs;
 
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import agzam4.api.endpoints.ApiLogs;
@@ -24,8 +23,36 @@ import arc.util.serialization.Jval.Jformat;
 import mindustry.Vars;
 
 public class Logs {
-
-	private static final int MAX_LOGS = 10; 
+	
+	/**
+	 * MTU = 1500 bytes (TCP MSS payload = 1448 bytes)
+	 * HTTP Headers ~500 bytes
+	 * Free space in 1st packet: 1448 - 500 = 948 bytes
+	 * Free space in 2 packets: 1448 + 948 = 2396 bytes
+	 * 
+	 * Raw JSON entity ~126 bytes
+	 * GZIP compressed (~5.5x) ~23 bytes
+	 * 1st packet capacity: 948 / 23 ≈ 41 logs
+	 * 2nd packet capacity: 2396 / 23 ≈ 104 logs
+	 * 
+	 * 100 fits into 2 MTU packets
+	 * 
+	 * TODO: test on real data
+	 */
+	private static final int maxPageSize = 100;
+	private static final RuntimeException amoutOfRequestedLimit = new RuntimeException("Amount of requested logs can not be >" + maxPageSize);
+	
+	/**
+	 * Average daily logs: ~11_219 logs/day
+	 * 
+	 * Target database log file size: <= 10 MB
+	 * 
+	 * Database row size: ~162 bytes
+	 * 10 MB / 162 bytes = ~61_728 bytes = ~50_000
+	 * 50_000 / 11_219 ≈ 4.45 days
+	 */
+	private static final int maxRows = 50_000; 
+	
 	private static final String prefix = "log-";
 	private static Fi root = Vars.dataDirectory.child("logs/");
 
@@ -96,7 +123,7 @@ public class Logs {
 					}
 					LogEntity entity = buildEntity(event);
 
-					if (current.totalRows >= MAX_LOGS) {
+					if (current.totalRows >= maxRows) {
 						synchronized(lock) {
 							current.close();
 
@@ -161,8 +188,6 @@ public class Logs {
 		return val.toString(Jformat.plain);
 	}
 
-	private static final RuntimeException amoutOfRequestedLimit = new RuntimeException("Amount of requested logs can not be >" + MAX_LOGS);
-
 	/**
 	 * @param tags - list of selected tags, empty for all
 	 * @param gid - first id (largest)
@@ -172,9 +197,9 @@ public class Logs {
 	 * @return unsorted limit-length interval with nullable items [id, id+limit) from database that filter by (tags + timerange [t1,t2])<br>example: [e, e, e, e, null]
 	 */
 	public static LogEntity[] logsBy(long gid, int limit, long t1, long t2, int[] tags) {
-		Log.info("=== Reqested: [cyan]@;@[] @", gid - limit + 1, gid, limit > MAX_LOGS);
+		Log.info("=== Reqested: [cyan]@;@[] @", gid - limit + 1, gid, limit > maxRows);
 		
-		if(limit > MAX_LOGS) throw amoutOfRequestedLimit; // No more 2 databases per call (if old not too small)
+		if(limit > maxPageSize) throw amoutOfRequestedLimit; // No more 2 databases per call (if old not too small)
 
 		LogEntity[] result = new LogEntity[limit];
 
