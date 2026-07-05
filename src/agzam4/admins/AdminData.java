@@ -2,6 +2,7 @@ package agzam4.admins;
 
 import java.util.Iterator;
 
+import agzam4.commands.Permissions;
 import arc.struct.ObjectSet;
 import mindustry.net.Administration.PlayerInfo;
 
@@ -18,6 +19,10 @@ public class AdminData {
 		permissions = new ObjectSet<String>();
 	}
 
+	public boolean has(Permissions permissions) {
+		return this.permissions.contains(permissions.name);
+	}
+	
 	public boolean has(String key) {
 		return permissions.contains(key);
 	}

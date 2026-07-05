@@ -5,11 +5,16 @@ import java.io.InputStreamReader;
 
 import com.sun.net.httpserver.HttpExchange;
 
+import agzam4.admins.AdminData;
+import agzam4.admins.Admins;
+import agzam4.api.auth.AuthDatabase;
 import agzam4gen.api.dependencies.*;
 import agzam4proc.api.ApiAnnotations.*;
 import agzam4proc.api.lib.ApiResponse;
 import arc.util.Strings;
 import arc.util.serialization.Jval;
+import mindustry.Vars;
+import mindustry.net.Administration.PlayerInfo;
 
 public class Dependencies {
 	
@@ -41,6 +46,7 @@ public class Dependencies {
 	/**
 	 * Extracts a specific string parameter from JSON body
 	 */
+	@RequireBody
 	@Dependency
 	public class BodyParmDependency {
 
@@ -139,5 +145,62 @@ public class Dependencies {
 		}
 
 	}
+
+	@Dependency
+	public class AuthDependency {
+
+		@DependencyImpl
+		public static String dependsUuid(@SessionId String sessionId, @SessionIp String ip) throws ApiResponse {
+			var uuid = AuthDatabase.validate(sessionId, ip);
+			if(uuid == null) throw new ApiResponse("Unauthorized").unauthorized();
+			return uuid;
+		}
+
+		@DependencyImpl
+		public static PlayerInfo dependsPlayerInfo(@SessionId String sessionId, @SessionIp String ip) throws ApiResponse {
+			var uuid = AuthDatabase.validate(sessionId, ip);
+			if(uuid == null) throw new ApiResponse("Unauthorized").unauthorized();
+			var info = Vars.netServer.admins.playerInfo.get(uuid);
+			if(info == null) throw new ApiResponse("Unauthorized").unauthorized();
+			return info;
+		}
+		
+		@DependencyImpl
+		public static AdminData dependsAdminData(@SessionId String sessionId, @SessionIp String ip) throws ApiResponse {
+			var uuid = AuthDatabase.validate(sessionId, ip);
+			if(uuid == null) throw new ApiResponse("Unauthorized").unauthorized();
+			var info = Vars.netServer.admins.playerInfo.get(uuid);
+			if(info == null) throw new ApiResponse("Unauthorized").unauthorized();
+			var admin = Admins.adminData(info);
+			if(admin == null) throw new ApiResponse("Forbidden").forbidden();
+			return admin;
+		}
+		
+	}
+
+	@Dependency
+	@Deprecated
+	public class PermissionDependency {
+
+		@DependencyImpl
+		public static boolean depends(@Auth PlayerInfo info, @CallerParm String permission) throws ApiResponse {
+			return Admins.has(info, Strings.camelToKebab(permission));
+		}
+		
+	}
+
+	@Dependency
+	@Deprecated
+	public class RequirePermissionDependency {
+
+		@DependencyImpl
+		public static PlayerInfo depends(@Auth PlayerInfo info, @CallerParm String permission) throws ApiResponse {
+			if(!Admins.has(info, Strings.camelToKebab(permission))) throw new ApiResponse("Forbidden").forbidden();
+			return info;
+		}
+		
+	}
+
+	
 	
 }

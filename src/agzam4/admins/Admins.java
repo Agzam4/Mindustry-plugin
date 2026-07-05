@@ -33,6 +33,14 @@ public class Admins {
 		return admins.get(info);
 	}
 
+	public static boolean has(PlayerInfo info, String string) {
+		if(info.admin) return true;
+		var data = adminData(info);
+		if(data == null) return false;
+//		if(!info.adminUsid.equals(data.usid)) return false; // XXX: is this need?
+		return data.has(string);
+	}
+
 	public static boolean has(Object any, String string) {
 		if(any instanceof Player player) return has(player, string);
 		if(any instanceof Server) return true;
