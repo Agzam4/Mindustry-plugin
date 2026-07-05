@@ -22,6 +22,7 @@ import arc.util.Log;
 public class EndpointProcessor {
 
 	protected final ObjectMap<TypeName, DagNode<VariableInit>> envVariables = ObjectMap.of();
+//	protected final ObjectMap<Var> envVariables = ObjectMap.of();
 
 	protected final MethodInfo method;
 	protected final String name;

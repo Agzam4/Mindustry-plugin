@@ -18,4 +18,14 @@ public class ApiResponse extends Exception {
 		code = 500;
 		return this;
 	}
+
+	public ApiResponse unauthorized() {
+		code = 401;
+		return this;
+	}
+
+	public ApiResponse forbidden() {
+		code = 403;
+		return this;
+	}
 }

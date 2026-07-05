@@ -49,6 +49,11 @@ public class ApiAnnotations {
 	public @interface Parm {
 		String value();
 	}
+	
+	@Retention(RetentionPolicy.SOURCE)
+	@Target({ElementType.PARAMETER, ElementType.TYPE})
+	public @interface RequireBody {}
+	
 
 //  TODO
 //	@Retention(RetentionPolicy.SOURCE)

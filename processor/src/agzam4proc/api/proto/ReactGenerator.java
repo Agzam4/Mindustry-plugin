@@ -5,19 +5,16 @@ import java.nio.file.*;
 
 import javax.annotation.processing.ProcessingEnvironment;
 
-import com.sun.net.httpserver.HttpExchange;
-
 import arc.struct.Seq;
 import arc.util.Strings;
-import agzam4proc.api.utils.Scheme;
-import agzam4proc.api.utils.element.TypeElem;
+import agzam4proc.api.utils.DependenciesContext;
 
 public class ReactGenerator extends TypescriptGenerator {
 
 	private final ProcessingEnvironment processingEnv;
 
-	public ReactGenerator(Scheme scheme, Seq<EndpointInfo> endpoints, ProcessingEnvironment processingEnv) {
-		super(scheme, endpoints, processingEnv);
+	public ReactGenerator(DependenciesContext context, Seq<EndpointInfo> endpoints, ProcessingEnvironment processingEnv) {
+		super(context, endpoints, processingEnv);
 		this.processingEnv = processingEnv;
 	}
 
@@ -100,30 +97,8 @@ public class ReactGenerator extends TypescriptGenerator {
 		sb.append(inner).append("const [loading, setLoading] = useState(false)\n");
 
 
-		var body = ep.params.select(p -> p.type != TypeElem.of(HttpExchange.class));
-//		if(body.isEmpty()) {
-//			sb.append(indent).append(name).append(": () => ");
-//			bodyArg = "\")";
-//		} else {
-//			sb.append(indent).append(name).append(": (body: {");
-//			for(int i = 0; i < body.size; i++) {
-//				var p = body.get(i);
-//				sb.append(" ").append(p.name).append(": ").append(javaToTs(p.type));
-//				if(i < body.size - 1) sb.append(";");
-//			}
-//			sb.append(" }) => ");
-//			bodyArg = "\", body)";
-//		}
-//		if(isVoidType(ep.returnType)) {
-//			sb.append("postJson(\"").append(ep.url).append(bodyArg);
-//		} else if(isStringType(ep.returnType)) {
-//			sb.append("postText(\"").append(ep.url).append(bodyArg);
-//		} else {
-//			sb.append("postJson<").append(javaToTs(ep.returnType)).append(">(\"").append(ep.url).append(bodyArg);
-//		}
-//		sb.append(",\n");
-	
-
+		var args = ep.info.bodyArgs();
+		var body = ep.params.select(p -> args.contains(p.name));
 		String bodyArg;
 		if(body.isEmpty()) {
 			bodyArg = "()\n";

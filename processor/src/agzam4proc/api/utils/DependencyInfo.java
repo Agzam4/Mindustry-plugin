@@ -8,6 +8,7 @@ import com.squareup.javapoet.TypeSpec;
 
 import agzam4proc.Proc;
 import agzam4proc.api.ApiAnnotations.DependencyImpl;
+import agzam4proc.api.ApiAnnotations.RequireBody;
 import agzam4proc.api.utils.element.AnnotationElem;
 import agzam4proc.api.utils.element.TypeElem;
 import arc.struct.ObjectMap;
@@ -19,6 +20,7 @@ public class DependencyInfo {
 	public final ObjectMap<TypeElem, MethodInfo> methods = ObjectMap.of();
 	public final String name;
 	public final AnnotationElem<?> annotation;
+	public boolean requireBody;
 	
 	public DependencyInfo(DependenciesContext context, TypeElem type) {
 		this.context = context;
@@ -29,8 +31,8 @@ public class DependencyInfo {
 		name = name.substring(0, name.length() - "Dependency".length());
 
 		annotation = AnnotationElem.of(context.packageName + ".dependencies", name);
-		
 		this.name = name;
+		this.requireBody = type.hasAnnotation(RequireBody.class);
 		
 		 for (var method : type.methods) {
 			 if(!method.hasModifiers(Modifier.STATIC)) continue;

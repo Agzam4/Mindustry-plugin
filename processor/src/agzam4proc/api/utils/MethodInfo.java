@@ -34,6 +34,18 @@ public class MethodInfo implements Equality<MethodInfo> {
 		}
 		return resolvers;
 	}
+	
+	public ObjectSet<String> bodyArgs() {
+		ObjectSet<String> bodyArgs = ObjectSet.with();
+		for (var r : resolvers) {
+			if(r.body) bodyArgs.add(r.name);
+			if(r.method != null) {
+				bodyArgs.addAll(r.method.bodyArgs());
+			}
+		}
+		return bodyArgs;
+	}
+	
 
 	@Override
 	public boolean eql(MethodInfo other) {

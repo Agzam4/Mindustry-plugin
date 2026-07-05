@@ -3,17 +3,16 @@ package agzam4proc.api.proto;
 import javax.annotation.processing.ProcessingEnvironment;
 
 import com.squareup.javapoet.TypeName;
-import com.sun.net.httpserver.HttpExchange;
 
-import agzam4proc.api.utils.Scheme;
+import agzam4proc.api.utils.DependenciesContext;
 import agzam4proc.api.utils.element.TypeElem;
 import arc.struct.Seq;
 import arc.util.Strings;
 
 public class TypescriptGenerator extends Generator {
 
-	public TypescriptGenerator(Scheme scheme, Seq<EndpointInfo> endpoints, ProcessingEnvironment processingEnv) {
-		super(scheme, endpoints, processingEnv);
+	public TypescriptGenerator(DependenciesContext context, Seq<EndpointInfo> endpoints, ProcessingEnvironment processingEnv) {
+		super(context, endpoints, processingEnv);
 	}
 
 	@Override
@@ -129,7 +128,8 @@ public class TypescriptGenerator extends Generator {
 	}
 
 	private void renderMethod(StringBuilder sb, EndpointInfo ep, String name, String indent) {
-		var body = ep.params.select(p -> p.type != TypeElem.of(HttpExchange.class));
+		var args = ep.info.bodyArgs();
+		var body = ep.params.select(p -> args.contains(p.name));
 		String bodyArg;
 		if(body.isEmpty()) {
 			sb.append(indent).append(name).append(": () => ");

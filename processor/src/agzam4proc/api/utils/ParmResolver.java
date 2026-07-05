@@ -24,6 +24,8 @@ public class ParmResolver {
 	public @Nullable TypeName allowed;
 	public boolean parm;
 	public final String name;
+	
+	public boolean body;
 
 	public ParmResolver(DependenciesContext context, VariableElem parameter, ObjectSet<TypeName> allowed) {
 		var parmAnn = parameter.getAnnotation(Parm.class);
@@ -54,6 +56,7 @@ public class ParmResolver {
 							);
 
 				this.method = dependency.methods.get(paramTypeName);
+				if(dependency.requireBody) this.body = true;
 				this.require.addAll(this.method.resolve(allowed));
 				found = true;
 				continue;

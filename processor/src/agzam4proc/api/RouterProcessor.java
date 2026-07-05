@@ -130,11 +130,12 @@ public class RouterProcessor extends BaseProcessor {
 				if(!method.hasAnnotation(Post.class)) continue;
 				String epMethodName = EndpointProcessor.endpointName(method.getAnnotation(Post.class).value(), method.name);
 				String epUrl = prefixValue + "/" + epMethodName;
-				endpointInfos.add(new EndpointInfo(epUrl, method.returnType, method.parms));
+				var info = new MethodInfo(context, type, method);
+				endpointInfos.add(new EndpointInfo(epUrl, method.returnType, info, method.parms));
 				registerMethod.addCode(new EndpointProcessor(
 						prefixValue, 
 						method.getAnnotation(Post.class).value(), 
-						new MethodInfo(context, type, method)).build());
+						info).build());
 				hasEndpoints = true;
 			}
 
@@ -180,12 +181,12 @@ public class RouterProcessor extends BaseProcessor {
 		write(type);
 
 		try {
-			new TypescriptGenerator(context.scheme, endpointInfos, processingEnv()).write();
+			new TypescriptGenerator(context, endpointInfos, processingEnv()).write();
 		} catch (Exception e) {
 			Log.err("Failed to generate TypeScript API", e);
 		}
 		try {
-			new ReactGenerator(context.scheme, endpointInfos, processingEnv()).write();
+			new ReactGenerator(context, endpointInfos, processingEnv()).write();
 		} catch (Exception e) {
 			Log.err("Failed to generate React hooks", e);
 		}
