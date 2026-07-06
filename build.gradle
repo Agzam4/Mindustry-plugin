@@ -42,6 +42,7 @@ repositories{
 
 
 dependencies{    
+	compileJava.dependsOn(':processor:jar') 
 	implementation project(':processor')
     annotationProcessor project(':processor')
 	annotationProcessor 'com.google.auto.service:auto-service:1.1.1'
