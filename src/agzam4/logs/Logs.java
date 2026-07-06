@@ -171,7 +171,6 @@ public class Logs {
 	public static long lastId() {
 		synchronized (lock) {
 			if (current == null) return 0;
-			Log.info("[yellow]Last: @", current.globalIdLimit());
 			return current.globalIdLimit();
 		}
 	}

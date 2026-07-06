@@ -4,6 +4,7 @@ import agzam4.Game;
 import agzam4.admins.Admins;
 import agzam4.api.auth.SensitiveData;
 import agzam4.commands.Permissions;
+import agzam4.managers.Players;
 import agzam4gen.api.dependencies.*;
 import agzam4proc.api.ApiAnnotations.*;
 import agzam4proc.api.lib.ApiResponse;
@@ -12,6 +13,22 @@ import mindustry.net.Administration.PlayerInfo;
 @Router("/info")
 public class ApiInfo {
 
+    @Type
+    public static class ResolvedPlayerStats {
+
+    	public String uuid;
+    	public String name;
+		public long playtime;
+    	
+    	public ResolvedPlayerStats(PlayerInfo info) {
+    		this.uuid = info.id;
+    		this.name = info.lastName;
+    		this.playtime = Players.gamePlaytime(info.id);
+		}
+    	
+    }
+	
+    
     @Type
     public static class ResolvedPlayerInfo {
 
@@ -36,6 +53,12 @@ public class ApiInfo {
 		}
 		return result;
 	}
+	
+	@Post
+	public static ResolvedPlayerStats me(@Auth PlayerInfo info) throws ApiResponse {
+		return new ResolvedPlayerStats(info);
+	}
+	
 }
 
 

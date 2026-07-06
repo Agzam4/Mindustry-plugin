@@ -77,6 +77,15 @@ public class Players {
 		if(ent == null) return 0;
 		return ent.playtime + ent.sessionPlaytime();
 	}
+
+	public static int gamePlaytime(String uuid) {
+		var ent = joinedEntity(uuid);
+		if(ent == null) {
+			ent = Databases.player(uuid);
+			ent.joinTime = Time.millis();
+		}
+		return ent.playtime + ent.sessionPlaytime();
+	}
 	
 	public static @Nullable PlayerEntity joinedEntity(Player player) {
 		return joined.get(player.uuid());
