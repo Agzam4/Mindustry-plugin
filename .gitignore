@@ -28,3 +28,6 @@ gradle-app.setting
 
 # :processor
 processor/bin
+
+# Deploy
+deploy.sh
