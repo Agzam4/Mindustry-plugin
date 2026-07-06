@@ -6,6 +6,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
 import agzam4proc.api.lib.ApiResponse;
+import arc.util.Log;
 
 public class ApiSnippets {
 
@@ -29,13 +30,17 @@ public class ApiSnippets {
 				exchange.getResponseBody().write(response.getBytes());
 				exchange.getResponseBody().close();
 			} catch (IOException e) {
+				Log.info("IOException: @", e.getMessage());
 				throw e;
 			} catch (ApiResponse e) {
 				String response = e.content;
+				Log.info("ApiResponse: @ @", e.code, e.getMessage());
 				exchange.sendResponseHeaders(e.code, response.getBytes().length);
 				exchange.getResponseBody().write(response.getBytes());
 				exchange.getResponseBody().close();
 			} catch (Throwable e) {
+				Log.info("Throwable: @", e.getMessage());
+				e.printStackTrace();
 				String response = (e.getCause().getClass().getSimpleName()) + (e.getCause().getMessage() == null ? "" : ": " + e.getCause().getMessage());
 				exchange.sendResponseHeaders(500, response.getBytes().length);
 				exchange.getResponseBody().write(response.getBytes());
