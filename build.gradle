@@ -77,7 +77,8 @@ tasks.withType(JavaCompile).configureEach {
     options.compilerArgs += "-AtypescriptOutDir=${project.rootDir}/web/src/api/gen"
 }
 
-sourceSets.main.java.srcDirs += generatedSourceDir
+// sourceSets.main.java.srcDirs += generatedSourceDir
+sourceSets.main.output.dir(generatedSourceDir, builtBy: 'compileJava')
 
 clean {
     delete generatedSourceDir
