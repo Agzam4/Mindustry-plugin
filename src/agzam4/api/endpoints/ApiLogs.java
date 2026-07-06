@@ -6,6 +6,7 @@ import agzam4.admins.Admins;
 import agzam4.commands.Permissions;
 import agzam4.logs.LogEvents.LogEntity;
 import agzam4.logs.Logs;
+import agzam4.utils.Log;
 import agzam4gen.api.dependencies.*;
 import agzam4proc.api.ApiAnnotations.*;
 import agzam4proc.api.lib.ApiResponse;
@@ -45,7 +46,7 @@ public class ApiLogs {
 			@BodyParm int[] tags, 
 			@BodyParm String query
 			) throws ApiResponse {
-		if(Admins.has(info, Permissions.logs)) throw new ApiResponse("Forbidden").forbidden();
+		if(!Admins.has(info, Permissions.logs)) throw new ApiResponse("Forbidden").forbidden();
 		return Logs.logsBy(id, limit, t1, t2, tags);
 	}
 
