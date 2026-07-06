@@ -41,6 +41,14 @@ public class RouterProcessor extends BaseProcessor {
 	public void onElement(ObjectMap<Class<?>, Seq<Element>> map) throws Throwable {
 		if(context == null) context = new DependenciesContext(this);
 		
+		Log.info("=== Map is ===");
+		map.each((c,es) -> {
+			Log.info("  = [@] ===", c);
+			es.each(e -> {
+				Log.info("   - @", e);
+			});
+		});
+		
 		// Round 1
 		if(round == 1) {
 			Log.info("&lc Phase 1: generating annotations from @Dependencies classes");

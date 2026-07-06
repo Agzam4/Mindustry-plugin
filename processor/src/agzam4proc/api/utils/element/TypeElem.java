@@ -124,7 +124,7 @@ public class TypeElem extends Elem {
 			}
 			default -> {
 				if (mirror instanceof DeclaredType dt) yield of((TypeElement) dt.asElement());
-				Log.warn("Unknow mirror type: @", mirror);
+//				Log.warn("Unknow mirror type: @", mirror);
 				yield null;
 			}
 		};
