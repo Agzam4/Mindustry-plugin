@@ -2,6 +2,7 @@ package agzam4.commands.players;
 
 import agzam4.CommandsManager.CommandSender;
 import agzam4.CommandsManager.ReceiverType;
+import agzam4.api.ApiServer;
 import agzam4.api.auth.AuthTokens;
 import agzam4.commands.CommandHandler;
 import mindustry.gen.Call;
@@ -15,7 +16,7 @@ public class AuthCommand extends CommandHandler<Player> {
 	
 	@Override
 	public void command(String[] args, CommandSender sender, Player player, ReceiverType type) {
-		if(player != null) Call.openURI(player.con, "http://localhost/auth/" + AuthTokens.create(player.uuid())); // FIXME
+		if(player != null) Call.openURI(player.con, ApiServer.authUrl.string() + "/auth/" + AuthTokens.create(player.uuid()));
 		sender.sendMessage("OK"); // TODO
 	}
 

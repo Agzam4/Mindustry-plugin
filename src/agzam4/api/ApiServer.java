@@ -3,7 +3,6 @@ package agzam4.api;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -20,7 +19,6 @@ import agzam4gen.api.Routers;
 import arc.Core;
 import arc.Settings;
 import arc.struct.Seq;
-import arc.util.Threads;
 import mindustry.Vars;
 import mindustry.net.Administration.Config;
 
@@ -34,6 +32,8 @@ public class ApiServer {
 		Core.settings = new Settings();
 	}
 	public static Config apiPort = new Config("apiPort", "Порт к http api", Vars.port + 1, () -> port(configPort()));
+	public static Config authUrl = new Config("authUrl", "Ссылка на сайт для авторизации", "");
+	
     private static int currentPort = configPort();
 
     private static final Object lock = new Object();
