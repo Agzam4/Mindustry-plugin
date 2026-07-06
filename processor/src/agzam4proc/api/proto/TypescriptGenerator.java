@@ -6,6 +6,7 @@ import com.squareup.javapoet.TypeName;
 
 import agzam4proc.api.utils.DependenciesContext;
 import agzam4proc.api.utils.element.TypeElem;
+import agzam4proc.api.utils.element.VariableElem;
 import arc.struct.Seq;
 import arc.util.Strings;
 
@@ -135,13 +136,7 @@ public class TypescriptGenerator extends Generator {
 			sb.append(indent).append(name).append(": () => ");
 			bodyArg = "\")";
 		} else {
-			sb.append(indent).append(name).append(": (body: {");
-			for(int i = 0; i < body.size; i++) {
-				var p = body.get(i);
-				sb.append(" ").append(p.name).append(": ").append(javaToTs(p.type));
-				if(i < body.size - 1) sb.append(";");
-			}
-			sb.append(" }) => ");
+			sb.append(indent).append(name).append(": (").append(createBody(body)).append(") => ");
 			bodyArg = "\", body)";
 		}
 		if(isVoidType(ep.returnType)) {
@@ -152,6 +147,19 @@ public class TypescriptGenerator extends Generator {
 			sb.append("postJson<").append(javaToTs(ep.returnType)).append(">(\"").append(ep.url).append(bodyArg);
 		}
 		sb.append(",\n");
+	}
+	
+	protected String createBody(Seq<VariableElem> body) {
+		if(body.size == 0) return "";
+		StringBuilder sb = new StringBuilder();
+		sb.append("body: {");
+		for(int i = 0; i < body.size; i++) {
+			var p = body.get(i);
+			sb.append(" ").append(p.name).append(": ").append(javaToTs(p.type));
+			if(i < body.size - 1) sb.append(";");
+		}
+		sb.append(" }");
+		return sb.toString();
 	}
 
 	protected String javaToTs(TypeElem type) {

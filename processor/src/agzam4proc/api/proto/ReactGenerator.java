@@ -34,7 +34,7 @@ public class ReactGenerator extends TypescriptGenerator {
 	public String generate() {
 		var sb = new StringBuilder();
 		sb.append("// Auto-generated\n// Do not edit\n\n");
-		sb.append("import { useState, useCallback } from 'react'\n");
+		sb.append("import { useState, useEffect } from 'react'\n");
 
 		var usedTypes = new Seq<String>();
 		for (var ep : endpoints) {
@@ -85,9 +85,11 @@ public class ReactGenerator extends TypescriptGenerator {
 		boolean isString = isStringType(ep.returnType);
 
 		String apiPath = buildApiPath(ep.url);
+		var args = ep.info.bodyArgs();
+		var body = ep.params.select(p -> args.contains(p.name));
 
-		sb.append(indent).append(hookName).append(": () => {\n");
-		String inner = indent + "  ";
+		sb.append(indent).append(hookName).append(": (").append(createBody(body)).append(") => {\n");
+		String inner = indent + "\t";
 
 		if (!isVoid) {
 			String dataType = isString ? "string" : tsReturnType;
@@ -97,48 +99,50 @@ public class ReactGenerator extends TypescriptGenerator {
 		sb.append(inner).append("const [loading, setLoading] = useState(false)\n");
 
 
-		var args = ep.info.bodyArgs();
-		var body = ep.params.select(p -> args.contains(p.name));
 		String bodyArg;
 		if(body.isEmpty()) {
 			bodyArg = "()\n";
-			sb.append(inner).append("const execute = useCallback(async () => {\n");
 		} else {
 			bodyArg = "(body)\n";
-			sb.append(inner).append("const execute = useCallback(async (body: {");
-			for (int i = 0; i < body.size; i++) {
-				var p = body.get(i);
-				sb.append(" ").append(p.name).append(": ").append(javaToTs(p.type));
-				if (i < body.size - 1) sb.append(";");
-			}
-			sb.append(" }) => {\n");
+//			sb.append(inner).append("const execute = useEffect(() => { (async () => {\n");
+//			for (int i = 0; i < body.size; i++) {
+//				var p = body.get(i);
+//				sb.append(" ").append(p.name).append(": ").append(javaToTs(p.type));
+//				if (i < body.size - 1) sb.append(";");
+//			}
+//			sb.append(" }) => {\n");
 		}
-		sb.append(inner).append("  setLoading(true)\n");
-
+		sb.append(inner).append("useEffect(() => {\n");
+		sb.append(inner).append("setLoading(true);\n");
+		sb.append(inner).append("(async () => {\n");
+		inner = indent + "\t\t";
+		
 		if (isVoid) {
-			sb.append(inner).append("  const [_, err] = await Api.").append(apiPath).append(bodyArg);
+			sb.append(inner).append("const [_, err] = await Api.").append(apiPath).append(bodyArg);
 		} else {
-			sb.append(inner).append("  const [res, err] = await Api.").append(apiPath).append(bodyArg);
+			sb.append(inner).append("const [res, err] = await Api.").append(apiPath).append(bodyArg);
 		}
 
-		sb.append(inner).append("  if (err) setError(err)\n");
+		sb.append(inner).append("if (err) setError(err)\n");
 		if (!isVoid) {
-			sb.append(inner).append("  else setData(res)\n");
+			sb.append(inner).append("else setData(res)\n");
 		}
-		sb.append(inner).append("  setLoading(false)\n");
+		sb.append(inner).append("setLoading(false)\n");
+		sb.append(inner).append("})()\n");
 
-		if (isVoid) {
-			sb.append(inner).append("  return { error: err }\n");
-		} else {
-			sb.append(inner).append("  return { data: res, error: err }\n");
-		}
+//		if (isVoid) {
+//			sb.append(inner).append("  return { error: err }\n");
+//		} else {
+//			sb.append(inner).append("  return { data: res, error: err }\n");
+//		}
 
+		inner = indent + "\t";
 		sb.append(inner).append("}, [])\n");
 
 		if (isVoid) {
-			sb.append(inner).append("return { error, loading, execute }\n");
+			sb.append(inner).append("return [ error, loading ] as const\n");
 		} else {
-			sb.append(inner).append("return { data, error, loading, execute }\n");
+			sb.append(inner).append("return [ data, error, loading ] as const\n");
 		}
 
 		sb.append(indent).append("},\n");
