@@ -44,9 +44,9 @@ public class RouterProcessor extends BaseProcessor {
 		Log.info("=== Map is ===");
 		map.each((c,es) -> {
 			Log.info("  = [@] ===", c);
-			es.each(e -> {
-				Log.info("   - @", e);
-			});
+			for (int i = 0; i < es.size; i++) {
+				Log.info("   @. @", i+1, es.get(i));
+			}
 		});
 		
 		// Round 1
