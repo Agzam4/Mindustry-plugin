@@ -8,7 +8,7 @@ All-in-one plugin for Mindustry servers: advanced commands, Telegram integration
 
 ## Features
 
-- **Lightweight** - under 500 MB total with Mindustry, minimal resource footprint
+- **Lightweight** - under 500 MB total with Mindustry, can run on a 1 GB RAM VDS
 - **30+ commands** with flexible permissions - grant partial access via helpers
 - **Telegram bot** - server monitoring, player management, map screenshots, in-game chat bridge
 - **Anti-grief** - thorium reactor protection near cores, spawn zone blocking
