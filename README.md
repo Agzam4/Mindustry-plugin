@@ -8,6 +8,7 @@ All-in-one plugin for Mindustry servers: advanced commands, Telegram integration
 
 ## Features
 
+- **Lightweight** - under 500 MB total with Mindustry, minimal resource footprint
 - **30+ commands** with flexible permissions - grant partial access via helpers
 - **Telegram bot** - server monitoring, player management, map screenshots, in-game chat bridge
 - **Anti-grief** - thorium reactor protection near cores, spawn zone blocking
@@ -18,7 +19,6 @@ All-in-one plugin for Mindustry servers: advanced commands, Telegram integration
 - **Achievements** - per-map achievement system with tier progression
 - **Player rating** - based on playtime, kicks given and received
 - **SQLite persistence** - player stats, achievements, kick records
-- **Lightweight** - uses under 500 MB total with Mindustry, runs on a 1 GB RAM VPS
 
 The plugin consists of a core Mindustry mod, an annotation processor for compile-time code generation, a React web client, and a Go reverse proxy for TLS/OAuth/SPA serving.
 
