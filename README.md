@@ -1,234 +1,316 @@
+# Mindustry Plugin
 
-# Commands
+All-in-one plugin for Mindustry servers: advanced commands, Telegram integration, anti-grief, custom game events, voting system, achievements, and a web dashboard with a log admin panel.
 
-Plugin has custom commands system
+<img alt="Mindustry" src="https://img.shields.io/badge/Mindustry-v157-9cf"> <img alt="Java" src="https://img.shields.io/badge/Java-17-blue"> <img alt="Gradle" src="https://img.shields.io/badge/Gradle-8.14-green"> <img alt="License" src="https://img.shields.io/badge/License-GPLv3-red"> <img alt="JitPack" src="https://img.shields.io/badge/JitPack-available-brightgreen">
 
-Admins can add "helpers" and grant them permission only for certain commands [more](#helper)
+---
 
-## Admin commands
+## Features
 
-<details><summary>admin</summary>
+- **30+ commands** with flexible permissions - grant partial access via helpers
+- **Telegram bot** - server monitoring, player management, map screenshots, in-game chat bridge
+- **Anti-grief** - thorium reactor protection near cores, spawn zone blocking
+- **Custom events** - loadable modules that modify gameplay rules per map
+- **Voting system** - weighted kick and skip-map votes
+- **HTTP API** - REST API on localhost with SSE streaming logs and player info
+- **Web dashboard** - React SPA with an admin log panel designed for convenient browsing and searching
+- **Achievements** - per-map achievement system with tier progression
+- **Player rating** - based on playtime, kicks given and received
+- **SQLite persistence** - player stats, achievements, kick records
+- **Lightweight** - uses under 500 MB total with Mindustry, runs on a 1 GB RAM VPS
 
-`/admin <add/remove> <name>` - add/remove admins
-</details>
+The plugin consists of a core Mindustry mod, an annotation processor for compile-time code generation, a React web client, and a Go reverse proxy for TLS/OAuth/SPA serving.
 
-<details><summary>m</summary>
-Players control ui menu (change teams)
+## Tech Stack
 
-Allow to control player team if has permission `team`
-Allow to heal/destroy/clear player's unit
-Allow to toggle `invincible` and `fast` effects
-</details>
+- **Languages** - Java 17, Go, TypeScript, JavaScript
+- **Frontend** - React 19, Vite, Zustand, TypeScript
+- **Backend** - Mindustry plugin API, `com.sun.net.httpserver` (lightweight, no framework overhead), custom annotation processor, SQLite
+- **Infrastructure** - Gradle, JitPack, Git submodules
+- **Protocols** - HTTP REST, SSE streaming, Telegram Bot API
 
-<details><summary>sandbox</summary>
+---
 
-`/sandbox [on/off] [team]` - enables sandbox/infiniteResources for all/team (and sync executor)
-</details>
+## Quick Start
 
-<details><summary>unit</summary>
+### Download (server owners)
 
-`/unit [type] [t/c]` - spawn unit
+Download the `.jar` from JitPack and place it in your server's `config/mods/` directory. No build required.
 
-- `t` - spawn and sets unit for executor
-- `c` - spawn auto-despawned unit (like from core) and sets unit for executor
-</details>
+```
+https://jitpack.io/com/github/Agzam4/Mindustry-plugin/{version}/Mindustry-plugin-{version}.jar
+```
 
-<details><summary>brush</summary>
+Replace `{version}` with a tag name or commit hash. See all versions on [JitPack](https://jitpack.io/#Agzam4/Mindustry-plugin).
 
-`/brush [none/block/floor/overlay/info] [block/none]` - allow to draw on map
-
-- `/brush none` - clear all masks of brush
-- `/brush [b/block] <name/emoji>` - set block's mask of brush (`none` for clear)
-- `/brush [o/overlay] <name/emoji>` - set overlay's mask of brush (`none` for clear)
-- `/brush [f/floor] <name/emoji>` - set floor's mask of brush (`none` for clear)
-
-> Shortcuts of block's names:
-> - `core1` - Core Shard
-> - `core2` - Core Foundation
-> - `core3` - Core Nucleus
-> - `core4` - Core Bastion
-> - `core5` - Core Citadel
-> - `core6` - Core Acropolis
-> - `power+` - Power source
-> - `power-` - Power void
-> - `item+` - Item source
-> - `item-` - Item void
-> - `liq+` - Liquid source
-> - `liq-` - Liquid void
-> - `s` - Shield projector
-> - `ls` - Large shield projector
-</details>
-
-<details><summary>etrigger</summary>
-
-`/etrigger <trigger> [args...]` - calls special trigger in event
-</details>
-
-<details><summary>bot</summary>
-
-`/bot [add/remove/list/start/stop/t/p] [id/name] [token...]` - telegram bot control
-
-`/bot t [tags...]` - add notify tags for group/user
-
-Tags mark chats for receiving messages of a certain kind
-
-
-> By defalt important information like uuid, ip and etc not visible, use `!` before tag to receive it (example `!votekick`) 
-
-
-Tags:
-- `event` - events messages
-- `achievement` - achievement messages
-- `round` - round messages (game over and etc)
-- `votekick` - messages about bans/kicks
-- `player-command` - when playr execute command
-- `admin-command` - when admin/helper execute command
-- `player-connection` - when player join/leave
-- `chat-message` - messages from chat
-- `server-info` - info about server (restart and etc)
-
-`/bot p [tags...]` - system like "helpers" but with bot
-
-> Permission can be for groups and users, use `$` before permission-name to disable using command in dialogs
-
-Command can be executed if:
-- In dialogs:
-  - `user` has permission (and permission not has `$` before)
-- In groups:
-  - `user` and `group` has permission
-</details>
-
-<a name="helper"></a>
-<details><summary>helper</summary>
-
-Admins can add "helpers" and grant them permission only for certain commands
-
-> Example:
-> ```
-> /helper add Agzam
-> /helper Agzam +runwave +nextmap +reloadmaps
-> ```
-> Player with name "Agzam" will be able to use commands `runwave`, `nextmap`, `reloadmaps`
-> ```
-> /helper add Agzam
-> /helper Agzam -nextmap -reloadmaps
-> ```
-> Player with name "Agzam" will be able to use commands `runwave`
-</details>
-
-<details><summary>nick</summary>
-`/nick [name..]` - sets custom nick for this server
-</details>
-
-<details><summary>custom</summary>
-
-`/custom <join/leave> [message...]` - sets custom join/leave message for this server (`@name` - will be replaced on player's name)
-</details>
-
-
-## Server + admins + bot commands
-
-<details><summary>nextmap</summary>
-
-`/nextmap <name...>` - allow to set next map
-</details>
-
-<details><summary>runwave</summary>
-
-Runs next wave
-
-Disabled if not all enemies destryoed (`force-runwave` to ignore this rule)
-</details>
-
-<details><summary>fillitems</summary>
-
-`/fillitems [item] [count]` - add/remove specific items player's team core with 
-</details>
-<details><summary>chatfilter</summary>
-
-`/chatfilter <on/off>` - joke (or not) command
-
-Enables replacing the words "noob" with "pro" 
-</details>
-<details><summary>event</summary>
-
-`/event [id] [on/off/faston]` - allows to enable/disable certain events
-
-`on` - Event will be enabled on the next map
-
-`off` - Disable event
-
-`faston` - immediately enables event and sync players
-</details>
-
-<details><summary>team</summary>
-`/team [player] [team]` - change team for player
-</details>
-
-<details><summary>config</summary>
-
-`/config [name] [set/add] [value...]` - change server config
-
-</details>
-<details><summary>bans</summary>
-
-List all banned IPs and IDs
-
-</details>
-<details><summary>unban</summary>
-
-`/unban <ip/ID/all>` - Completely unban a person by IP or ID
-
-</details>
-<details><summary>reloadmaps</summary>
-
-Reloads all custom maps
-</details>
-<details><summary>js</summary>
-
-`/js <script...>` - execute js
-
-</details>
-<details><summary>link</summary>
-
-`/link <url> [player]` - send link for player/all
-
-</details>
-<details><summary>setdiscord</summary>
-
-`/setdiscord <link>` - set link for discord
-
-</details>
-<details><summary>doorscup</summary>
-
-`/doorscup [count]` - set max amount of door on map
-</details>
-
-
-# Building
-
-> [!NOTE]
-> Gradle Version: 8.14.1
->
-> Java Version: 17
-
-Use `build` gradle task for build
-
-The builded file will be in `build/libs/config/mods/[project-name].jar`
-
-## Build structure:
+### Build from source (developers)
 
 ```bash
-build/libs
-│   server-release.jar # Download mindustry server here
-│
-└───config
-    │
-    ├───events # Events modules (optional)
-    │       you-event-module.jar
-    │       other-you-event-module.jar
-    ├───mods
-    │       Mindustry-plugin.jar # Builded plugin
-    │
-    ...
+git clone --recurse-submodules https://github.com/Agzam4/Mindustry-plugin.git
+cd Mindustry-plugin
+./gradlew build
 ```
+
+Output: `build/libs/config/mods/Mindustry-plugin.jar`
+
+### First steps
+
+Once the server is running:
+
+- **Grant yourself admin** - `/admin add <your-name>` gives full access to all commands
+- **Set up Telegram bot** - `/bot add <username> <token>`
+- **Configure API** - `/config apiPort set <port>` (default: server port + 1), `/config authUrl set <url>` (for web dashboard auth callbacks)
+- **Set a Discord link** - `/setdiscord <link>` (shown to kicked players for appeals)
+
+---
+
+## Helper System
+
+Admins can grant limited command access to trusted players without giving full admin:
+
+```
+/helper add PlayerName
+/helper PlayerName +runwave +nextmap
+/helper PlayerName -nextmap
+```
+
+Players with helper role can only use commands explicitly granted to them.
+
+---
+
+## Building (subprojects)
+
+Web client and proxy have their own builds - see `web/` and `proxy/` respectively.
+
+---
+
+## Commands
+
+### Admin (full access)
+
+**Management:**
+- `/admin <add/remove> <name>` - manage admins
+- `/helper <add/remove> <name>` / `/helper <name> +/-<command>` - grant limited command access
+- `/bot <add/remove/list/start/stop/t/p>` - Telegram bot management
+
+**Game control:**
+- `/m` - player control UI menu (change teams, heal, destroy, toggle invincible/fast)
+- `/sandbox [on/off] [team]` - infinite resources for all or a specific team
+- `/unit <type> [t/c]` - spawn units (`t` for executor, `c` for auto-despawn)
+- `/brush <mode> [block]` - paint on the map (block/floor/overlay/none)
+
+**Events:**
+- `/etrigger <trigger> [args...]` - fire a custom event trigger
+
+### Helper (can be delegated individually)
+
+- `/nick [name]` - set your own nickname on this server
+- `/setnick <player> <name>` - set nickname for another player
+- `/custom <join/leave> [message]` - set your own join/leave message (`@name` is replaced)
+- `/setcustom <player> <join/leave> [message]` - set join/leave message for another player
+
+### Server (in-game + console)
+
+**Maps:**
+- `/nextmap <name>` - set the next map
+- `/reloadmaps` - reload all custom maps
+- `/event <id> <on/off/faston>` - toggle custom events
+
+**Game:**
+- `/runwave` - force next wave (use `force-runwave` to skip enemy check)
+- `/fillitems [item] [count]` - add/remove items from team core
+- `/team <player> <team>` - change player's team
+- `/sandbox [on/off] [team]` - toggle sandbox mode
+
+**Players:**
+- `/info <player>` - player info
+- `/stat <player>` - detailed player statistics
+- `/extrastar <add/remove/list> <name>` - grant a magenta rating star
+- `/as <player> <command...>` - execute a command as another player
+
+**Configuration:**
+- `/config <name> <set/add> [value...]` - change server config
+- `/setdiscord <link>` - set Discord invite (shown on kick)
+- `/link <url> [player]` - send a link to a player or everyone
+- `/doorscup [count]` - max doors on a map
+
+**Utilities:**
+- `/bans` - list all banned IPs and IDs
+- `/unban <ip/ID/all>` - unban
+- `/js <script...>` - execute JavaScript
+- `/chatfilter <on/off>` - a light-hearted command that replaces "noob" with "pro" in chat
+- `/restart` - schedule restart after game over
+- `/threads` - show active thread information
+
+### Players
+
+- `/help [page]` - list commands
+- `/vote <y/n>` - vote in an active session
+- `/votekick <player> [reason]` - start a kick vote
+- `/skipmap` / `/smvote <y/n>` - skip current map
+- `/maps` / `/mapinfo` - map info
+- `/discord` - get Discord invite
+- `/auth` - authenticate for the web dashboard
+- `/a <message...>` - message admins
+- `/pluginfo` - plugin version info
+
+### Telegram Bot
+
+**Notification tags** - tag a chat to receive messages of a certain kind:
+`event`, `achievement`, `round`, `votekick`, `player-command`, `admin-command`, `player-connection`, `chat-message`, `server-info`
+
+Prefix with `!` to include sensitive data (UUIDs, IPs).
+
+**Commands:**
+- `/help` - list bot commands
+- `/players` - list online players
+- `/player <uuid>` - detailed player info with playtime and achievements
+- `/this` - current user/chat info and permissions
+- `/map` / `/mapm` - map screenshots
+- `/at <player>` - screenshot around a player
+- `/say <message>` - send to in-game chat
+- `/kick <player> [reason]` - start a kick vote
+
+---
+
+## Configuration
+
+Set via `/config` in-game:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `apiPort` | server port + 1 | HTTP API port |
+| `authUrl` | - | Web auth callback URL |
+| `discord-link` | - | Discord invite shown on kick |
+| `doors-cap` | unlimited | Max doors on a map |
+| `votekickRequiredMapPlaytime` | 5 | Min minutes on map to vote |
+| `votekickRequiredPlaytime` | 15 | Min total playtime to vote |
+
+---
+
+## Event Modules
+
+Custom game events are loaded from `config/events/*.jar` (or `.zip`). Each event is an independent Java module built against the plugin's API.
+
+### Project structure
+
+```
+event-example.jar
+├── event.json               # meta file
+├── assets/
+│   └── bundles/
+│       └── ExampleEvent.properties   # i18n strings
+└── agzam4/events/
+    └── ExampleEvent.class
+```
+
+### Meta file (`event.json`)
+
+```json
+{
+  "events": ["agzam4.events.ExampleEvent"]
+}
+```
+
+### Event class
+
+Create a class extending `ServerEvent`:
+
+```java
+package agzam4.events;
+
+public class ExampleEvent extends ServerEvent {
+
+    public ExampleEvent() {
+        super("ExampleEvent");
+    }
+
+    @Override
+    public void init() {
+        // called once when the event is loaded
+    }
+
+    @Override
+    public void update() {
+        // called every game tick while the event is active
+    }
+}
+```
+
+### Lifecycle
+
+| Phase | When | What to do |
+|-------|------|------------|
+| `init()` | Event loaded from disk | Register listeners, set up state |
+| `prepare()` | World loaded, game not started | Place blocks, modify terrain, read map messages |
+| `run()` | Game starts | Start timers, announce rules |
+| `update()` | Every tick | Game logic loop |
+| `stop()` | Event deactivated | Cleanup |
+
+### Game event hooks
+
+Override these to react to player actions (only called when the event is active):
+
+- `playerJoin(PlayerJoin)` - player connects
+- `blockBuildEnd(BlockBuildEndEvent)` - block placed or removed
+- `blockDestroy(BlockDestroyEvent)` - block destroyed
+- `unitDestroy(UnitDestroyEvent)` - unit destroyed
+- `deposit(DepositEvent)` - item deposited into a container
+- `withdraw(WithdrawEvent)` - item withdrawn
+- `tap(TapEvent)` - player taps a block
+- `config(ConfigEvent)` - block configured
+- `trigger(Player, String...)` - custom trigger called via `/etrigger`
+
+### Messaging with EventNet
+
+`event.net` provides helpers for sending localized messages:
+
+```java
+event.net.announce("info");           // yellow center text to all players
+event.net.message("info");            // chat message to all players
+event.net.message(player, "info");    // private message to one player
+```
+
+### Bundle files
+
+Messages are stored in `assets/bundles/ExampleEvent.properties` - one `.properties` file per event:
+
+```properties
+# assets/bundles/ExampleEvent.properties
+name=Example Event
+info=Custom rules are now active!
+announce=[scarlet]Special event started!
+```
+
+Access them in code via `bungle("key")` or `bungle("key", arg1, arg2)` for format strings.
+
+### In-game management
+
+- **Toggle** - `event ExampleEvent on/off/faston`
+- **Custom trigger** - `etrigger my_event [args...]`
+- **Active events** are persisted in `config/active-events.txt` and restored on server restart
+
+### Per-map events
+
+Add `#EventName` to a map description to auto-activate an event when that map loads.
+
+### Build dependency
+
+To compile an event module, depend on the plugin jar:
+
+```groovy
+compileOnly files("libs/Mindustry-plugin.jar")
+```
+
+## Subprojects
+
+- **`processor/`** - annotation processor (JavaPoet + AutoService) that generates API router registration and TypeScript types at compile time
+- **`web/`** - React + TypeScript SPA with a log admin panel featuring real-time searchable event log with SSE streaming, filtering by type and time range
+- **`proxy/`** - Go reverse proxy: routes `/api/*` to the Java API, serves the SPA, handles TLS (including Let's Encrypt), and session management
+
+---
+
+## License
+
+GNU General Public License v3.0. See [LICENSE](LICENSE).
