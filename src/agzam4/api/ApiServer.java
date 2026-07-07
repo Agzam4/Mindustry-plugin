@@ -16,8 +16,6 @@ import agzam4.api.auth.AuthDatabase;
 import agzam4.api.auth.SensitiveData;
 import agzam4.utils.Log;
 import agzam4gen.api.Routers;
-import arc.Core;
-import arc.Settings;
 import arc.struct.Seq;
 import mindustry.Vars;
 import mindustry.net.Administration.Config;
@@ -28,9 +26,6 @@ import mindustry.net.Administration.Config;
  */
 public class ApiServer {
 
-	static {
-		Core.settings = new Settings();
-	}
 	public static Config apiPort = new Config("apiPort", "Порт к http api", Vars.port + 1, () -> port(configPort()));
 	public static Config authUrl = new Config("authUrl", "Ссылка на сайт для авторизации", "");
 	
@@ -54,10 +49,6 @@ public class ApiServer {
 		start();
 	}
 	
-	public static void main(String[] args) {
-		init();
-	}
-
     private ApiServer() {}
 
     public static void start() {
