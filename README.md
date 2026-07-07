@@ -1,6 +1,6 @@
 # Mindustry Plugin
 
-Integrated server platform that connects Mindustry to Telegram, a web dashboard with a log admin panel, and custom event modules — with granular permissions and 30+ commands.
+Integrated server platform with a built-in web interface, Telegram bot, custom event modules, and granular permissions with 30+ commands.
 
 <img alt="Mindustry" src="https://img.shields.io/badge/Mindustry-v157-9cf"> <img alt="Java" src="https://img.shields.io/badge/Java-17-blue"> <img alt="Gradle" src="https://img.shields.io/badge/Gradle-8.14-green"> <img alt="License" src="https://img.shields.io/badge/License-GPLv3-red"> <img alt="JitPack" src="https://img.shields.io/badge/JitPack-available-brightgreen">
 
@@ -9,7 +9,7 @@ Integrated server platform that connects Mindustry to Telegram, a web dashboard 
 ## Features
 
 - **Telegram bot** - full bidirectional bridge: server monitoring, player management, map screenshots, in-game chat bridge
-- **Web dashboard** - React SPA with an admin log panel designed for convenient browsing and searching with real-time SSE streaming
+- **Web dashboard** - React SPA with an admin log panel: infinite scroll, clickable players, maps, context menu, search and filtering
 - **Custom events** - loadable Java modules that modify gameplay rules per map
 - **HTTP API** - REST API on localhost with SSE for external tools and automation
 - **Anti-grief** - thorium reactor protection near cores, spawn zone blocking
@@ -21,6 +21,18 @@ Integrated server platform that connects Mindustry to Telegram, a web dashboard 
 - **SQLite persistence** - player stats, achievements, kick records
 
 The plugin consists of a core Mindustry mod, an annotation processor for compile-time code generation, a React web client, and a Go reverse proxy for TLS/Let's Encrypt and session management.
+
+## Web Dashboard
+
+The included web interface is a React SPA for admin log browsing:
+
+- Infinite scroll event log with search and filtering
+- Clickable player names, map names, and block names
+- Context menu integration for quick searches and filtering
+- Filter by event type and time range
+- Works over the Go proxy with TLS and session auth
+
+No external tools needed - the SPA is served by the built-in proxy alongside the API.
 
 ## Tech Stack
 
