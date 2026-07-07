@@ -2,6 +2,8 @@
 
 Integrated server platform with a built-in web interface, Telegram bot, custom event modules, and granular permissions with 30+ commands.
 
+> [**Russian**](README.ru.md) - документация на русском языке
+
 <img alt="Mindustry" src="https://img.shields.io/badge/Mindustry-v157-9cf"> <img alt="Java" src="https://img.shields.io/badge/Java-17-blue"> <img alt="Gradle" src="https://img.shields.io/badge/Gradle-8.14-green"> <img alt="License" src="https://img.shields.io/badge/License-GPLv3-red"> <img alt="JitPack" src="https://img.shields.io/badge/JitPack-available-brightgreen">
 
 ---
@@ -15,7 +17,6 @@ Integrated server platform with a built-in web interface, Telegram bot, custom e
 - **Anti-grief** - thorium reactor protection near cores, spawn zone blocking
 - **Lightweight** - under 500 MB total with Mindustry including the dashboard, can run on a 1 GB RAM VDS
 - **30+ commands** with flexible helper permissions
-- **Achievements** - per-map achievement system with tier progression
 - **Player rating** - based on playtime, kicks given and received
 - **Voting system** - weighted kick and skip-map votes
 - **SQLite persistence** - player stats, achievements, kick records
