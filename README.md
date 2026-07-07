@@ -1,6 +1,6 @@
 # Mindustry Plugin
 
-All-in-one plugin for Mindustry servers: advanced commands, Telegram integration, anti-grief, custom game events, voting system, achievements, and a web dashboard with a log admin panel.
+Integrated server platform that connects Mindustry to Telegram, a web dashboard with a log admin panel, and custom event modules — with granular permissions and 30+ commands.
 
 <img alt="Mindustry" src="https://img.shields.io/badge/Mindustry-v157-9cf"> <img alt="Java" src="https://img.shields.io/badge/Java-17-blue"> <img alt="Gradle" src="https://img.shields.io/badge/Gradle-8.14-green"> <img alt="License" src="https://img.shields.io/badge/License-GPLv3-red"> <img alt="JitPack" src="https://img.shields.io/badge/JitPack-available-brightgreen">
 
@@ -8,19 +8,19 @@ All-in-one plugin for Mindustry servers: advanced commands, Telegram integration
 
 ## Features
 
-- **Lightweight** - under 500 MB total with Mindustry, can run on a 1 GB RAM VDS
-- **30+ commands** with flexible permissions - grant partial access via helpers
-- **Telegram bot** - server monitoring, player management, map screenshots, in-game chat bridge
+- **Telegram bot** - full bidirectional bridge: server monitoring, player management, map screenshots, in-game chat bridge
+- **Web dashboard** - React SPA with an admin log panel designed for convenient browsing and searching with real-time SSE streaming
+- **Custom events** - loadable Java modules that modify gameplay rules per map
+- **HTTP API** - REST API on localhost with SSE for external tools and automation
 - **Anti-grief** - thorium reactor protection near cores, spawn zone blocking
-- **Custom events** - loadable modules that modify gameplay rules per map
-- **Voting system** - weighted kick and skip-map votes
-- **HTTP API** - REST API on localhost with SSE streaming logs and player info
-- **Web dashboard** - React SPA with an admin log panel designed for convenient browsing and searching
+- **Lightweight** - under 500 MB total with Mindustry including the dashboard, can run on a 1 GB RAM VDS
+- **30+ commands** with flexible helper permissions
 - **Achievements** - per-map achievement system with tier progression
 - **Player rating** - based on playtime, kicks given and received
+- **Voting system** - weighted kick and skip-map votes
 - **SQLite persistence** - player stats, achievements, kick records
 
-The plugin consists of a core Mindustry mod, an annotation processor for compile-time code generation, a React web client, and a Go reverse proxy for TLS/OAuth/SPA serving.
+The plugin consists of a core Mindustry mod, an annotation processor for compile-time code generation, a React web client, and a Go reverse proxy for TLS/Let's Encrypt and session management.
 
 ## Tech Stack
 
