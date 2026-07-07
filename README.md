@@ -25,6 +25,8 @@ The plugin consists of a core Mindustry mod, an annotation processor for compile
 
 ## Web Dashboard
 
+<img width="800" height="450" alt="output" src="https://github.com/user-attachments/assets/e894434c-9097-4357-b93b-d8e64ad95255" />
+
 The included web interface is a React SPA for admin log browsing:
 
 - Infinite scroll event log with search and filtering
