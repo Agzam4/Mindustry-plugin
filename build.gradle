@@ -12,7 +12,7 @@ java {
 }
 
 ext{
-    mindustryVersion = 'v157'
+    mindustryVersion = 'v159'
     generatedSrc = 'gen'
 }
 
