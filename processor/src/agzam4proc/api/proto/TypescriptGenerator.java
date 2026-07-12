@@ -60,12 +60,13 @@ public class TypescriptGenerator extends Generator {
 	private void generateApi(StringBuilder sb) {
 		sb.append("// -- Helpers --\n\n");
 
-		sb.append("async function postJson<T>(url: string, body: any = {}): Promise<[T, null] | [null, NetError]> {\n");
+		sb.append("async function postJson<T>(url: string, body: any = {}, signal?: AbortSignal): Promise<[T, null] | [null, NetError]> {\n");
 		sb.append("  try {\n");
 		sb.append("    const res = await fetch('/api' + url, {\n");
 		sb.append("      method: \"POST\",\n");
 		sb.append("      headers: { \"Content-Type\": \"application/json\" },\n");
-		sb.append("      body: JSON.stringify(body)\n");
+		sb.append("      body: JSON.stringify(body),\n");
+		sb.append("      signal: signal\n");
 		sb.append("    })\n");
 		sb.append("    if (!res.ok) return [null, { code: res.status, message: res.statusText }]\n");
 		sb.append("    return [await res.json(), null]\n");
@@ -74,12 +75,13 @@ public class TypescriptGenerator extends Generator {
 		sb.append("  }\n");
 		sb.append("}\n\n");
 
-		sb.append("async function postText(url: string, body: any = {}): Promise<[string, null] | [null, NetError]> {\n");
+		sb.append("async function postText(url: string, body: any = {}, signal?: AbortSignal): Promise<[string, null] | [null, NetError]> {\n");
 		sb.append("  try {\n");
 		sb.append("    const res = await fetch(url, {\n");
 		sb.append("      method: \"POST\",\n");
 		sb.append("      headers: { \"Content-Type\": \"application/json\" },\n");
-		sb.append("      body: JSON.stringify(body)\n");
+		sb.append("      body: JSON.stringify(body),\n");
+		sb.append("      signal: signal\n");
 		sb.append("    })\n");
 		sb.append("    if (!res.ok) return [null, { code: res.status, message: res.statusText }]\n");
 		sb.append("    return [await res.text(), null]\n");
@@ -133,11 +135,11 @@ public class TypescriptGenerator extends Generator {
 		var body = ep.params.select(p -> args.contains(p.name));
 		String bodyArg;
 		if(body.isEmpty()) {
-			sb.append(indent).append(name).append(": () => ");
-			bodyArg = "\")";
+			sb.append(indent).append(name).append(": (signal?: AbortSignal) => ");
+			bodyArg = "\", signal)";
 		} else {
-			sb.append(indent).append(name).append(": (").append(createBody(body)).append(") => ");
-			bodyArg = "\", body)";
+			sb.append(indent).append(name).append(": (").append(createBody(body)).append(", signal?: AbortSignal) => ");
+			bodyArg = "\", body, signal)";
 		}
 		if(isVoidType(ep.returnType)) {
 			sb.append("postJson(\"").append(ep.url).append(bodyArg);
