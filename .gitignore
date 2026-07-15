@@ -31,3 +31,4 @@ processor/bin
 
 # Deploy
 deploy.sh
+deploy-server.sh
