@@ -136,7 +136,7 @@ public class TypescriptGenerator extends Generator {
 		String bodyArg;
 		if(body.isEmpty()) {
 			sb.append(indent).append(name).append(": (signal?: AbortSignal) => ");
-			bodyArg = "\", signal)";
+			bodyArg = "\", undefined, signal)";
 		} else {
 			sb.append(indent).append(name).append(": (").append(createBody(body)).append(", signal?: AbortSignal) => ");
 			bodyArg = "\", body, signal)";
