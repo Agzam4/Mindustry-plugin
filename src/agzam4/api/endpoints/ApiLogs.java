@@ -39,7 +39,7 @@ public class ApiLogs {
 	}
 
 	@Post 
-	public static LogEntity[] search(
+	public static LogEntity[] filter(
 			@Auth PlayerInfo info,
 			@BodyParm int id, @BodyParm int limit, 
 			@BodyParm long t1, @BodyParm long t2, 
@@ -47,7 +47,7 @@ public class ApiLogs {
 			@BodyParm String query
 			) throws ApiResponse {
 		if(!Admins.has(info, Permissions.logs)) throw new ApiResponse("Forbidden").forbidden();
-		return Logs.logsBy(id, limit, t1, t2, tags);
+		return Logs.filtredPage(id, limit, t1, t2, tags);
 	}
 
 }

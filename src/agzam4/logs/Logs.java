@@ -195,7 +195,7 @@ public class Logs {
 	 * @param t2 - maximum time (inclusive)
 	 * @return unsorted limit-length interval with nullable items [id, id+limit) from database that filter by (tags + timerange [t1,t2])<br>example: [e, e, e, e, null]
 	 */
-	public static LogEntity[] logsBy(long gid, int limit, long t1, long t2, int[] tags) {
+	public static LogEntity[] filtredPage(long gid, int limit, long t1, long t2, int[] tags) {
 		if(limit > maxPageSize) throw amoutOfRequestedLimit;
 
 		LogEntity[] result = new LogEntity[limit];
