@@ -6,6 +6,8 @@ import javax.lang.model.element.Modifier;
 
 import com.squareup.javapoet.*;
 
+import agzam4proc.BaseProcessor;
+import agzam4proc.api.RouterProcessor;
 import agzam4proc.api.utils.element.*;
 import arc.struct.*;
 import arc.util.Log;
@@ -44,15 +46,48 @@ public class JsonBuilderProcessor {
 		this.builder = TypeElem.of(packageName, type.name + "JsonBuilder");
 		Log.info(" - @", info.type);
 	}
+	
+	boolean written = false;
 
-	public TypeSpec build() {
+	
+	private void buildAddToJson(ExecutableElem method, VariableElem f, String _json, String _parm) {
 		final TypeName jval = TypeName.get(Jval.class);
-
-		ObjectSet<TypeName> valueOf = ObjectSet.with(Seq.<Class<?>>with(
+		final ObjectSet<TypeName> valueOf = ObjectSet.with(Seq.<Class<?>>with(
 				int.class, long.class, float.class, boolean.class,
 				Integer.class, Long.class, Float.class, Boolean.class,
 				String.class
 				).map(c -> TypeName.get(c)));
+		
+		if(f.type.dimension() == 0) {
+			if(!valueOf.contains(f.type.typeName)) throw f.error("Unsupported field type: " + f.type);
+			method.addStatement("$L.add($S, $T.valueOf($L))", _json, f.name, jval, _parm);
+			return;
+		}
+		// TODO: any n-dimension arrays (primitive + typed)
+		// Primitive 1d arrays
+		if(f.type.dimension() == 1) {
+			if(!valueOf.contains(f.type.noDimension().typeName)) throw f.error("Unsupported field type: " + f.type.noDimension().typeName);
+			var _array = method.namespace.get(f.name + "Array");
+			var _i = method.namespace.get("i");
+
+			method.addCode("if($L != null){\n$>", _parm);
+			
+			method.addStatement("var $L = $T.newArray()", _array, jval);
+			
+			method.addCode("for(int $L = 0; $L < $L.length; $L++)\n$>", _i, _i, _parm, _i);
+			method.addStatement("$L.add($L[$L])$<", _array, _parm, _i);
+			
+			method.addStatement("$L.add($S, $L)", _json, f.name, _array);
+
+			method.addCode("$<}\n");
+			return;
+		}
+		throw f.error("Unsupported field dimension: " + f.type.dimension());
+	}
+	
+	public void write(String writeToPackage, BaseProcessor processor) {
+		final TypeName jval = TypeName.get(Jval.class);
+
 		String doc = null;// TODO: type.processingEnv.getElementUtils().getDocComment(type);
 		
 
@@ -69,13 +104,12 @@ public class JsonBuilderProcessor {
 			method.addStatement("var $L = $T.$L()", _json, TypeName.get(Jval.class), dimension == 0 ? "newObject" : "newArray");
 			if(dimension == 0) {
 				info.eachfield(f -> {
-					if(!valueOf.contains(f.type.typeName)) throw f.error("Unsupported field type: " + f.type);
-					method.addStatement("json.add($S, $T.valueOf($L.$L))", f.name, jval, _parm, f.name);
+					buildAddToJson(method, f, _json, _parm + "." + f.name);
 				});
 			} else {
 				var _i = method.namespace.get("i");
 				method.addCode("for(int $L = 0; $L < $L.length; $L++)\n$>", _i, _i, _parm, _i);
-				method.addStatement("json.add(json($L[$L]))$<", _parm, _i);
+				method.addStatement("json.add($L($L[$L]))$<", _json, _parm, _i);
 			}
 			method.addStatement("return $L", _json);
 		}
@@ -98,18 +132,13 @@ public class JsonBuilderProcessor {
 		method.addStatement("var $L = $T.newObject()", _json, TypeName.get(Jval.class));
 
 		info.eachfield(f -> {
-			String name = f.name;
-			if(valueOf.contains(f.type.typeName)) {
-				var _parm = method.addParm(name, f.type).name;
-				method.addStatement("$L.add($S, $T.valueOf($L))", _json, _parm, jval, _parm);
-				return;
-			}
-			throw f.error("Unsupported field type: " + f.type);
+			var _parm = method.addParm(f.name, f.type).name;
+			buildAddToJson(method, f, _json, _parm);
 		});
 		method.addStatement("return $L.toString($T.plain)", _json, TypeName.get(Jformat.class));
 		
-
-		return builder.build();
+		processor.write(writeToPackage, builder.build());
+		written = true;
 	}
 	
 }

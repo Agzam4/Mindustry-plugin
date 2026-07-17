@@ -65,7 +65,7 @@ public class RouterProcessor extends BaseProcessor {
 			Log.info("&lc Phase 3: generating json builders");
 			context.scheme.eachinfo(i -> {
 				var b = JsonBuilderProcessor.builder(context.packageName + ".json", i);
-				write("json", b.build());
+				b.write("json", this);
 			});
 			
 			return;

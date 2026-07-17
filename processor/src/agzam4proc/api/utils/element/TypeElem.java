@@ -266,7 +266,7 @@ public class TypeElem extends Elem {
 
 	@Override
 	public String toString() {
-		return getClass().getSimpleName() + "(" + typepath.binary + "[]".repeat(dimension) + ")";
+		return getClass().getSimpleName() + "(" + typepath.binary + ":" + "[]".repeat(dimension) + ")";
 	}
 	
 	public int dimension() {
