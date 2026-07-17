@@ -73,6 +73,16 @@ public class TypeElem extends Elem {
 	private TypeElem() {}
 
 	public static TypeElem of(Class<?> clz) {
+	    if (clz == int.class)     return typeInt;
+	    if (clz == long.class)    return typeLong;
+	    if (clz == float.class)   return typeFloat;
+	    if (clz == double.class)  return typeDouble;
+	    if (clz == boolean.class) return typeBoolean;
+	    if (clz == byte.class)    return typeByte;
+	    if (clz == short.class)   return typeShort;
+	    if (clz == char.class)    return typeChar;
+	    if (clz == void.class)    return typeVoid;
+	    
 		return of(ClassName.get(clz));
 	}
 	

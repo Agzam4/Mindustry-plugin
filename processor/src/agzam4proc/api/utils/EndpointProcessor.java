@@ -16,6 +16,7 @@ import agzam4proc.api.utils.element.ExecutableElem;
 import agzam4proc.api.utils.element.TypeElem;
 import agzam4proc.api.utils.init.*;
 import arc.struct.ObjectMap;
+import arc.struct.ObjectSet;
 import arc.struct.Seq;
 import arc.util.Log;
 
@@ -46,6 +47,13 @@ public class EndpointProcessor {
 	}
 
 	public CodeBlock build() {
+
+		@SuppressWarnings("unchecked")
+		final var toStringAllowed = ObjectSet.with(Seq.with(
+				int.class, long.class, float.class, boolean.class,
+				Integer.class, Long.class, Float.class, Boolean.class
+		).map(c -> TypeElem.of(c)));
+		
 		method.resolve(envVariables.keys().toSeq().asSet());
 		var root = new CodeBlockBuilder();
 		var current = root;
@@ -55,7 +63,7 @@ public class EndpointProcessor {
 		if(method.method.parms.size == 0) throw method.method.error("Endpoints must contains Dependency or @ in parameters", HttpExchange.class.getSimpleName());
 		var resultType = method.returnType();
 		if(!resultType.typeName.equals(TypeName.get(String.class))) {
-			if(resultType == TypeElem.typeLong) {
+			if(toStringAllowed.contains(resultType)) {
 				resultNode = buildGraph(null, new CallProvider(method), null);
 				var objects = TypeElem.of(Objects.class);
 				if(objects.methods.size == 0) {
