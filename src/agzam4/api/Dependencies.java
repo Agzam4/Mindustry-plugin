@@ -175,7 +175,6 @@ public class Dependencies {
 			if(session == null) throw new ApiResponse("Unauthorized").unauthorized();
 			var info = Vars.netServer.admins.playerInfo.get(session.uuid);
 			if(info == null) throw new ApiResponse("Unauthorized").unauthorized();
-			Log.info(session.usid + "/" + info.adminUsid);
 			if(!Objects.equals(session.usid, info.adminUsid)) throw new ApiResponse("Unauthorized").unauthorized();
 			var admin = Admins.adminData(info);
 			if(admin == null) throw new ApiResponse("Forbidden").forbidden();
