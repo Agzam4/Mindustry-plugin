@@ -46,6 +46,13 @@ public class AdminData {
 		}
 		return line.toString();
 	}
+	
+	public String[] permissions() {
+		String[] ps = new String[permissions.size];
+		int i = 0;
+		for (var p : permissions) ps[i++] = p;
+		return ps;
+	}
 
 	public int permissionsCount() {
 		return permissions.size;
