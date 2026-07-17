@@ -14,11 +14,11 @@ public class ApiAuth {
 	
     @Post
     public static SessionResponse createSession(@BodyParm String token, @SessionIp String ip) throws ApiResponse {
-        String uuid = AuthTokens.verify(token);
-        if(uuid == null) throw new ApiResponse("Неверный токен, зайди в игру и пропиши /auth");
+        var pt = AuthTokens.verify(token);
+        if(pt == null) throw new ApiResponse("Неверный токен, зайди в игру и пропиши /auth");
         String sessionId = UUID.randomUUID().toString().replace("-", "");
-        AuthDatabase.createSession(sessionId, uuid, ip);
-        return new SessionResponse(sessionId, uuid); //Jval.newObject().put("id", sessionId).put("uuid", uuid).toString();
+        AuthDatabase.createSession(sessionId, pt, ip);
+        return new SessionResponse(sessionId, pt.uuid); 
     }
 
     @Post

@@ -16,7 +16,7 @@ public class AuthCommand extends CommandHandler<Player> {
 	
 	@Override
 	public void command(String[] args, CommandSender sender, Player player, ReceiverType type) {
-		if(player != null) Call.openURI(player.con, ApiServer.authUrl.string() + "/auth/" + AuthTokens.create(player.uuid()));
+		if(player != null) Call.openURI(player.con, ApiServer.authUrl.string() + "/auth/" + AuthTokens.create(player.uuid(), player.usid()));
 		sender.sendMessage("OK"); // TODO
 	}
 

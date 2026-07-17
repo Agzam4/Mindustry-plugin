@@ -1,6 +1,7 @@
 package agzam4.api.auth;
 
 import agzam4.database.Database;
+import agzam4.api.auth.AuthTokens.PendingToken;
 import agzam4.database.DBFields.DEFAULT;
 import agzam4.database.DBFields.FIELD;
 import agzam4.database.DBFields.PRIMARY_KEY;
@@ -17,6 +18,7 @@ public class AuthDatabase {
     public static class SessionEntity extends Entity {
         public @FIELD @PRIMARY_KEY String id;
         public @FIELD String uuid;
+        public @FIELD String usid;
         public @FIELD String ip;
         public @FIELD @DEFAULT("0") long createdAt;
     }
@@ -26,20 +28,21 @@ public class AuthDatabase {
         sessions = db.createTable("sessions", SessionEntity.class);
     }
 
-    public static void createSession(String id, String uuid, String ip) {
+    public static void createSession(String id, PendingToken token, String ip) {
         var entity = new SessionEntity();
         entity.id = id;
-        entity.uuid = uuid;
+        entity.uuid = token.uuid;
+        entity.usid = token.usid;
         entity.ip = ip;
         entity.createdAt = Time.millis();
         sessions.put(entity);
     }
 
-    public static @Nullable String validate(String id, String ip) {
-        var entity = sessions.get(id);
+    public static @Nullable SessionEntity validate(String sid, String ip) {
+        var entity = sessions.get(sid);
         if(entity == null) return null;
         if(!entity.ip.equals(ip)) return null;
-        return entity.uuid;
+        return entity;
     }
 
     public static void remove(String id) {

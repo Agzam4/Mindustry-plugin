@@ -2,6 +2,7 @@ package agzam4.api;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Objects;
 
 import com.sun.net.httpserver.HttpExchange;
 
@@ -11,6 +12,7 @@ import agzam4.api.auth.AuthDatabase;
 import agzam4gen.api.dependencies.*;
 import agzam4proc.api.ApiAnnotations.*;
 import agzam4proc.api.lib.ApiResponse;
+import arc.util.Log;
 import arc.util.Strings;
 import arc.util.serialization.Jval;
 import mindustry.Vars;
@@ -151,26 +153,30 @@ public class Dependencies {
 
 		@DependencyImpl
 		public static String dependsUuid(@SessionId String sessionId, @SessionIp String ip) throws ApiResponse {
-			var uuid = AuthDatabase.validate(sessionId, ip);
-			if(uuid == null) throw new ApiResponse("Unauthorized").unauthorized();
-			return uuid;
+			var session = AuthDatabase.validate(sessionId, ip);
+			if(session == null) throw new ApiResponse("Unauthorized").unauthorized();
+			return session.uuid;
 		}
 
 		@DependencyImpl
 		public static PlayerInfo dependsPlayerInfo(@SessionId String sessionId, @SessionIp String ip) throws ApiResponse {
-			var uuid = AuthDatabase.validate(sessionId, ip);
-			if(uuid == null) throw new ApiResponse("Unauthorized").unauthorized();
-			var info = Vars.netServer.admins.playerInfo.get(uuid);
+			var session = AuthDatabase.validate(sessionId, ip);
+			if(session == null) throw new ApiResponse("Unauthorized").unauthorized();
+			var info = Vars.netServer.admins.playerInfo.get(session.uuid);
 			if(info == null) throw new ApiResponse("Unauthorized").unauthorized();
+			Log.info(session.usid + "/" + info.adminUsid);
+			if(!Objects.equals(session.usid, info.adminUsid)) throw new ApiResponse("Unauthorized").unauthorized();
 			return info;
 		}
 		
 		@DependencyImpl
 		public static AdminData dependsAdminData(@SessionId String sessionId, @SessionIp String ip) throws ApiResponse {
-			var uuid = AuthDatabase.validate(sessionId, ip);
-			if(uuid == null) throw new ApiResponse("Unauthorized").unauthorized();
-			var info = Vars.netServer.admins.playerInfo.get(uuid);
+			var session = AuthDatabase.validate(sessionId, ip);
+			if(session == null) throw new ApiResponse("Unauthorized").unauthorized();
+			var info = Vars.netServer.admins.playerInfo.get(session.uuid);
 			if(info == null) throw new ApiResponse("Unauthorized").unauthorized();
+			Log.info(session.usid + "/" + info.adminUsid);
+			if(!Objects.equals(session.usid, info.adminUsid)) throw new ApiResponse("Unauthorized").unauthorized();
 			var admin = Admins.adminData(info);
 			if(admin == null) throw new ApiResponse("Forbidden").forbidden();
 			return admin;
