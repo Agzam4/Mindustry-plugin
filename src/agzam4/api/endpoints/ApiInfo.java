@@ -89,6 +89,8 @@ public class ApiInfo {
 
 	@Post
 	public static PlayerTrace playerTrace(@Auth PlayerInfo info, @BodyParm int id) throws ApiResponse {
+		if(!Admins.has(info, Permissions.logs)) throw new ApiResponse("Forbidden").forbidden();
+		
 		boolean allowSensitiveData = Admins.has(info, Permissions.sensitiveData);
 		boolean allowTraceAdmins = Admins.has(info, Permissions.traceAdmins);
 		
