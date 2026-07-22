@@ -12,7 +12,6 @@ import agzam4.api.auth.AuthDatabase;
 import agzam4gen.api.dependencies.*;
 import agzam4proc.api.ApiAnnotations.*;
 import agzam4proc.api.lib.ApiResponse;
-import arc.util.Log;
 import arc.util.Strings;
 import arc.util.serialization.Jval;
 import mindustry.Vars;
@@ -164,7 +163,6 @@ public class Dependencies {
 			if(session == null) throw new ApiResponse("Unauthorized").unauthorized();
 			var info = Vars.netServer.admins.playerInfo.get(session.uuid);
 			if(info == null) throw new ApiResponse("Unauthorized").unauthorized();
-			Log.info(session.usid + "/" + info.adminUsid);
 			if(!Objects.equals(session.usid, info.adminUsid)) throw new ApiResponse("Unauthorized").unauthorized();
 			return info;
 		}
