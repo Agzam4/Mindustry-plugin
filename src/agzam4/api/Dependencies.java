@@ -1,6 +1,7 @@
 package agzam4.api;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Objects;
 
@@ -41,6 +42,18 @@ public class Dependencies {
 			return Jval.read(new InputStreamReader(exchange.getRequestBody()));
 		}
 
+		@DependencyImpl
+		public static InputStream dependsInputStream(HttpExchange exchange) throws ApiResponse, IOException {
+			if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+				String response = "Method not allowed";
+				exchange.sendResponseHeaders(405, response.getBytes().length);
+				exchange.getResponseBody().write(response.getBytes());
+				exchange.getResponseBody().close();
+				throw new ApiResponse(":)");
+			}
+			return exchange.getRequestBody();
+		}
+		
 	}
 
 	
@@ -116,6 +129,13 @@ public class Dependencies {
 			var h = e.getRequestHeaders().getFirst("Agzam4-" + header);
 			if(h == null) throw new ApiResponse(Strings.format("Wrong header: no \"Agzam4-@\" header", header)).wrongParms();
 			return h;
+		}
+		
+		@DependencyImpl
+		public static int dependsInt(HttpExchange e, @CallerParm String header) throws ApiResponse {
+			var h = e.getRequestHeaders().getFirst("Agzam4-" + header);
+			if(h == null) throw new ApiResponse(Strings.format("Wrong header: no \"Agzam4-@\" header", header)).wrongParms();
+			return Strings.parseInt(h, 0);
 		}
 
 	}
