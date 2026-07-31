@@ -2,8 +2,9 @@ package agzam4proc.api.lib;
 
 @SuppressWarnings("serial")
 public class ApiResponse extends Exception {
-	
+
 	public static final ApiResponse forbidden = new ApiResponse("Forbidden", 403);
+	public static final ApiResponse notFound = new ApiResponse("Not found", 404);
 	
 	public String content;
 	public int code = 200;
