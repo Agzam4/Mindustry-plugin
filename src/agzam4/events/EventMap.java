@@ -9,11 +9,13 @@ import mindustry.Vars;
 import mindustry.io.MapIO;
 import mindustry.maps.Map;
 
+@Deprecated
 public class EventMap {
 	
 	public static Seq<EventMap> maps = new Seq<EventMap>();;
 	public static Fi eventMapsDirectory;
 	
+	@Deprecated
 	public static void load() {
 		eventMapsDirectory = Vars.dataDirectory.child("event_maps");
 		if(!eventMapsDirectory.exists()) eventMapsDirectory.mkdirs();

@@ -83,7 +83,6 @@ public class AgzamPlugin extends Plugin {
     	Log.reset();
     	
     	ServerEventsManager.init();
-    	EventMap.load();
 
 		CommandsManager.flushCommands();
     	
@@ -91,11 +90,6 @@ public class AgzamPlugin extends Plugin {
     	Antigriefs.init();
     	
     	MapsManager.init();
-    	
-    	maps = new Maps();
-    	
-    	maps.load();
-    	
     	
     	dataCollect = new DataCollecter();
     	dataCollect.init();
