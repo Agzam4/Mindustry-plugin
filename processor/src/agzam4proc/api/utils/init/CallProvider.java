@@ -1,6 +1,7 @@
 package agzam4proc.api.utils.init;
 
 import com.squareup.javapoet.CodeBlock;
+import com.squareup.javapoet.TypeName;
 
 import agzam4proc.api.utils.CodeBlockBuilder;
 import agzam4proc.api.utils.MethodInfo;
@@ -49,6 +50,14 @@ public class CallProvider extends VariableInit {
 
 
         String currentVarName = this.name;
+        if(method.returnType().typeName.equals(TypeName.VOID)) {
+	        builder.addStatement("$T.$N($L)", 
+	        		method.enclosingType(),
+	                method.name,
+	                CodeBlock.join(argumentBlocks, ", ")
+	        );
+        	return builder;
+        }
         if(asReturn) {
 	        builder.addStatement("return $T.$N($L)", 
 	        		method.enclosingType(),

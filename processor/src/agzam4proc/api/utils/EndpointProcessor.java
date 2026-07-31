@@ -62,7 +62,7 @@ public class EndpointProcessor {
 		var resultMethod = new CallProvider(method);
 		if(method.method.parms.size == 0) throw method.method.error("Endpoints must contains Dependency or @ in parameters", HttpExchange.class.getSimpleName());
 		var resultType = method.returnType();
-		if(!resultType.typeName.equals(TypeName.get(String.class))) {
+		if(!resultType.typeName.equals(TypeName.get(String.class)) && !resultType.typeName.equals(TypeName.VOID)) {
 			if(toStringAllowed.contains(resultType)) {
 				resultNode = buildGraph(null, new CallProvider(method), null);
 				var objects = TypeElem.of(Objects.class);
