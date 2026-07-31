@@ -3,11 +3,10 @@ package agzam4.commands.any;
 import agzam4.CommandsManager.ReceiverType;
 import agzam4.CommandsManager.CommandSender;
 import agzam4.commands.CommandHandler;
-import agzam4.events.EventMap;
+import agzam4.maps.MapSlot;
+import agzam4.maps.MapsManager;
 import arc.struct.Seq;
 import arc.util.Strings;
-import mindustry.Vars;
-import mindustry.maps.Map;
 
 public class MapsCommand extends CommandHandler<Object> {
 
@@ -19,46 +18,50 @@ public class MapsCommand extends CommandHandler<Object> {
 	@Override
 	public void command(String[] args, CommandSender sender, Object receiver, ReceiverType type) {
 		String types = "all";
-		if(args.length == 0) types = Vars.maps.getShuffleMode().name();
+		if(args.length == 0) types = "all";
 		else types = args[0];
-		if(types.startsWith("event")) {
-			int id = 0;
-			for(EventMap map : EventMap.maps){
-				id++;
-				String mapName = Strings.stripColors(map.map().name());
-				sender.sendMessage(Strings.format("[gold]$@ @ [white]| @ [white](@x@, рекорд: @)", 
-						id, map.events(), mapName, map.map().width, map.map().height, map.map().getHightScore()));
-			}
+		
+		if(types.equals("playlist")) {
+			sender.sendMessage("[white]Playlist:");
+        	for(var map : MapsManager.bungle){
+        		if(!map.enabled) continue;
+        		var m = map.map();
+        		if(m == null) continue;
+        		sender.sendMessage(Strings.format("[gold]#@ @ [white]| @ [white](@x@, рекорд: @)", 
+        				map.id+1, map.custom ? "Кастомная" : "Дефолтная", map.name(), m.width, m.height, m.getHightScore()));
+        	}
 			return;
 		}
 		boolean custom  = types.equals("custom") || types.equals("c") || types.equals("all");
 		boolean def     = types.equals("default") || types.equals("all");
-		if(!Vars.maps.all().isEmpty()) {
-			Seq<Map> all = new Seq<>();
-			if(custom) all.addAll(Vars.maps.customMaps());
-			if(def) all.addAll(Vars.maps.defaultMaps());
-			if(all.isEmpty()){
-				sender.sendMessage("Кастомные карт нет на этом сервере, используйте [gold]all []аргумет.");
-			}else{
-				sender.sendMessage("[white]Maps:");
-				int id = 0;
-				for(Map map : Vars.maps.all()){
-					id++;
-					if((def && !map.custom) || (custom && map.custom)) {
-						String mapName = Strings.stripColors(map.name());
-						sender.sendMessage(Strings.format("[gold]#@ @ [white]| @ [white](@x@, рекорд: @)", 
-								id, map.custom ? "Кастомная" : "Дефолтная", mapName, map.width, map.height, map.getHightScore()));
-					}
-				}
-			}
-		} else {
-			sender.sendMessage("Карты не найдены");
-		}
+		
+        if(require(MapsManager.maps.isEmpty(), sender, "[red]Карты не найдены")) return;
+        
+        Seq<MapSlot> all = MapsManager.maps.select(m -> {
+        	if(!m.enabled) return false;
+        	if(!custom && m.custom) return false;
+        	if(!def && !m.custom) return false;
+        	return true;
+        });
+
+        if(require(MapsManager.maps.isEmpty(), sender, "[red]Подходящих под фильтр карт нет")) return;
+        
+        if(all.isEmpty()){
+        	sender.sendMessage("Кастомные карт нет на этом сервере, используйте [gold]all []аргумет.");
+        }else{
+        	sender.sendMessage("[white]Maps:");
+        	for(var map : all){
+        		var m = map.map();
+        		if(m == null) continue;
+        		sender.sendMessage(Strings.format("[gold]#@ @ [white]| @ [white](@x@, рекорд: @)", 
+        				map.id+1, map.custom ? "Кастомная" : "Дефолтная", map.name(), m.width, m.height, m.getHightScore()));
+        	}
+        }
 	}
 
 	@Override
 	public Seq<?> complete(String[] args, Object receiver, ReceiverType type) {
-		if(args.length == 0) return Seq.with("all", "custom", "default", "event");
+		if(args.length == 0) return Seq.with("all", "custom", "default", "playlist");
 		return super.complete(args, receiver, type);
 	}
 }
