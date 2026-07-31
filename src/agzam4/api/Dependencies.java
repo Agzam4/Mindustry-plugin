@@ -3,6 +3,7 @@ package agzam4.api;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.util.Objects;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -56,6 +57,18 @@ public class Dependencies {
 		
 	}
 
+	@Dependency
+	public class ChunkedEncodingDependency {
+
+		@DependencyImpl
+		public static OutputStream depends(HttpExchange exchange) throws ApiResponse, IOException {
+			exchange.sendResponseHeaders(200, 0);
+			return exchange.getResponseBody();
+		}
+		
+		
+		
+	}
 	
 	/**
 	 * Extracts a specific string parameter from JSON body
