@@ -1,14 +1,15 @@
 package agzam4.maps;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 
 import arc.files.Fi;
-import arc.struct.ObjectMap;
 import arc.struct.Seq;
 import arc.util.Log;
-import arc.util.Nullable;
 import arc.util.Strings;
+import arc.util.io.Streams;
 import arc.util.serialization.Jval;
 import mindustry.io.MapIO;
 import mindustry.maps.Map;
@@ -22,19 +23,15 @@ public class UserMapSlot extends MapSlot {
 	// Increments with any approve
 	public int version;
 	
-	/**
-	 * Override events on map
-	 * true - enable event
-	 * false - never use event on this map
-	 * not in map means - use default
-	 */
-	public ObjectMap<String, Boolean> events;
-	
-	public Seq<MapMaker> authors = Seq.with();
+	public Seq<MapCreator> authors = Seq.with();
 	
 	public MapSlotStatus status = MapSlotStatus.rejected;
 
 	Map map = null;
+	
+	{
+		custom = true;
+	}
 	
 	public UserMapSlot(int id, String name) {
 		super(id);
@@ -49,6 +46,17 @@ public class UserMapSlot extends MapSlot {
 	
 	public UserMapSlot(int id, Jval jval) {
 		super(id);
+		read(jval);
+		try {
+			updateMap();
+		} catch (IOException e) {
+			Log.err(e);
+		}
+	}
+	
+	@Override
+	public void read(Jval jval) {
+		super.read(jval);
 		this.name = jval.getString("name", "unnamed");
 		this.version = jval.getInt("version", 0);
 		this.status = MapSlotStatus.of(jval.getString("status"), MapSlotStatus.approved);
@@ -58,16 +66,11 @@ public class UserMapSlot extends MapSlot {
 			maker.slots.add(this);
 			authors.add(maker);
 		}
-		try {
-			updateMap();
-		} catch (IOException e) {
-			Log.err(e);
-		}
 	}
 
 	@Override
 	public Jval save() {
-		var jval = Jval.newObject();
+		var jval = super.save();
 		jval.put("name", name);
 		jval.put("version", version);
 		jval.put("status", status.name());
@@ -88,7 +91,7 @@ public class UserMapSlot extends MapSlot {
 
 		static MapSlotStatus of(String string, MapSlotStatus def) {
 			for (var v : values()) {
-				if(string.equals(v)) return v;
+				if(string.equals(v.name())) return v;
 			}
 			return def;
 		}
@@ -125,6 +128,14 @@ public class UserMapSlot extends MapSlot {
 		status = MapSlotStatus.verification;
 	}
 	
+	public synchronized void download(OutputStream out) throws IOException {
+		var fi = file(FileState.uploaded);
+		if(!fi.exists()) throw new FileNotFoundException("Uploaded file not found");
+		try(var read = fi.read();var o = out) {
+			Streams.copy(read, o);
+		}
+	}
+	
 	public synchronized void approve() throws IOException {
 		if(status == MapSlotStatus.approved) return;
 
@@ -158,6 +169,11 @@ public class UserMapSlot extends MapSlot {
 	public synchronized void restoreBackup() throws IOException {
 		var backup = file(FileState.backup);
 		var current = file(FileState.current);
+		var uploaded = file(FileState.uploaded);
+		if(!uploaded.exists()) {
+			current.moveTo(uploaded);
+		}
+		
 		if(backup.exists()) {
 			backup.moveTo(current);
 			version--;
@@ -195,5 +211,24 @@ public class UserMapSlot extends MapSlot {
 		return Strings.format("@ v@", name, version);
 	}
 	
+	public boolean uploaded() {
+		return file(FileState.uploaded).exists();
+	}
+
+	public void clearAuthors() {
+		authors.each(a -> {
+			a.slots.remove(this);
+		});
+		authors.clear();
+	}
+
+	public void addAuthor(MapCreator maker) {
+		maker.slots.add(this);
+		authors.add(maker);
+	}
 	
+	@Override
+	public String toString() {
+		return "UserSlot-" + id;
+	}
 }
