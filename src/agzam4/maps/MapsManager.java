@@ -29,6 +29,8 @@ public class MapsManager {
 	
 	public static Seq<MapSlot> bungle = Seq.with();
 	
+	public static MapSlot current = null;
+	
 	public static void init() {
 		load();
 		Vars.maps.setMapProvider((mode, prev) -> {
@@ -42,6 +44,7 @@ public class MapsManager {
 				if(!slot.enabled) continue;
 				var map = slot.map();
 				if(map == null) continue;
+				current = slot;
 				return map;
 			}
 			Log.warn("Valid maps not found");

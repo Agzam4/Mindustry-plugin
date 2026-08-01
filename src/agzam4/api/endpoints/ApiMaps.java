@@ -7,7 +7,9 @@ import java.io.OutputStream;
 import agzam4.admins.Admins;
 import agzam4.api.auth.SensitiveData;
 import agzam4.api.auth.SensitiveData.SensitiveType;
+import agzam4.api.endpoints.ApiEvents.EventInfo;
 import agzam4.commands.Permissions;
+import agzam4.events.ServerEventsManager;
 import agzam4.maps.UserMapSlot;
 import agzam4.maps.FileMapSlot;
 import agzam4.maps.MapSlot;
@@ -46,6 +48,8 @@ public class ApiMaps {
 		public boolean canManage;
 
 		public int[] authors;
+		
+		public int[] events;
 	}
 
 	@Post
@@ -70,6 +74,15 @@ public class ApiMaps {
 		slotinfo.id = slot.id;
 		slotinfo.enabled = slot.enabled;
 		slotinfo.canManage = Admins.has(info, Permissions.manageMaps);
+		
+
+		slotinfo.events = new int[ServerEventsManager.events.size];
+    	for (int i = 0; i < slotinfo.events.length; i++) {
+    		String key = ServerEventsManager.events.get(i).name;
+    		if(!slot.events.containsKey(key)) continue;
+    		slotinfo.events[i] = slot.events.get(key) ? 1 : -1;
+		}
+		
 		if(slot instanceof UserMapSlot ums) {
 			slotinfo.status = ums.status.name();
 			slotinfo.name = ums.name;
@@ -217,5 +230,18 @@ public class ApiMaps {
 		return write(info, slot);
 	}
 	
-	
+
+	@Post
+	public static MapSlotInfo setEvent(@Auth PlayerInfo info, @BodyParm String event, @BodyParm int status, @BodyParm int id) throws ApiResponse, IOException {
+		if(!Admins.has(info, Permissions.manageMaps)) throw ApiResponse.forbidden; 
+		if(ServerEventsManager.find(event) == null) throw ApiResponse.notFound;
+
+		var slot = MapsManager.maps.get(id);
+		if(status == 0) slot.events.remove(event);
+		if(status == 1) slot.events.put(event, true);
+		if(status == -1) slot.events.put(event, false);
+
+		MapsManager.save();
+		return write(info, slot);
+	}
 }

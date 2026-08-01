@@ -1,10 +1,12 @@
 package agzam4.events;
 
 import agzam4.Game;
+import agzam4.maps.MapsManager;
 import arc.Events;
 import arc.files.Fi;
 import arc.func.Boolf;
 import arc.func.Cons2;
+import arc.struct.ObjectSet;
 import arc.struct.Seq;
 import arc.util.Log;
 import arc.util.Nullable;
@@ -24,7 +26,9 @@ public class ServerEventsManager {
 	private ServerEventsManager() {};
 	
 	public static final Seq<ServerEvent> events = Seq.with();
-	public static final Seq<ServerEvent> activeEvents = Seq.with();
+	public static final ObjectSet<ServerEvent> activeEvents = ObjectSet.with();
+	public static final Seq<ServerEvent> targetEvents = Seq.with();
+	
 	private static Boolf<ServerEvent> runningFilter = e -> e.isRunning();
 
 	public static long eventsTPS = 1_000 / 60;
@@ -51,7 +55,7 @@ public class ServerEventsManager {
 				for (String name : eventsPath.readString().split("\n")) {
 					ServerEvent e = find(name);
 					if(e == null) return;
-					activeEvents.add(e);
+					targetEvents.add(e);
 				}
 			} catch (Exception exception) {
 				Log.err(exception);
@@ -80,7 +84,9 @@ public class ServerEventsManager {
 	private static <T> void registerEvent(Class<T> type, Cons2<ServerEvent, T> listener) {
 		Events.on(type, e -> {
 			if(!isLoaded) return;
-			activeEvents.each(runningFilter, se -> listener.get(se, e));
+			activeEvents.each(se -> {
+				if(runningFilter.get(se)) listener.get(se, e);
+			});
 		});
 	}
 
@@ -123,7 +129,9 @@ public class ServerEventsManager {
 
 	public static void playerJoin(PlayerJoin e) {
 		if(!isLoaded) return;
-		activeEvents.each(runningFilter, se -> se.playerJoin(e));
+		activeEvents.each(se -> {
+			if(runningFilter.get(se)) se.playerJoin(e);
+		});
 	}
 
 	public static void runEvent(String commandName) {
@@ -132,17 +140,17 @@ public class ServerEventsManager {
 			Log.info("Event not found!");
 			return;
 		}
-		if(activeEvents.contains(event)) {
+		if(targetEvents.contains(event)) {
 			Log.info("Event already active!");
 			return;
 		}
-		activeEvents.add(event);
+		targetEvents.add(event);
 		save();
 		event.announce();
 	}
 	
 	private static void save() {
-		eventsPath.writeString(activeEvents.toString("\n", e -> e.name), false);
+		eventsPath.writeString(targetEvents.toString("\n", e -> e.name), false);
 		Log.info("Saving events to [blue]@[]", eventsPath.absolutePath());
 	}
 
@@ -229,6 +237,22 @@ public class ServerEventsManager {
 	
 
 	private static void applyMapEvents() {
+		activeEvents.clear();
+		
+		// Global events
+		activeEvents.addAll(targetEvents);
+		
+		// Map events
+		if(MapsManager.current != null) {
+			MapsManager.current.events.each((event, value) -> {
+				if(value) activeEvents.add(find(event));
+				else activeEvents.remove(find(event));
+			});
+		}
+		
+		activeEvents.each(e -> e.runSilently());
+		
+		
 //		if(eventMap != null || nextEventMap != null) {
 //			for (int i = 0; i < activeEvents.size(); i++) {
 //				ServerEvent event = activeEvents.get(i);
