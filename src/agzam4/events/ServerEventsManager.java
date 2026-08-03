@@ -26,7 +26,7 @@ public class ServerEventsManager {
 	private ServerEventsManager() {};
 	
 	public static final Seq<ServerEvent> events = Seq.with();
-	public static final ObjectSet<ServerEvent> activeEvents = ObjectSet.with();
+	public static final Seq<ServerEvent> activeEvents = Seq.with();
 	public static final Seq<ServerEvent> targetEvents = Seq.with();
 	
 	private static Boolf<ServerEvent> runningFilter = e -> e.isRunning();
@@ -237,20 +237,23 @@ public class ServerEventsManager {
 	
 
 	private static void applyMapEvents() {
-		activeEvents.clear();
+		ObjectSet<ServerEvent> events = ObjectSet.with();
 		
 		// Global events
-		activeEvents.addAll(targetEvents);
+		events.addAll(targetEvents);
 		
 		// Map events
 		if(MapsManager.current != null) {
 			MapsManager.current.events.each((event, value) -> {
-				if(value) activeEvents.add(find(event));
-				else activeEvents.remove(find(event));
+				if(value) events.add(find(event));
+				else events.remove(find(event));
 			});
 		}
+
+		activeEvents.clear();
+		activeEvents.addAll(events);
 		
-		activeEvents.each(e -> e.runSilently());
+//		activeEvents.each(e -> e.runSilently());
 		
 		
 //		if(eventMap != null || nextEventMap != null) {
