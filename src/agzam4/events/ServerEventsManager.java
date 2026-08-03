@@ -2,13 +2,13 @@ package agzam4.events;
 
 import agzam4.Game;
 import agzam4.maps.MapsManager;
+import agzam4.utils.Log;
 import arc.Events;
 import arc.files.Fi;
 import arc.func.Boolf;
 import arc.func.Cons2;
 import arc.struct.ObjectSet;
 import arc.struct.Seq;
-import arc.util.Log;
 import arc.util.Nullable;
 import mindustry.Vars;
 import mindustry.content.Blocks;
@@ -241,17 +241,23 @@ public class ServerEventsManager {
 		
 		// Global events
 		events.addAll(targetEvents);
+		Log.info("Applying events:");
+		Log.info("Server: @", targetEvents);
 		
 		// Map events
+		Log.info("Slot: @", MapsManager.current);
 		if(MapsManager.current != null) {
+			Log.info("Ovveride: @", MapsManager.current.events);
 			MapsManager.current.events.each((event, value) -> {
 				if(value) events.add(find(event));
 				else events.remove(find(event));
 			});
 		}
+		Log.info("Map: @", events);
 
 		activeEvents.clear();
 		activeEvents.addAll(events);
+		
 		
 //		activeEvents.each(e -> e.runSilently());
 		

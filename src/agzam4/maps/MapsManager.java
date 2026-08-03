@@ -5,6 +5,7 @@ import java.io.IOException;
 import agzam4.CommandsManager.ReceiverType;
 import agzam4.admins.Admins;
 import agzam4.commands.Permissions;
+import agzam4.events.ServerEventsManager;
 import agzam4.maps.FileMapSlot.MapFileTypes;
 import arc.files.Fi;
 import arc.struct.ObjectMap;
@@ -31,22 +32,37 @@ public class MapsManager {
 	
 	public static MapSlot current = null;
 	
+	public static @Nullable MapSlot nextMapOverride;
+	
 	public static void init() {
 		load();
 		Vars.maps.setMapProvider((mode, prev) -> {
-			Log.info("Bungle: @", bungle);
-			if(bungle.size == 0) {
-				bungle.addAll(maps);
-				bungle.shuffle();
+			if(nextMapOverride != null) {
+				var map = nextMapOverride.map();
+				if(map != null) {
+					current = nextMapOverride;
+					nextMapOverride = null;
+					return map;
+				}
 			}
-			while (bungle.size > 0) {
-				var slot = bungle.remove(0);
-				if(!slot.enabled) continue;
-				var map = slot.map();
-				if(map == null) continue;
-				current = slot;
-				return map;
+			for (int i = 0; i < 2; i++) { // if current bungle contains wrong maps -> try again
+				boolean canRetry = true;
+				if(bungle.size == 0) {
+					bungle.addAll(maps);
+					bungle.shuffle();
+					canRetry = false;
+				}
+				while (bungle.size > 0) {
+					var slot = bungle.remove(0);
+					if(!slot.enabled) continue;
+					var map = slot.map();
+					if(map == null) continue;
+					current = slot;
+					return map;
+				}
+				if(!canRetry) break;
 			}
+			
 			Log.warn("Valid maps not found");
 			return prev;
 		});
@@ -132,5 +148,11 @@ public class MapsManager {
 			if(map.map() == null) return false;
 			return true;
 		});
+	}
+
+
+	public static void nextMap(MapSlot res) {
+		nextMapOverride = res;
+        ServerEventsManager.setNextMapEvents(null);		
 	}
 }

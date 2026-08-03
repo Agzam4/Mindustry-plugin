@@ -43,8 +43,9 @@ public class NextmapCommand extends CommandHandler<Object> {
         if(require(res == null, sender, type.err("nextmap.not-found"))) return;
         var map = res.map();
         if(require(map == null, sender, type.err("nextmap.not-found"))) return;
-        Vars.maps.setNextMapOverride(map);
-        ServerEventsManager.setNextMapEvents(null);
+        
+        MapsManager.nextMap(res);
+        
         sender.sendMessage(type.format("nextmap.set", map.plainName()));
     }
 	
