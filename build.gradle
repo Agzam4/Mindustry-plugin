@@ -104,7 +104,15 @@ tasks.register('aptGenerateSources') {
     dependsOn tasks.named('compileJava')
 }
 
+group = 'com.github.Agzam4'
 
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+}
 
 /*
 eclipse {
