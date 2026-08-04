@@ -29,7 +29,7 @@ public abstract class BaseProcessor extends AbstractProcessor {
 	
 	public static final boolean logFiles = false;
 	
-    public final String packageName = "agzam4gen." + getClass().getPackageName().substring(getClass().getPackageName().indexOf('.')+1);
+    public final String packageName = "agzam4gen." + getClass().getPackageName().replaceAll(".apt", "").substring(getClass().getPackageName().indexOf('.')+1);
 
     public static Filer filer;
     protected int round;

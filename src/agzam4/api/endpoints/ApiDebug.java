@@ -1,7 +1,7 @@
 package agzam4.api.endpoints;
 
 import agzam4gen.api.dependencies.*;
-import agzam4proc.api.ApiAnnotations.*;
+import agzam4proc.apt.api.ApiAnnotations.*;
 
 @Router("/debug")
 public class ApiDebug {

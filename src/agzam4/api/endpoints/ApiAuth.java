@@ -5,8 +5,8 @@ import java.util.UUID;
 import agzam4.api.auth.AuthDatabase;
 import agzam4.api.auth.AuthTokens;
 import agzam4gen.api.dependencies.*;
-import agzam4proc.api.ApiAnnotations.*;
-import agzam4proc.api.lib.ApiResponse;
+import agzam4proc.apt.api.ApiAnnotations.*;
+import agzam4proc.apt.api.lib.ApiResponse;
 import arc.util.serialization.Jval;
 
 @Router("/auth")

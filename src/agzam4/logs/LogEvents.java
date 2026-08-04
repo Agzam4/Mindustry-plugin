@@ -6,7 +6,7 @@ import agzam4.database.DBFields.*;
 import agzam4.logs.LogsAnnotations.JsonProp;
 import agzam4.logs.LogsAnnotations.Sensitive;
 import agzam4.logs.LogsAnnotations.Sensitive.SensitiveProtector;
-import agzam4proc.api.ApiAnnotations.Type;
+import agzam4proc.apt.api.ApiAnnotations.Type;
 import arc.util.Time;
 import mindustry.gen.Player;
 

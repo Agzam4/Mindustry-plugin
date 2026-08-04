@@ -4,10 +4,10 @@ import agzam4.events.ServerEventsManager;
 import agzam4gen.api.dependencies.Auth;
 import agzam4gen.api.dependencies.BodyParm;
 import agzam4gen.api.dependencies.SessionIp;
-import agzam4proc.api.ApiAnnotations.Post;
-import agzam4proc.api.ApiAnnotations.Router;
-import agzam4proc.api.ApiAnnotations.Type;
-import agzam4proc.api.lib.ApiResponse;
+import agzam4proc.apt.api.ApiAnnotations.Post;
+import agzam4proc.apt.api.ApiAnnotations.Router;
+import agzam4proc.apt.api.ApiAnnotations.Type;
+import agzam4proc.apt.api.lib.ApiResponse;
 import arc.util.Strings;
 import mindustry.net.Administration.PlayerInfo;
 

@@ -8,9 +8,9 @@ import agzam4.logs.LogEvents.LogEntity;
 import agzam4.logs.Logs;
 import agzam4.utils.Log;
 import agzam4gen.api.dependencies.*;
-import agzam4proc.api.ApiAnnotations.*;
-import agzam4proc.api.lib.ApiResponse;
-import agzam4proc.api.lib.SseSource;
+import agzam4proc.apt.api.ApiAnnotations.*;
+import agzam4proc.apt.api.lib.ApiResponse;
+import agzam4proc.apt.api.lib.SseSource;
 import mindustry.net.Administration.PlayerInfo;
 
 @Router("/logs")
