@@ -23,6 +23,9 @@ dependencies {
 	compileOnly 'com.google.auto.service:auto-service-annotations:1.1.1'
 	annotationProcessor 'com.google.auto.service:auto-service:1.1.1'
     compileOnly "Anuken:Mindustry:${rootProject.mindustryVersion}"
+    
+    compileOnly 'net.ltgt.gradle.incap:incap:0.3'
+    annotationProcessor 'net.ltgt.gradle.incap:incap-processor:0.3'
 }
 
 tasks.named('build') {
