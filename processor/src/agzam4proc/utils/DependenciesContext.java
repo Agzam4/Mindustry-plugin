@@ -7,7 +7,6 @@ import javax.lang.model.util.Types;
 import com.squareup.javapoet.TypeName;
 import com.sun.net.httpserver.HttpExchange;
 
-import agzam4proc.BaseProcessor;
 import agzam4proc.utils.element.*;
 import arc.struct.*;
 
@@ -21,13 +20,12 @@ public class DependenciesContext {
 	public ProcessingEnvironment processingEnv;
 	public Scheme scheme;
 
-	private ObjectMap<Typepath, DependencyInfo> dependencyCache = ObjectMap.of();
+	public ObjectMap<Typepath, DependencyInfo> dependencyCache = ObjectMap.of();
 
-
-	public DependenciesContext(BaseProcessor processor) {
-		this.packageName = processor.packageName;
-		this.typeUtils = processor.typeUtils;
-		this.processingEnv = processor.processingEnv();
+	public DependenciesContext(String packageName, Types typeUtils, ProcessingEnvironment environment) {
+		this.packageName = packageName;
+		this.typeUtils = typeUtils;
+		this.processingEnv = environment;
 		this.scheme = new Scheme();
 	}
 
