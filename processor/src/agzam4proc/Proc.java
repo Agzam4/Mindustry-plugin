@@ -3,6 +3,7 @@ package agzam4proc;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
 
+import javax.annotation.processing.Generated;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
@@ -34,6 +35,12 @@ public class Proc {
 	public static AnnotationSpec target(ElementType type) {
 	    return AnnotationSpec.builder(Target.class)
 	            .addMember("value", "$T.$L", ElementType.class, type.name())
+	            .build();
+	}
+	
+	public static AnnotationSpec generated(String value) {
+	    return AnnotationSpec.builder(Generated.class)
+	            .addMember("value", "$S", value)
 	            .build();
 	}
 
