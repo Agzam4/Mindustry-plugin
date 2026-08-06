@@ -27,7 +27,7 @@ public class MethodInfo implements Equality<MethodInfo> {
 	
 	public Seq<ParmResolver> resolve(ObjectSet<TypeName> allowed) {
 		if(resolvers != null) return resolvers;
-		Log.info("Resolving @:@", cls.name, name);
+//		Log.info("Resolving @:@", cls.name, name);
 		resolvers = new Seq<>();
 		for (var parm : method.parms) {
 			resolvers.add(new ParmResolver(context, parm, allowed));
