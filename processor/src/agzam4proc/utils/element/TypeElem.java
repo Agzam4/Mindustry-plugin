@@ -18,7 +18,6 @@ import com.squareup.javapoet.TypeSpec;
 
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
-import arc.util.Log;
 
 public class TypeElem extends Elem {
 

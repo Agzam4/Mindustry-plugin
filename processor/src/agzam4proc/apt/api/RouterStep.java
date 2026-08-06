@@ -1,39 +1,20 @@
 package agzam4proc.apt.api;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.HashSet;
 import java.util.Set;
 
-import javax.lang.model.element.Element;
-import javax.lang.model.element.Modifier;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.DeclaredType;
-import javax.lang.model.type.TypeMirror;
+import javax.lang.model.element.*;
+import javax.lang.model.type.*;
 
 import com.google.auto.common.MoreElements;
-import com.squareup.javapoet.ArrayTypeName;
-import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.CodeBlock;
-import com.squareup.javapoet.FieldSpec;
-import com.squareup.javapoet.MethodSpec;
-import com.squareup.javapoet.ParameterizedTypeName;
-import com.squareup.javapoet.TypeName;
-import com.squareup.javapoet.TypeSpec;
-import com.squareup.javapoet.WildcardTypeName;
+import com.squareup.javapoet.*;
 import com.sun.net.httpserver.HttpServer;
 
 import agzam4proc.BaseStep;
 import agzam4proc.Proc;
-import agzam4proc.apt.api.ApiAnnotations.Post;
-import agzam4proc.apt.api.ApiAnnotations.Router;
-import agzam4proc.apt.api.ApiAnnotations.Sse;
-import agzam4proc.apt.api.ApiAnnotations.SseHandler;
+import agzam4proc.apt.api.ApiAnnotations.*;
 import agzam4proc.apt.api.lib.SseSource;
-import agzam4proc.apt.api.proto.EndpointInfo;
-import agzam4proc.apt.api.proto.ReactGenerator;
-import agzam4proc.apt.api.proto.TypescriptGenerator;
+import agzam4proc.apt.api.proto.*;
 import agzam4proc.utils.DependenciesContext;
 import agzam4proc.utils.MethodInfo;
 import agzam4proc.utils.element.TypeElem;

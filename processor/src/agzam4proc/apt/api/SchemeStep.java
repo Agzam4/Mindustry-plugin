@@ -6,7 +6,6 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
 
 import agzam4proc.BaseStep;
 import agzam4proc.apt.api.ApiAnnotations.Type;

@@ -6,7 +6,6 @@ import agzam4proc.utils.element.ExecutableElem;
 import agzam4proc.utils.element.TypeElem;
 import arc.struct.ObjectSet;
 import arc.struct.Seq;
-import arc.util.Log;
 
 public class MethodInfo implements Equality<MethodInfo> {
 	

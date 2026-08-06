@@ -10,7 +10,6 @@ import agzam4proc.BaseProcessor;
 import agzam4proc.utils.TypeInfo;
 import agzam4proc.utils.element.*;
 import arc.struct.*;
-import arc.util.Log;
 import arc.util.serialization.Jval;
 import arc.util.serialization.Jval.Jformat;
 
