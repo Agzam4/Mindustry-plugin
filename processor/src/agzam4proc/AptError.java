@@ -8,11 +8,10 @@ import arc.util.Strings;
 public class AptError extends RuntimeException {
 
 	public final Element element;
-	public final String message;
 	
 	public AptError(Element element, String message, Object ...args) {
+		super(Strings.format(message, args));
 		this.element = element;
-		this.message = Strings.format(message, args);
 	}
 
 
