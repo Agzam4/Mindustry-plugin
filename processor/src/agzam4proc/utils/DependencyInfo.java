@@ -1,13 +1,17 @@
 package agzam4proc.utils;
 
 import java.lang.annotation.ElementType;
+import java.lang.annotation.Target;
 
 import javax.lang.model.element.Modifier;
+
+import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
 import agzam4proc.Proc;
 import agzam4proc.apt.api.ApiAnnotations.DependencyImpl;
+import agzam4proc.apt.api.ApiAnnotations.GeneratedDependency;
 import agzam4proc.apt.api.ApiAnnotations.RequireBody;
 import agzam4proc.utils.element.AnnotationElem;
 import agzam4proc.utils.element.TypeElem;
@@ -59,7 +63,7 @@ public class DependencyInfo {
 				.addJavadoc("Auto-generated annotation based on {@link $T}$L", this.type.typeName, doc == null ? "" : "<br>\n<br>\n" + doc.trim())
 				.addModifiers(Modifier.PUBLIC)
 				.addAnnotation(Proc.target(ElementType.PARAMETER))
-				.addAnnotation(Proc.generated(getClass().getCanonicalName()))
+				.addAnnotation(AnnotationSpec.builder(GeneratedDependency.class) .addMember("value", "$T.class",this.type.typeName).build())
 				.build();
 	}
 	
