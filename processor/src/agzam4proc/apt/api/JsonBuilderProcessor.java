@@ -10,7 +10,6 @@ import agzam4proc.BaseProcessor;
 import agzam4proc.utils.TypeInfo;
 import agzam4proc.utils.element.*;
 import arc.struct.*;
-import arc.util.Log;
 import arc.util.serialization.Jval;
 import arc.util.serialization.Jval.Jformat;
 
@@ -44,7 +43,6 @@ public class JsonBuilderProcessor {
 		this.type = info.type;
 		this.packageName = packageName;
 		this.builder = TypeElem.of(packageName, type.name + "JsonBuilder");
-		Log.info(" - @", info.type);
 	}
 	
 	boolean written = false;
@@ -137,7 +135,7 @@ public class JsonBuilderProcessor {
 		});
 		method.addStatement("return $L.toString($T.plain)", _json, TypeName.get(Jformat.class));
 		
-		processor.write(writeToPackage, builder.build());
+		processor.write(writeToPackage, builder.build(), info.type.element());
 		written = true;
 	}
 	

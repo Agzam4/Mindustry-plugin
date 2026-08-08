@@ -11,7 +11,7 @@ import agzam4proc.utils.element.Typepath;
 import agzam4proc.utils.element.VariableElem;
 import arc.struct.ObjectSet;
 import arc.struct.Seq;
-import arc.util.Nullable;
+import arc.util.*;
 
 public class ParmResolver {
 
@@ -33,9 +33,20 @@ public class ParmResolver {
 
 		TypeElem paramTypeName = parameter.type;
 
+		this.allowed = allowed.find(t -> t.equals(paramTypeName.typeName));
+		
+		if(parameter.annotations().size == 0 && this.allowed == null) {
+			
+			throw parameter.error(Strings.format(
+					"No annotations found for \"@ @\"",
+					parameter.type.name, parameter.name
+					));
+
+		}
+		
 		boolean found = false;
 		for (var adPath : parameter.annotations()) {
-//			Typepath adPath = ad.path;
+//			Log.info("- annotation: @", adPath);
 
 			if (adPath.equals(Typepath.of(CallerParm.class))) {
 				if (found) throw parameter.error("Parametr can contains only one dependency annotation");
@@ -63,10 +74,12 @@ public class ParmResolver {
 			}
 		}
 
-		this.allowed = allowed.find(t -> t.equals(paramTypeName.typeName));
 		if (this.allowed != null) return;
 
-		if (!found) throw parameter.error(String.format("No provider found for \"%s\". Ensure a @Dependency exists that returns this type.", parameter.name));
+		if (!found) throw parameter.error(String.format(
+				"No provider found for \"%s %s\". Ensure a @Dependency (\"%s\") exists that returns this type.",
+				parameter.type.name, parameter.name, parameter.annotations().toString("\", \"", a -> a.simpleName)
+				));
 
 	}
 }

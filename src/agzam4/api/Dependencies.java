@@ -188,7 +188,7 @@ public class Dependencies {
 			var session = AuthDatabase.validate(sessionId, ip);
 			if(session == null) throw new ApiResponse("Unauthorized").unauthorized();
 			return session.uuid;
-		}
+		}	
 
 		@DependencyImpl
 		public static PlayerInfo dependsPlayerInfo(@SessionId String sessionId, @SessionIp String ip) throws ApiResponse {
@@ -224,18 +224,18 @@ public class Dependencies {
 		}
 		
 	}
-
-	@Dependency
-	@Deprecated
-	public class RequirePermissionDependency {
-
-		@DependencyImpl
-		public static PlayerInfo depends(@Auth PlayerInfo info, @CallerParm String permission) throws ApiResponse {
-			if(!Admins.has(info, Strings.camelToKebab(permission))) throw new ApiResponse("Forbidden").forbidden();
-			return info;
-		}
-		
-	}
+//
+//	@Dependency
+//	@Deprecated
+//	public class RequirePermissionDependency {
+//
+//		@DependencyImpl
+//		public static PlayerInfo depends(@Auth PlayerInfo info, @CallerParm String permission) throws ApiResponse {
+//			if(!Admins.has(info, Strings.camelToKebab(permission))) throw new ApiResponse("Forbidden").forbidden();
+//			return info;
+//		}
+//		
+//	}
 
 	
 	

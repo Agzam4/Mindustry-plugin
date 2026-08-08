@@ -6,7 +6,6 @@ import agzam4proc.utils.element.ExecutableElem;
 import agzam4proc.utils.element.TypeElem;
 import arc.struct.ObjectSet;
 import arc.struct.Seq;
-import arc.util.Log;
 
 public class MethodInfo implements Equality<MethodInfo> {
 	
@@ -27,7 +26,7 @@ public class MethodInfo implements Equality<MethodInfo> {
 	
 	public Seq<ParmResolver> resolve(ObjectSet<TypeName> allowed) {
 		if(resolvers != null) return resolvers;
-		Log.info("Resolving @:@", cls.name, name);
+//		Log.info("Resolving @:@", cls.name, name);
 		resolvers = new Seq<>();
 		for (var parm : method.parms) {
 			resolvers.add(new ParmResolver(context, parm, allowed));

@@ -74,7 +74,6 @@ public class EndpointProcessor {
 				var toStringInfo = new MethodInfo(method.context, objects, objects.methods.find(m -> m.name.equals("toString")));
 				resultMethod = new CallProvider(toStringInfo);
 			} else {
-				Log.info("Return type not string", resultType.typepath.binary);
 				var jbp = JsonBuilderProcessor.builders.get(resultType.noDimension());
 				if(jbp == null) throw method.method.error("No string builders found for @", resultType.noDimension());
 				resultNode = buildGraph(null, new CallProvider(method), null);

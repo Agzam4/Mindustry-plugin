@@ -28,6 +28,10 @@ public class Scheme {
 		return schemes.get(typeName);
 	}
 
+	public int size() {
+		return schemes.size;
+	}
+
 	
 	
 }

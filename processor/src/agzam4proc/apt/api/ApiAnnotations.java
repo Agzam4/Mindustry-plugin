@@ -62,6 +62,13 @@ public class ApiAnnotations {
 //		String value() default "";
 //	}
 
+
+	@Retention(RetentionPolicy.SOURCE)
+	@Target(ElementType.TYPE)
+	public @interface GeneratedDependency {
+		Class<?> value();
+	}
+	
 	@Retention(RetentionPolicy.SOURCE)
 	@Target(ElementType.TYPE)
 	public @interface Dependency {}

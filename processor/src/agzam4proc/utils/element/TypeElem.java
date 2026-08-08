@@ -18,7 +18,6 @@ import com.squareup.javapoet.TypeSpec;
 
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
-import arc.util.Log;
 
 public class TypeElem extends Elem {
 
@@ -108,6 +107,22 @@ public class TypeElem extends Elem {
 		if (superMirror.getKind() != TypeKind.NONE && !superMirror.toString().equals("java.lang.Object")) {
 			this.superclassPath = Typepath.of(superMirror);
 		}
+	}
+	
+	public TypeElem update(TypeElement e) {
+		super.init(e);
+		this.name = e.getSimpleName().toString();
+		this.typepath = Typepath.of(e);
+		this.typeName = TypeElem.toClassName(typepath);
+		this.methods = Seq.with(ElementFilter.methodsIn(e.getEnclosedElements()))
+				.map(m -> ExecutableElem.of(m));
+		this.fields = Seq.with(ElementFilter.fieldsIn(e.getEnclosedElements()))
+				.map(f -> VariableElem.of(f));
+		TypeMirror superMirror = e.getSuperclass();
+		if (superMirror.getKind() != TypeKind.NONE && !superMirror.toString().equals("java.lang.Object")) {
+			this.superclassPath = Typepath.of(superMirror);
+		}
+		return this;
 	}
 
 	public static TypeElem of(TypeMirror mirror) {
@@ -282,5 +297,6 @@ public class TypeElem extends Elem {
 	public int dimension() {
 		return dimension;
 	}
+
 	
 }

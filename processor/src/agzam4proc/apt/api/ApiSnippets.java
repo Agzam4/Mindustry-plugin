@@ -1,14 +1,11 @@
 package agzam4proc.apt.api;
 
 import java.io.IOException;
-import java.io.InputStream;
-
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
 import agzam4proc.apt.api.lib.ApiResponse;
 import arc.util.Log;
-import arc.util.io.Streams;
 
 public class ApiSnippets {
 

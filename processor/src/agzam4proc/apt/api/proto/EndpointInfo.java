@@ -1,7 +1,5 @@
 package agzam4proc.apt.api.proto;
 
-import java.lang.reflect.Method;
-
 import agzam4proc.utils.MethodInfo;
 import agzam4proc.utils.element.*;
 import arc.struct.Seq;
