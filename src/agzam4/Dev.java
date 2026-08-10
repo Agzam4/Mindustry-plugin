@@ -28,7 +28,8 @@ public class Dev {
 			propsFi.writeString("admin.name=" + scanner.nextLine(), false);
 		}
 		
-		PropertiesUtils.load(props, Fi.get(".env.properties").reader());
+		PropertiesUtils.load(props, propsFi.reader());
+		Log.info(propsFi.readString());
 		
 		String[] type = props.get("event.name").split("\n");
 		
@@ -58,6 +59,11 @@ public class Dev {
 			if(input.contains(props.get("admin.name")) && !input.contains("status")) return "admin add " + props.get("admin.name");
 			return null;
 		});
+		plugin.filter = s -> {
+			if(s.startsWith("> ")) return false;
+			if(s.equals("  ")) return false;
+			return true;
+		};
 		plugin.workdir = root;
 		plugin.start();
 

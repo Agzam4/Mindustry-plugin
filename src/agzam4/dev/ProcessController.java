@@ -8,6 +8,7 @@ import java.io.OutputStreamWriter;
 import java.util.concurrent.TimeUnit;
 
 import arc.files.Fi;
+import arc.func.Boolf;
 import arc.func.Func;
 import arc.struct.ObjectMap;
 import arc.util.Strings;
@@ -21,6 +22,7 @@ public class ProcessController {
 	public boolean out = false;
 	public boolean in = false;
 	public Func<String, String> responder = null;
+	public Boolf<String> filter = null;
 	public ObjectMap<String, String> env = ObjectMap.of();
 	
 	private Process process;
@@ -117,7 +119,9 @@ public class ProcessController {
 			String line;
 			while ((line = reader.readLine()) != null) {
 				if(out) {
-					System.out.println(Strings.format("[@] @", name, line));
+					if(filter == null || filter.get(line)) {
+						System.out.println(Strings.format("[@] @", name, line));
+					}
 				}
 
 				if(responder != null) {
