@@ -85,6 +85,18 @@ public class TypeElem extends Elem {
 		return of(ClassName.get(clz));
 	}
 	
+	public boolean isPrimitive() {
+		return this == typeInt 
+				|| this == typeLong 
+				|| this == typeFloat 
+				|| this == typeDouble 
+				|| this == typeBoolean 
+				|| this == typeByte 
+				|| this == typeShort 
+				|| this == typeChar
+				|| this == typeVoid;
+	}
+	
 	public static TypeElem of(TypeElement e) {
 		Typepath path = Typepath.of(e);
 		if (existing.containsKey(path)) return existing.get(path);
