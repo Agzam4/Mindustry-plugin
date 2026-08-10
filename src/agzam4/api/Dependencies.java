@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -53,6 +54,23 @@ public class Dependencies {
 				throw new ApiResponse(":)");
 			}
 			return exchange.getRequestBody();
+		}
+		
+		@DependencyImpl
+		public static String dependsString(HttpExchange exchange) throws ApiResponse, IOException {
+			try (InputStream is = exchange.getRequestBody()) {
+		        return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+		    }
+		}
+		
+	}
+	
+	@Dependency
+	public class McpRpcDependency {
+
+		@DependencyImpl
+		public static HttpExchange dependsMcpJson(HttpExchange exchange) throws ApiResponse, IOException {
+			return exchange;
 		}
 		
 	}
@@ -208,7 +226,7 @@ public class Dependencies {
 			if(info == null) throw new ApiResponse("Unauthorized").unauthorized();
 			if(!Objects.equals(session.usid, info.adminUsid)) throw new ApiResponse("Unauthorized").unauthorized();
 			var admin = Admins.adminData(info);
-			if(admin == null) throw new ApiResponse("Forbidden").forbidden();
+			if(admin == null) throw ApiResponse.forbidden;
 			return admin;
 		}
 		
@@ -219,23 +237,12 @@ public class Dependencies {
 	public class PermissionDependency {
 
 		@DependencyImpl
+		@Deprecated
 		public static boolean depends(@Auth PlayerInfo info, @CallerParm String permission) throws ApiResponse {
 			return Admins.has(info, Strings.camelToKebab(permission));
 		}
 		
 	}
-//
-//	@Dependency
-//	@Deprecated
-//	public class RequirePermissionDependency {
-//
-//		@DependencyImpl
-//		public static PlayerInfo depends(@Auth PlayerInfo info, @CallerParm String permission) throws ApiResponse {
-//			if(!Admins.has(info, Strings.camelToKebab(permission))) throw new ApiResponse("Forbidden").forbidden();
-//			return info;
-//		}
-//		
-//	}
 
 	
 	
