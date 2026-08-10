@@ -1,8 +1,6 @@
 package agzam4.api.endpoints;
 
 import java.util.Locale;
-import java.util.concurrent.TimeUnit;
-
 import agzam4.Game;
 import agzam4.admins.AdminData;
 import agzam4.admins.Admins;
@@ -14,11 +12,8 @@ import agzam4gen.api.dependencies.*;
 import agzam4proc.apt.api.ApiAnnotations.*;
 import agzam4proc.apt.api.lib.ApiResponse;
 import arc.func.Func;
-import arc.func.Func2;
 import arc.struct.Seq;
 import arc.util.Nullable;
-import arc.util.Strings;
-import arc.util.Time;
 import mindustry.Vars;
 import mindustry.net.Administration.PlayerInfo;
 
@@ -95,7 +90,7 @@ public class ApiInfo {
 
 	@Post
 	public static PlayerTrace playerTrace(@Auth PlayerInfo info, @BodyParm int id) throws ApiResponse {
-		if(!Admins.has(info, Permissions.logs)) throw new ApiResponse("Forbidden").forbidden();
+		if(!Admins.has(info, Permissions.logs)) throw ApiResponse.forbidden;
 		
 		boolean allowSensitiveData = Admins.has(info, Permissions.sensitiveData);
 		boolean allowTraceAdmins = Admins.has(info, Permissions.traceAdmins);
@@ -175,7 +170,7 @@ public class ApiInfo {
 	
 	@Post
 	public static PlayerSearchResult[] search(@Auth PlayerInfo info2, @BodyParm String query, @BodyParm int limit) throws ApiResponse {
-		if(!Admins.has(info2, Permissions.logs)) throw new ApiResponse("Forbidden").forbidden();
+		if(!Admins.has(info2, Permissions.logs)) throw ApiResponse.forbidden;
 		if(limit > 100) throw new ApiResponse("limit must be <= 100").forbidden();
 
 		Seq<SearchResultPlayer> results = new Seq<>(limit);

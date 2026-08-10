@@ -4,8 +4,6 @@ import agzam4.api.auth.SensitiveData;
 import agzam4.api.auth.SensitiveData.SensitiveType;
 import agzam4.database.DBFields.*;
 import agzam4.logs.LogsAnnotations.JsonProp;
-import agzam4.logs.LogsAnnotations.Sensitive;
-import agzam4.logs.LogsAnnotations.Sensitive.SensitiveProtector;
 import agzam4proc.apt.api.ApiAnnotations.Type;
 import arc.util.Time;
 import mindustry.gen.Player;
@@ -46,6 +44,7 @@ public class LogEvents {
 		public String toString() {
 			return "log-" + globalId;
 		}
+		
 	}
 	
 

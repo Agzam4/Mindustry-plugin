@@ -7,7 +7,6 @@ import java.io.OutputStream;
 import agzam4.admins.Admins;
 import agzam4.api.auth.SensitiveData;
 import agzam4.api.auth.SensitiveData.SensitiveType;
-import agzam4.api.endpoints.ApiEvents.EventInfo;
 import agzam4.commands.Permissions;
 import agzam4.events.ServerEventsManager;
 import agzam4.maps.UserMapSlot;
@@ -32,8 +31,6 @@ import mindustry.net.Administration.PlayerInfo;
 @Router("/maps")
 public class ApiMaps {
 
-	
-	
 	@Type
 	public static class MapSlotInfo {
 		
