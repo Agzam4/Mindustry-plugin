@@ -6,12 +6,16 @@ import java.io.StringWriter;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ExecutableElement;
 import javax.tools.Diagnostic;
 
 import com.google.auto.common.BasicAnnotationProcessor;
 import com.google.common.collect.ImmutableSet;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.TypeSpec;
+import com.sun.source.doctree.DocCommentTree;
+import com.sun.source.util.DocTrees;
+
 import arc.struct.Seq;
 import arc.util.Log;
 
@@ -125,5 +129,9 @@ public abstract class BaseProcessor extends BasicAnnotationProcessor {
     public ProcessingEnvironment processingEnv() {
     	return processingEnv;
 	}
-    
+
+	public String getDocComment(ExecutableElement method) {
+		return processingEnv().getElementUtils().getDocComment(method);
+	}
+	
 }

@@ -62,6 +62,11 @@ public abstract class BaseStep implements Step {
 		Seq<Element> all = new Seq<>();
 		elementsByAnnotation.forEach((k,v) -> all.add(v));
 		return ImmutableSet.copyOf(all.toArray(Element.class));
-		
 	}
+	
+
+	protected ImmutableSet<Element> none() {
+		return ImmutableSet.of();
+	}
+	
 }
