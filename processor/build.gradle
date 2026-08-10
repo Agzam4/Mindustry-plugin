@@ -26,6 +26,11 @@ dependencies {
     
     compileOnly 'net.ltgt.gradle.incap:incap:0.3'
     annotationProcessor 'net.ltgt.gradle.incap:incap-processor:0.3'
+    
+    implementation "io.modelcontextprotocol.sdk:mcp-core:2.0.0"
+	implementation "io.modelcontextprotocol.sdk:mcp-json-jackson2:2.0.0"
+	
+	//implementation 'com.github.therapi:therapi-runtime-javadoc:0.15.0'
 }
 
 tasks.named('build') {

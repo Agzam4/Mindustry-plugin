@@ -51,6 +51,9 @@ dependencies{
     compileOnly "Anuken:Mindustry:$mindustryVersion"
     implementation "org.telegram:telegrambots:6.9.7.1"
     implementation 'org.xerial:sqlite-jdbc:3.49.1.0'
+    
+    implementation "io.modelcontextprotocol.sdk:mcp-core:2.0.0"
+	implementation "io.modelcontextprotocol.sdk:mcp-json-jackson2:2.0.0"
 }
 
 jar{
