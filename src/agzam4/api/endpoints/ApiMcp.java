@@ -13,6 +13,8 @@ import agzam4proc.apt.api.lib.ApiResponse;
 @Router("/mcp")
 public class ApiMcp {
 	
+	// TODO: protection & disable MCP config
+	
 	@Post
 	public static void server(@McpRpc HttpExchange body) throws ApiResponse, IOException {
 		Mcp.processMessage(body);
