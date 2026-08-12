@@ -1,5 +1,6 @@
 package agzam4proc.apt.mcp;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -82,16 +83,22 @@ public class ToolsStep extends BaseStep {
 			
 			var docs = Docs.parms(doc);
 			Log.info("docs: @", docs);
-			
+
 			Seq<CodeBlock> args = Seq.with();
+			Seq<CodeBlock> required = Seq.with();
+			
 			for (var parm : method.getParameters()) {
 				var type = TypeElem.of(parm.asType());
 				String parmName = snakeName(parm);
 				if(!args.isEmpty()) builder.add(",");
+				required.add(CodeBlock.of("$S", parmName));
 				builder.add("$S, $L", parmName, typeScheme(method, type, docs.get(parm.getSimpleName().toString())));
+//				builder.add(",");
 				args.add(MoreTypeUtils.of(type).valueOf.get(CodeBlock.of("$L.get($S).toString()", _arguments, parmName)));
 			}
-			builder.add("$<)\n$<))");
+			builder.add("$<),\n");
+			builder.add("$S, $T.of($L)", "required", ClassName.get(List.class), CodeBlock.join(required, ", "));
+			builder.add("$<))");
 			builder.add(".description($S)", Docs.desc(doc));
 			builder.add(".build()");
 
