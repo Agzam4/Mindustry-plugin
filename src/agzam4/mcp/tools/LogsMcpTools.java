@@ -5,14 +5,22 @@ import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import agzam4.logs.LogEvents;
+import agzam4.logs.LogEvents.ChatMessageLogEvent;
+import agzam4.logs.LogEvents.LogEvent;
+import agzam4.logs.LogEvents.PlayerCommandLogEvent;
+import agzam4.logs.LogEvents.ServerStartLogEvent;
 import agzam4.logs.Logs;
 import agzam4proc.apt.mcp.McpAnnotations.McpTool;
+import arc.func.Func;
+import arc.struct.ObjectMap;
+import arc.util.Log;
 import arc.util.Strings;
+import arc.util.serialization.Jval;
 
 public class LogsMcpTools {
 
-	private static final long groupInterval = TimeUnit.SECONDS.toMillis(5);
-	
+	private static final long groupInterval = TimeUnit.SECONDS.toMillis(10);
+    
 	/**
 	 * Return id of latest log
 	 */
@@ -30,8 +38,9 @@ public class LogsMcpTools {
 	public static String logs(int id, int limit) {
 		 var list = Logs.filtredPage(id, limit, 0, 999999999999999L, new int[0]);
 		 StringBuilder result = new StringBuilder();
-		 long groupTime = 0;
-		 for (int i = list.length-1; i >= 0; i--) {
+		 long groupNextTime = 0;
+		 for (int i = 0; i < list.length; i++) {
+//		 for (int i = list.length-1; i >= 0; i--) {
 			var item = list[i];
 			if(item == null) continue;;
 			boolean first = result.isEmpty();
@@ -39,23 +48,31 @@ public class LogsMcpTools {
 			// Time groups headers
 			if(first) { // First, full time header
 				result.append("=== ").append(format("yyyy-MM-dd HH:mm:ss", item.timestamp)).append(" ===");
-				groupTime = item.timestamp;
+				groupNextTime = item.timestamp + groupInterval;
 			}
-			if(groupTime + groupInterval < item.timestamp) { // Each group header
-				String delta = String.valueOf(TimeUnit.MILLISECONDS.toSeconds(item.timestamp - (groupTime + groupInterval)));
+			if(groupNextTime < item.timestamp) { // Each group header
+				String delta = String.valueOf(TimeUnit.MILLISECONDS.toSeconds(item.timestamp - groupNextTime + groupInterval));
 				result.append("\n+").append(delta).append("s ").append("=".repeat(24 - delta.length()));
-				groupTime = item.timestamp;
+				groupNextTime = item.timestamp + groupInterval;
 			}
 			
-			if(!first) result.append('\n');
-			result.append(Strings.format("#@ [@] @", 
-					item.globalId, 
-					item.tag >= LogEvents.events.length ? "unknow" : Strings.camelToKebab(LogEvents.events[item.tag].getSimpleName().replace("LogEvent", "")).replace('-', '_'),
-					item.message
-			));
+			String tag = "unknow";
+			String content = item.message;
+			try {
+				LogEvent e = Logs.builders[item.tag].read(item.message);
+				content = e.mcpText();
+				tag = e.mcpTag();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			
+			result.append('\n');
+			result.append(Strings.format("#@ [@] @", item.globalId, tag, content));
 		}
 		return result.toString();
 	}
+	
+	
 	
 	
 	private static String format(String format, long t) {

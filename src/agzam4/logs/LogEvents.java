@@ -4,7 +4,9 @@ import agzam4.api.auth.SensitiveData;
 import agzam4.api.auth.SensitiveData.SensitiveType;
 import agzam4.database.DBFields.*;
 import agzam4.logs.LogsAnnotations.JsonProp;
+import agzam4.mcp.McpUlits;
 import agzam4proc.apt.api.ApiAnnotations.Type;
+import arc.util.Strings;
 import arc.util.Time;
 import mindustry.gen.Player;
 
@@ -52,7 +54,16 @@ public class LogEvents {
 	public static class LogEvent {
 		
 		public long timestamp = Time.millis();
+
+		private LogEvent() {}
 		
+		public String mcpText() {
+			return "";
+		}
+
+		public String mcpTag() {
+			return McpUlits.snakeCase(getClass().getSimpleName().replaceAll("LogEvent", ""));
+		}
 	}
 
 	@Type
@@ -72,9 +83,22 @@ public class LogEvents {
 		@JsonProp
 		public String message;
 
+		@SuppressWarnings("unused")
+		private ChatMessageLogEvent() {}
+		
 		public ChatMessageLogEvent(Player sender, String message) {
 			this.player = SensitiveData.insertOrGet(sender.uuid(), SensitiveType.uuid);
 			this.message = message;
+		}
+		
+		@Override
+		public String mcpText() {
+			return Strings.format("@: \"@\"", player, McpUlits.escapedStrip(message));
+		}
+		
+		@Override
+		public String mcpTag() {
+			return "chat";
 		}
 		
 	}
@@ -88,11 +112,18 @@ public class LogEvents {
 		@JsonProp
 		public String command;
 
+		@SuppressWarnings("unused")
+		private PlayerCommandLogEvent() {}
+		
 		public PlayerCommandLogEvent(Player sender, String command) {
 			this.player = SensitiveData.insertOrGet(sender.uuid(), SensitiveType.uuid);
 			this.command = command;
 		}
-		
+
+		@Override
+		public String mcpText() {
+			return Strings.format("@: \"@\"", player, McpUlits.escapedStrip(command));
+		}
 	}
 
 	@Type
@@ -104,11 +135,18 @@ public class LogEvents {
 		@JsonProp
 		public String command;
 
+		@SuppressWarnings("unused")
+		private AdminCommandLogEvent() {}
+		
 		public AdminCommandLogEvent(Player sender, String command) {
 			this.player = SensitiveData.insertOrGet(sender.uuid(), SensitiveType.uuid);
 			this.command = command;
 		}
-		
+
+		@Override
+		public String mcpText() {
+			return Strings.format("@: \"@\"", player, McpUlits.escapedStrip(command));
+		}
 	}
 
 	@Type
@@ -123,13 +161,20 @@ public class LogEvents {
 		@JsonProp
 		public long seconds;
 
+		@SuppressWarnings("unused")
+		private KickLogEvent() {}
+		
 		public KickLogEvent(Player actor, Player target, String reason, long seconds) {
 			this.actor = SensitiveData.insertOrGet(actor.uuid(), SensitiveType.uuid);
 			this.target = SensitiveData.insertOrGet(target.uuid(), SensitiveType.uuid);
 			this.reason = reason;
 			this.seconds = seconds;
 		}
-		
+
+		@Override
+		public String mcpText() {
+			return Strings.format("@ -> @ \"@\" on @ m", actor, target, McpUlits.escapedStrip(reason), seconds/60);
+		}
 	}
 	
 
@@ -141,13 +186,20 @@ public class LogEvents {
 		
 		@JsonProp
 		public String reason;
+
+		@SuppressWarnings("unused")
+		private VotekickLogEvent() {}
 		
 		public VotekickLogEvent(Player actor, Player target, String reason) {
 			this.actor = SensitiveData.insertOrGet(actor.uuid(), SensitiveType.uuid);
 			this.target = SensitiveData.insertOrGet(target.uuid(), SensitiveType.uuid);
 			this.reason = reason;
 		}
-		
+
+		@Override
+		public String mcpText() {
+			return Strings.format("@ -> @ \"@\"", actor, target, McpUlits.escapedStrip(reason));
+		}
 	}
 
 
@@ -159,12 +211,19 @@ public class LogEvents {
 		
 		@JsonProp
 		public int players;
+
+		@SuppressWarnings("unused")
+		private PlayerLeaveLogEvent() {}
 		
 		public PlayerLeaveLogEvent(Player player, int players) {
 			this.player = SensitiveData.insertOrGet(player.uuid(), SensitiveType.uuid);
 			this.players = players;
 		}
 		
+		@Override
+		public String mcpText() {
+			return Strings.format("@ leave (@ players)", player, players);
+		}
 	}
 
 
@@ -176,12 +235,19 @@ public class LogEvents {
 		
 		@JsonProp
 		public int players;
+
+		@SuppressWarnings("unused")
+		private PlayerJoinLogEvent() {}
 		
 		public PlayerJoinLogEvent(Player player, int players) {
 			this.player = SensitiveData.insertOrGet(player.uuid(), SensitiveType.uuid);
 			this.players = players;
 		}
-		
+
+		@Override
+		public String mcpText() {
+			return Strings.format("@ joined (@ players)", player, players);
+		}
 	}
 
 	@Type
@@ -192,13 +258,20 @@ public class LogEvents {
 		
 		@JsonProp
 		public int wave, hightscore;
+
+		@SuppressWarnings("unused")
+		private GameOverLogEvent() {}
 		
 		public GameOverLogEvent(String map, int wave, int hightscore) {
 			this.map = map;
 			this.wave = wave;
 			this.hightscore = hightscore;
 		}
-		
+
+		@Override
+		public String mcpText() {
+			return Strings.format("Map: \"@\", (Wave: @, High Score: @)", McpUlits.escapedStrip(map), wave, hightscore);
+		}
 	}
 	
 	@Type
@@ -206,9 +279,17 @@ public class LogEvents {
 
 		@JsonProp
 		public String map;
+
+		@SuppressWarnings("unused")
+		private GameBeginLogEvent() {}
 		
 		public GameBeginLogEvent(String map) {
 			this.map = map;
+		}
+		
+		@Override
+		public String mcpText() {
+			return Strings.format("Map: \"@\"", McpUlits.escapedStrip(map));
 		}
 		
 	}

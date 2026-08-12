@@ -39,7 +39,7 @@ public class Logs {
 	 * 
 	 * TODO: test on real data
 	 */
-	private static final int maxPageSize = 100;
+	private static final int maxPageSize = 300;
 	private static final RuntimeException amoutOfRequestedLimit = new RuntimeException("Amount of requested logs can not be >" + maxPageSize);
 	
 	/**
@@ -62,7 +62,7 @@ public class Logs {
 	private static Seq<LogInstance> instances = new Seq<>(); // CopyOnWriteArrayList?
 
 	private static ObjectMap<Class<? extends LogEvent>, LogBuilder<? extends LogEvent>> builderByClass = ObjectMap.of();
-	private static LogBuilder<? extends LogEvent>[] builders;
+	public static LogBuilder<? extends LogEvent>[] builders;
 
 	private static final Object lock = new Object();
 

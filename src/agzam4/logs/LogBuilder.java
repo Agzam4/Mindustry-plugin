@@ -4,6 +4,7 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 
 import agzam4.api.auth.SensitiveData;
 import agzam4.logs.LogsAnnotations.JsonProp;
@@ -11,9 +12,11 @@ import agzam4.logs.LogsAnnotations.Sensitive;
 import agzam4.utils.Log;
 import agzam4.utils.Strs;
 import arc.func.Cons2;
+import arc.func.Func;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
 import arc.util.Nullable;
+import arc.util.serialization.Jval;
 
 public class LogBuilder<T> {
 	
@@ -70,6 +73,7 @@ public class LogBuilder<T> {
 	private String[] sensitiveTypes;
 	private String[] precomputedHeaders; // "name":
 	public final int id;
+	private String[] names;
 
 	public LogBuilder(Class<T> cls, int id) {
 		this.cls = cls;
@@ -78,7 +82,8 @@ public class LogBuilder<T> {
         Lookup lookup = MethodHandles.lookup();
         
 		StringBuilder part = new StringBuilder();
-		
+
+		Seq<String> names = new Seq<>();
 		Seq<String> parts = new Seq<>();
 		Seq<JsonTypes> types = new Seq<>();
 		Seq<Extractor<T>> extractors = new Seq<>();
@@ -114,12 +119,14 @@ public class LogBuilder<T> {
 				part.append('"').append(name).append("\":");
 				parts.add(part.toString());
 				part.setLength(0);
+				names.add(name);
 			} catch (IllegalAccessException e) {
 				Log.err(e);
 			}
 		}
-		
+
 		this.precomputedHeaders = parts.toArray(String.class);
+		this.names = names.toArray(String.class);
 		this.extractors = extractors.toArray(Extractor.class);
 		this.sensitive = new boolean[sensitiveTypesSeq.size];
 		this.sensitiveTypes = new String[sensitiveTypesSeq.size];
@@ -162,5 +169,46 @@ public class LogBuilder<T> {
 		return json.toString();
 	}
 	
+    private static final ObjectMap<Class<?>, Func<Jval, Object>> cast = create();
+	
+	private static ObjectMap<Class<?>, Func<Jval, Object>> create() {
+		ObjectMap<Class<?>, Func<Jval, Object>> m = ObjectMap.of();
+		m.put(Boolean.class, j -> j.asBool());
+		m.put(boolean.class, j -> j.asBool());
+		m.put(Integer.class, j -> j.asInt());
+		m.put(int.class, j -> j.asInt());
+		m.put(Long.class, j -> j.asLong());
+		m.put(long.class, j -> j.asLong());
+		m.put(Short.class, j -> (short)j.asInt());
+		m.put(short.class, j -> (short)j.asInt());
+		m.put(Byte.class, j -> (byte)j.asInt());
+		m.put(byte.class, j -> (byte)j.asInt());
+
+		m.put(Double.class, j -> j.asDouble());
+		m.put(double.class, j -> j.asDouble());
+		m.put(Float.class, j -> j.asFloat());
+		m.put(float.class, j -> j.asFloat());
+
+		m.put(Character.class, j -> {
+			var s = j.asString();
+			return s.isEmpty() ? '\0' : s.charAt(0);
+		});
+		m.put(String.class, j -> j.asString());
+		return m;
+	}
+
+
+	public T read(String json) throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, NoSuchFieldException {
+		var c = cls.getDeclaredConstructor();
+		c.setAccessible(true);
+		@SuppressWarnings("unchecked")
+		T event = (T) c.newInstance();
+		var jval = Jval.read(json);
+		for (int i = 0; i < names.length; i++) {
+			var f = cls.getField(names[i]);
+			f.set(event, cast.get(f.getType()).get(jval.get(names[i])));
+		}
+		return event;
+	}
 	
 }
