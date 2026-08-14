@@ -39,7 +39,7 @@ public class Logs {
 	 * 
 	 * TODO: test on real data
 	 */
-	private static final int maxPageSize = 300;
+	public static final int maxPageSize = 300;
 	private static final RuntimeException amoutOfRequestedLimit = new RuntimeException("Amount of requested logs can not be >" + maxPageSize);
 	
 	/**

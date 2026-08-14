@@ -1,21 +1,16 @@
 package agzam4.mcp.tools;
 
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
-import agzam4.logs.LogEvents;
-import agzam4.logs.LogEvents.ChatMessageLogEvent;
 import agzam4.logs.LogEvents.LogEvent;
-import agzam4.logs.LogEvents.PlayerCommandLogEvent;
-import agzam4.logs.LogEvents.ServerStartLogEvent;
 import agzam4.logs.Logs;
 import agzam4proc.apt.mcp.McpAnnotations.McpTool;
-import arc.func.Func;
-import arc.struct.ObjectMap;
+import arc.struct.Seq;
 import arc.util.Log;
 import arc.util.Strings;
-import arc.util.serialization.Jval;
 
 public class LogsMcpTools {
 
@@ -37,10 +32,10 @@ public class LogsMcpTools {
 	@McpTool
 	public static String logs(int id, int limit) {
 		 var list = Logs.filtredPage(id, limit, 0, 999999999999999L, new int[0]);
+		 
 		 StringBuilder result = new StringBuilder();
 		 long groupNextTime = 0;
 		 for (int i = 0; i < list.length; i++) {
-//		 for (int i = list.length-1; i >= 0; i--) {
 			var item = list[i];
 			if(item == null) continue;;
 			boolean first = result.isEmpty();
@@ -71,12 +66,64 @@ public class LogsMcpTools {
 		}
 		return result.toString();
 	}
+
+	private static int contentDisplayLimit = 25;
 	
-	
-	
+	/**
+	 * Return logs interval from up to id
+	 * @param timeFrom - time of oldest log in ISO format
+	 * @param timeTo - time of latest log in ISO format
+	 */
+	@McpTool
+	public static String logsContent(String timeFrom, String timeTo) {
+		long from = Instant.parse(timeFrom).toEpochMilli();
+		long to = Instant.parse(timeTo).toEpochMilli();
+		Log.info("=== Logs @ to @ ===", timeFrom, timeTo);
+		
+		if(TimeUnit.DAYS.toMillis(30) < to - from) throw new RuntimeException("Time differencse can't increase 1 day");
+		
+		Seq<String> lines = new Seq<String>();
+		
+		long latest = Logs.lastId();
+		int lastTag = -1;
+		long lastId = latest;
+		
+		main:
+		while (true) {
+			Log.info("Left: @", latest);
+			if(latest <= 0) break;
+			
+			var list = Logs.filtredPage(latest, Logs.maxPageSize, from, to, new int[0]);
+			latest -= Logs.maxPageSize;
+
+			for (int i = list.length-1; i >= 0; i--) {
+				var log = list[i];
+				if(log == null) {
+					continue;
+				}
+				if(log.tag != lastTag) {
+					if(0 <= lastTag && lastTag < Logs.builders.length)
+						if(lastId - log.globalId - 1 > 0)
+							lines.add(Strings.format("[@+@] [@]", log.globalId+1, lastId - log.globalId - 1, Logs.builders[lastTag].instance().mcpTag()));
+						else
+							lines.add(Strings.format("[@] [@]", lastId, Logs.builders[lastTag].instance().mcpTag()));
+							
+					if(lines.size > contentDisplayLimit) {
+						lines.add(Strings.format("Only @ logs was displayed, search [@, @] for more", contentDisplayLimit, timeFrom, Instant.ofEpochMilli(log.timestamp).toString()));
+						break main;
+					}
+					lastTag = log.tag;
+					lastId = log.globalId;
+				}
+			}
+		}
+		
+		return lines.reverse().toString("\n");
+	}
 	
 	private static String format(String format, long t) {
 		return new SimpleDateFormat(format).format(new Date(t));
 	}
+
 	
 }

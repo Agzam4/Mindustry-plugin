@@ -15,6 +15,7 @@ import arc.func.Cons2;
 import arc.func.Func;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
+import arc.util.ArcRuntimeException;
 import arc.util.Nullable;
 import arc.util.serialization.Jval;
 
@@ -209,6 +210,18 @@ public class LogBuilder<T> {
 			f.set(event, cast.get(f.getType()).get(jval.get(names[i])));
 		}
 		return event;
+	}
+	
+	public T instance() {	
+		try {
+			var c = cls.getDeclaredConstructor();
+			c.setAccessible(true);
+			@SuppressWarnings("unchecked")
+			T event = (T) c.newInstance();
+			return event;
+		} catch (Throwable e) {
+			throw new ArcRuntimeException(e);
+		}
 	}
 	
 }
