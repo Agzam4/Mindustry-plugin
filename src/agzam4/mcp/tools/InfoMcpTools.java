@@ -3,9 +3,7 @@ package agzam4.mcp.tools;
 import agzam4.Game;
 import agzam4.api.auth.SensitiveData;
 import agzam4.api.auth.SensitiveData.SensitiveType;
-import agzam4.database.Database;
 import agzam4.database.Databases;
-import agzam4.managers.Players;
 import agzam4.utils.Strs;
 import agzam4proc.apt.mcp.McpAnnotations.McpTool;
 import arc.util.Strings;
@@ -61,5 +59,5 @@ public class InfoMcpTools {
 		
 		return builder.toString();
 	}
-	
+
 }

@@ -81,7 +81,6 @@ public class CommandsManager {
 								ByteBufferIO.writeString(res, obj.toString());
 							}
 						}
-						Log.info("sending id: #@", id);
 						Call.clientBinaryPacketReliable(player.con, "agzam4.cmd-sug", res.array());
 					}
 				};
@@ -709,6 +708,7 @@ public class CommandsManager {
 		serverCommand(new InfoCommand());
 		serverCommand(new AsCommand());
 		serverCommand(new StatCommand());
+		serverCommand(new McpCommand());
 
 
 //		adminCommand("pardon", "<ID> [index]", "Прощает выбор игрока по ID и позволяет ему присоединиться снова.", (arg, player) -> {

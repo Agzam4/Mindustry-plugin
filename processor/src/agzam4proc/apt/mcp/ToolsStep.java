@@ -25,6 +25,7 @@ import agzam4proc.utils.element.TypeElem;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
 import arc.util.Log;
+import arc.util.Nullable;
 import arc.util.Strings;
 import io.modelcontextprotocol.common.McpTransportContext;
 import io.modelcontextprotocol.spec.McpSchema;
@@ -56,9 +57,12 @@ public class ToolsStep extends BaseStep {
 		TypeSpec.Builder classBuilder = TypeSpec.classBuilder("McpTools")
 				.addModifiers(Modifier.PUBLIC, Modifier.FINAL)
 				;
+		
+		var simpleScheme = CodeBlock.builder().add("$T.of(", ClassName.get(ObjectMap.class));
 
 		Seq<String> names = Seq.with();
 		
+		boolean firstTool = true;
 		for (var tool : tools) {
 			Namespace namespace = new Namespace();
 			
@@ -86,16 +90,27 @@ public class ToolsStep extends BaseStep {
 
 			Seq<CodeBlock> args = Seq.with();
 			Seq<CodeBlock> required = Seq.with();
+
+			if(!firstTool) simpleScheme.add(",");
+			simpleScheme.add("$S, $T.with(", mapArgs, ClassName.get(Seq.class));
 			
 			for (var parm : method.getParameters()) {
 				var type = TypeElem.of(parm.asType());
+				boolean nullable = parm.getAnnotation(Nullable.class) != null;
 				String parmName = snakeName(parm);
-				if(!args.isEmpty()) builder.add(",");
-				required.add(CodeBlock.of("$S", parmName));
-				builder.add("$S, $L", parmName, typeScheme(method, type, docs.get(parm.getSimpleName().toString())));
+				if(!args.isEmpty()) {
+					builder.add(",");
+					simpleScheme.add(",");
+				}
+				if(!nullable) required.add(CodeBlock.of("$S", parmName));
+				builder.add("$S, $L", parmName, typeScheme(method, type, nullable, docs.get(parm.getSimpleName().toString())));
 //				builder.add(",");
-				args.add(MoreTypeUtils.of(type).valueOf.get(CodeBlock.of("$L.get($S).toString()", _arguments, parmName)));
+				args.add(CodeBlock.of("$L.containsKey($S) ? $L : null",  _arguments, parmName,
+						MoreTypeUtils.of(type).valueOf.get(CodeBlock.of("$L.get($S).toString()", _arguments, parmName))
+						));
+				simpleScheme.add("$S", parmName);
 			}
+			
 			builder.add("$<),\n");
 			builder.add("$S, $T.of($L)", "required", ClassName.get(List.class), CodeBlock.join(required, ", "));
 			builder.add("$<))");
@@ -123,10 +138,21 @@ public class ToolsStep extends BaseStep {
 			
 			methodBuilder.addStatement("var $L = $L", mapArgs, builder.build());
 
+			simpleScheme.add(")");
+			
+			firstTool = false;
+
 		}
+		simpleScheme.add(")");
+		
 		methodBuilder.addStatement("return $T.of($L)", ClassName.get(ObjectMap.class), names.toString(", "));
 
 		classBuilder.addMethod(methodBuilder.build());
+		classBuilder.addField(FieldSpec.builder(ParameterizedTypeName.get(
+				ClassName.get(ObjectMap.class), ClassName.get(String.class), ParameterizedTypeName.get(ClassName.get(Seq.class), ClassName.get(String.class))
+				), "toolsArguments").addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+					.initializer(simpleScheme.build())
+					.build());
 		
 		processor.write("tools", classBuilder.build());
 		
@@ -147,14 +173,18 @@ public class ToolsStep extends BaseStep {
 			TypeElem.of(String.class), "string"
 	);
 	
-	private CodeBlock typeScheme(Element element, TypeElem type, String description) {
+	private CodeBlock typeScheme(Element element, TypeElem type, boolean nullable, String description) {
 		if(!types.containsKey(type)) throw new AptError(element, "Unsupported type \"@\"", type);
 		if(type.isArray()) {
 			throw new AptError(element, "Arrays not supported now");
 		}
 		var builder = CodeBlock.builder();
 		builder.add("$T.of(\n$>", ClassName.get(Map.class));
-		builder.add("$S, $S", "type", types.get(type));
+		if(nullable) {
+			builder.add("$S, $T.of($S, $S)", "type", ClassName.get(List.class), types.get(type), "null");
+		} else {
+			builder.add("$S, $S", "type", types.get(type));
+		}
 		if(description != null) builder.add(",\n$S, $S", "description", description);
 		builder.add("\n$<)\n");
 		return builder.build();
