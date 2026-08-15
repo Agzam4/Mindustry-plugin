@@ -1,11 +1,20 @@
 package agzam4.logs;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+import java.lang.reflect.Field;
+
 import agzam4.api.auth.SensitiveData;
 import agzam4.api.auth.SensitiveData.SensitiveType;
 import agzam4.database.DBFields.*;
 import agzam4.logs.LogsAnnotations.JsonProp;
 import agzam4.mcp.McpUlits;
 import agzam4proc.apt.api.ApiAnnotations.Type;
+import arc.func.Func;
+import arc.struct.Seq;
+import arc.util.Log;
 import arc.util.Strings;
 import arc.util.Time;
 import mindustry.gen.Player;
@@ -25,6 +34,41 @@ public class LogEvents {
 			GameOverLogEvent.class,
 			GameBeginLogEvent.class,
 	};
+	
+	public enum SearchFiledTypes {
+		player;
+		
+		@SuppressWarnings("unchecked")
+		Seq<String>[] sql = new Seq[events.length];
+		int fields;
+	}
+
+	@Target(ElementType.FIELD)
+	@Retention(RetentionPolicy.RUNTIME)
+	public @interface SearchField {
+		public SearchFiledTypes value();
+	}
+	
+	
+	public static void init() {
+		for (var search : SearchFiledTypes.values()) {
+			for (int i = 0; i < events.length; i++) {
+				Log.info("@-@", search, i);
+				Seq<String> fields = Seq.with();
+				for (var f : events[i].getDeclaredFields()) {
+					SearchField a = f.getDeclaredAnnotation(SearchField.class);
+					Log.info("@: @", f.getName(), a);
+					if(a == null) continue;
+					if(a.value() != search) continue;
+					fields.add(f.getName());
+					Log.info(f.getName());
+					search.fields++;
+				}
+				search.sql[i] = fields;
+			}
+		}
+	}
+	
 	
 	@Type
 	public static class LogEntity {
@@ -78,6 +122,7 @@ public class LogEvents {
 	public static class ChatMessageLogEvent extends LogEvent {
 
 		@JsonProp
+		@SearchField(SearchFiledTypes.player)
 		public int player;
 		
 		@JsonProp
@@ -107,6 +152,7 @@ public class LogEvents {
 	public static class PlayerCommandLogEvent extends LogEvent {
 
 		@JsonProp
+		@SearchField(SearchFiledTypes.player)
 		public int player;
 		
 		@JsonProp
@@ -130,6 +176,7 @@ public class LogEvents {
 	public static class AdminCommandLogEvent extends LogEvent {
 
 		@JsonProp
+		@SearchField(SearchFiledTypes.player)
 		public int player;
 		
 		@JsonProp
@@ -153,6 +200,7 @@ public class LogEvents {
 	public static class KickLogEvent extends LogEvent {
 
 		@JsonProp
+		@SearchField(SearchFiledTypes.player)
 		public int actor, target;
 		
 		@JsonProp
@@ -182,6 +230,7 @@ public class LogEvents {
 	public static class VotekickLogEvent extends LogEvent {
 
 		@JsonProp
+		@SearchField(SearchFiledTypes.player)
 		public int actor, target;
 		
 		@JsonProp
@@ -207,6 +256,7 @@ public class LogEvents {
 	public static class PlayerLeaveLogEvent extends LogEvent {
 
 		@JsonProp
+		@SearchField(SearchFiledTypes.player)
 		public int player;
 		
 		@JsonProp
@@ -231,6 +281,7 @@ public class LogEvents {
 	public static class PlayerJoinLogEvent extends LogEvent {
 
 		@JsonProp
+		@SearchField(SearchFiledTypes.player)
 		public int player;
 		
 		@JsonProp

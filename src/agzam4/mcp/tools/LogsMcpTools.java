@@ -121,46 +121,7 @@ public class LogsMcpTools {
 				}
 			}
 		}
-		
-//		for (int part = 0; part < parts; part++) {
-//
-//			long t1 = from + (part * delta)/parts;
-//			long t2 = from + ((part+1) * delta)/parts;
-//			
-//			LogEntity first = null, last = null;
-//			int max = 0;
-//			
-//			while (true) {
-//				Log.info("Left: @", latest);
-//				if(latest <= 0) break;
-//				
-//				var list = Logs.filtredPage(latest, Logs.maxPageSize, t1, t2, new int[0]);
-//				latest -= Logs.maxPageSize;
-//
-//				for (int i = list.length-1; i >= 0; i--) {
-//					var log = list[i];
-//					if(log == null) {
-//						continue;
-//					}
-//					if(t1 <= log.timestamp && log.timestamp < t2) {
-//						if(0 <= log.tag && log.tag < amount.length) {
-//							amount[log.tag]++;
-//							max = Math.max(max, amount[log.tag]);
-//						}
-//						
-//						if(first == null) {
-//							first = log;
-//						}
-//						last = log;
-//					}
-//					
-////					latest = log.globalId-1;
-//				}
-//			}
-//			if(first == null) continue;
-//			latest = last.globalId-1;
-//		}
-		
+
 		for (int part = 0; part < parts; part++) {
 			StringBuilder result = new StringBuilder();
 			result.append("=== Interval ")
@@ -198,52 +159,48 @@ public class LogsMcpTools {
 	    return sdf.format(new Date(t));
 	}
 
-//	/**
-//	 * Return logs interval from up to id
-//	 * @param id - id of log
-//	 * @param limit - maximum of logs (from id to past)
-//	 * @param player - id of player
-//	 */
-//	@McpTool
-//	public static String search(
-//			int id, int limit, 
-//			int player
-//			) {
-//		 var list = Logs.filtredPage(id, limit, 0, 999999999999999L, new int[0]);
-//		 
-//		 StringBuilder result = new StringBuilder();
-//		 long groupNextTime = 0;
-//		 for (int i = 0; i < list.length; i++) {
-////		 for (int i = list.length-1; i >= 0; i--) {
-//			var item = list[i];
-//			if(item == null) continue;;
-//			boolean first = result.isEmpty();
-//			
-//			// Time groups headers
-//			if(first) { // First, full time header
-//				result.append("=== ").append(format("yyyy-MM-dd HH:mm:ss", item.timestamp)).append(" ===");
-//				groupNextTime = item.timestamp + groupInterval;
-//			}
-//			if(groupNextTime < item.timestamp) { // Each group header
-//				String delta = String.valueOf(TimeUnit.MILLISECONDS.toSeconds(item.timestamp - groupNextTime + groupInterval));
-//				result.append("\n+").append(delta).append("s ").append("=".repeat(24 - delta.length()));
-//				groupNextTime = item.timestamp + groupInterval;
-//			}
-//			
-//			String tag = "unknow";
-//			String content = item.message;
-//			try {
-//				LogEvent e = Logs.builders[item.tag].read(item.message);
-//				content = e.mcpText();
-//				tag = e.mcpTag();
-//			} catch (Exception e) {
-//				e.printStackTrace();
-//			}
-//			
-//			result.append('\n');
-//			result.append(Strings.format("#@ [@] @", item.globalId, tag, content));
-//		}
-//		return result.toString();
-//	}
+	/**
+	 * Return logs interval from up to id
+	 * @param id - id of log
+	 * @param limit - maximum of logs (from id to past)
+	 * @param player - id of player
+	 */
+	@McpTool
+	public static String search(int id, int limit, int player) {
+		 var list = Logs.search(id, limit, player);
+		 
+		 StringBuilder result = new StringBuilder();
+		 long groupNextTime = 0;
+		 for (int i = 0; i < list.length; i++) {
+			var item = list[i];
+			if(item == null) continue;;
+			boolean first = result.isEmpty();
+			
+			// Time groups headers
+			if(first) { // First, full time header
+				result.append("=== ").append(format("yyyy-MM-dd HH:mm:ss", item.timestamp)).append(" ===");
+				groupNextTime = item.timestamp + groupInterval;
+			}
+			if(groupNextTime < item.timestamp) { // Each group header
+				String delta = String.valueOf(TimeUnit.MILLISECONDS.toSeconds(item.timestamp - groupNextTime + groupInterval));
+				result.append("\n+").append(delta).append("s ").append("=".repeat(24 - delta.length()));
+				groupNextTime = item.timestamp + groupInterval;
+			}
+			
+			String tag = "unknow";
+			String content = item.message;
+			try {
+				LogEvent e = Logs.builders[item.tag].read(item.message);
+				content = e.mcpText();
+				tag = e.mcpTag();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			
+			result.append('\n');
+			result.append(Strings.format("#@ [@] @", item.globalId, tag, content));
+		}
+		return result.toString();
+	}
 	
 }

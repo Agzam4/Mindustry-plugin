@@ -68,6 +68,7 @@ public class Logs {
 
 	@SuppressWarnings("unchecked")
 	public static void init() throws ClassNotFoundException {
+		LogEvents.init();
 		builders = new LogBuilder[LogEvents.events.length];
 		for (int i = 0; i < LogEvents.events.length; i++) {
 			var event = LogEvents.events[i];
@@ -259,8 +260,6 @@ public class Logs {
 		while (true) {
 			final int currentA = Mathf.clamp((int) (a - log.globalIdShift), 0, log.totalRows - 1);
 			final int currentB = Mathf.clamp((int) (b - log.globalIdShift), 0, log.totalRows - 1);
-//			Log.info("Get [cyan][@,@][gray] [@,@][][] from [blue]@ log[gray] -@", currentA+1, currentB+1, a, b, log.id + (log == Logs.current ? " (latest)" : ""), log.globalIdShift);
-
 			synchronized (lock) {
 				try {
 					if(!log.isOpen()) log.open();
@@ -286,7 +285,71 @@ public class Logs {
 			if(log == null) return result;
 		}
 	}
+	
+	public static LogEntity[] search(long gid, int limit, int player) {
+		StringBuilder sqlBuilder = new StringBuilder("WHERE id <= ? AND (");
+		
+		Object[] args = new Object[SearchFiledTypes.player.fields+1];
+		int argId = 0;
+		args[argId++] = gid;
+		boolean fistType = true;
+		for (int i = 0; i < SearchFiledTypes.player.sql.length; i++) {
+			var fileds = SearchFiledTypes.player.sql[i];
+			if(fileds.size == 0) continue;
+			if(!fistType) sqlBuilder.append(" OR ");
+			fistType = false;
+			sqlBuilder.append("(tag = ").append(i).append(" AND (")
+			.append(fileds.toString(" OR ", f -> Strings.format("message->>'$.@' = ?", f)));
+			sqlBuilder.append("))");
+			args[argId++] = player;
+		}
+		sqlBuilder.append(") ORDER BY id DESC LIMIT ").append(limit);
+		
+		LogInstance log;
+		synchronized (lock) {
+			if(gid < Logs.current.globalIdShift) {
+				int firstIndex = -1;
+				firstIndex = Seqs.binarySearch(instances, i -> {
+					if(gid < i.globalIdShift) return -1;
+					if(gid < i.globalIdLimit()) return 0;
+					return 1;
+				});
+				if(firstIndex < 0) return new LogEntity[0];
+				log = instances.get(firstIndex);
+			} else {
+				log = Logs.current;
+			}
+		}
 
+		final String sql = sqlBuilder.toString();
+		Log.info("SQL: @", sql);
+		
+		LogEntity[] result = new LogEntity[limit];
+		int[] cursor = new int[1];
+		cursor[0] = limit;
+		
+		while (true) {
+			synchronized (lock) {
+				try {
+					if(!log.isOpen()) log.open();
+					final long shift = log.globalIdShift - 1; // in database first is 1
+					log.logs.select(sql, e -> {
+						e.globalId = shift + e.id;
+						result[--cursor[0]] = e;
+						Log.info(e);
+					}, args);
+				} catch (Exception e) {
+					Log.err("Error reading page backwards from instance " + log.id, e);
+				} finally {
+					if(log != current) log.close();
+				}
+			}
+			if(cursor[0] == 0) return result; // all found
+			log = log.prev;
+			if(log == null) return result;
+		}
+	}
+	
 
 	public static long packUuid(String uuid) {
 		byte[] bytes = Base64Coder.decode(uuid);
@@ -371,7 +434,7 @@ public class Logs {
 
 
 	public static void event(LogEvent event) {
-		queue.add(event);
+//		queue.add(event);
 	}
 
 }
