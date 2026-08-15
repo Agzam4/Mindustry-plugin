@@ -2,20 +2,17 @@ package agzam4.mcp.tools;
 
 import java.text.SimpleDateFormat;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.Date;
-import java.util.Iterator;
+import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
 import agzam4.logs.LogEvents;
-import agzam4.logs.LogEvents.LogEntity;
 import agzam4.logs.LogEvents.LogEvent;
 import agzam4.logs.Logs;
 import agzam4proc.apt.mcp.McpAnnotations.McpTool;
 import arc.struct.Seq;
 import arc.util.Log;
 import arc.util.Strings;
-import mindustry.entities.part.DrawPart.PartFunc;
 
 public class LogsMcpTools {
 
@@ -30,13 +27,13 @@ public class LogsMcpTools {
 	}
 	
 	/**
-	 * Return logs interval from up to id
-	 * @param id - id of log
-	 * @param limit - maximum of logs (from id to past)
+	 * Retrieves past logs ending at the specified ID, sorted in ascending chronological order (oldest to newest).
+	 * @param id - The end log ID (exclusive, acts as the upper bound for the past event window).
+	 * @param pageSize - The maximum number of historical logs to retrieve before this ID.
 	 */
 	@McpTool
-	public static String logs(int id, int limit) {
-		 var list = Logs.filtredPage(id, limit, 0, 999999999999999L, new int[0]);
+	public static String logs(int id, int pageSize) {
+		 var list = Logs.filtredPage(id, pageSize, 0, 999999999999999L, new int[0]);
 		 
 		 StringBuilder result = new StringBuilder();
 		 long groupNextTime = 0;
@@ -196,7 +193,9 @@ public class LogsMcpTools {
 	}
 	
 	private static String format(String format, long t) {
-		return new SimpleDateFormat(format).format(new Date(t));
+	    SimpleDateFormat sdf = new SimpleDateFormat(format);
+	    sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+	    return sdf.format(new Date(t));
 	}
 
 //	/**
