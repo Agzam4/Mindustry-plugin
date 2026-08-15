@@ -4,11 +4,16 @@ import agzam4.Game;
 import agzam4.api.auth.SensitiveData;
 import agzam4.api.auth.SensitiveData.SensitiveType;
 import agzam4.database.Databases;
+import agzam4.managers.Players;
+import agzam4.mcp.McpUlits;
 import agzam4.utils.Strs;
+import agzam4gen.api.dependencies.Auth;
+import agzam4gen.api.dependencies.BodyParm;
 import agzam4proc.apt.mcp.McpAnnotations.McpTool;
 import arc.util.Strings;
 import mindustry.Vars;
 import mindustry.gen.Groups;
+import mindustry.net.Administration.PlayerInfo;
 
 public class InfoMcpTools {
 
@@ -60,4 +65,26 @@ public class InfoMcpTools {
 		return builder.toString();
 	}
 
+	/**
+	 * Performs a fuzzy search for players by name or nickname, returning the best matches.
+	 * @param query - The search term (handles partial matches).
+	 * @param limit - The maximum number of top-scoring matches to return.
+	 */
+	@McpTool
+	public static String searchPlayer(String query, int limit) {
+		var result = Players.search(query, limit);
+		StringBuilder resp = new StringBuilder();
+		for (int i = 0; i < result.length; i++) {
+			if(i != 0) resp.append("\n");
+			
+			int id = result[i].id;
+			var info = Players.resolveId(id);
+			if(info == null) continue;
+			
+			resp.append("#").append(result[i].id).append(" (").append(result[i].score).append("%): ").append(McpUlits.escapedStrip(info.lastName));
+		}
+		return resp.toString();
+	}
+	
+	
 }
