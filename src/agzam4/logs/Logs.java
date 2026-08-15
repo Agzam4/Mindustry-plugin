@@ -434,7 +434,7 @@ public class Logs {
 
 
 	public static void event(LogEvent event) {
-//		queue.add(event);
+		queue.add(event);
 	}
 
 }
