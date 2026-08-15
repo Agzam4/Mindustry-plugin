@@ -1,6 +1,5 @@
 package agzam4.commands.server;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -9,9 +8,7 @@ import agzam4.CommandsManager.ReceiverType;
 import agzam4.commands.CommandHandler;
 import agzam4.mcp.Mcp;
 import agzam4gen.mcp.tools.McpTools;
-import arc.struct.ObjectMap;
 import arc.struct.Seq;
-import arc.util.Log;
 import arc.util.Strings;
 import io.modelcontextprotocol.spec.McpSchema.CallToolRequest;
 import io.modelcontextprotocol.spec.McpSchema.TextContent;
@@ -52,6 +49,7 @@ public class McpCommand extends CommandHandler<Object> {
 			}
 		} catch (Exception e) {
 			sender.sendMessage("[red]" + e.getMessage());
+			e.printStackTrace();
 		}
 	}
 	
