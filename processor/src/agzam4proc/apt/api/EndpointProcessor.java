@@ -50,7 +50,8 @@ public class EndpointProcessor {
 		@SuppressWarnings("unchecked")
 		final var toStringAllowed = ObjectSet.with(Seq.with(
 				int.class, long.class, float.class, boolean.class,
-				Integer.class, Long.class, Float.class, Boolean.class
+				Integer.class, Long.class, Float.class, Boolean.class, 
+				String.class
 		).map(c -> TypeElem.of(c)));
 		
 		method.resolve(envVariables.keys().toSeq().asSet());
