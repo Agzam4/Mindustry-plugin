@@ -7,7 +7,7 @@ public enum Permissions {
 	logs,
 	sensitiveData,
 	traceAdmins,
-	forceRunwave, brushSandbox, longname, whitelist, manageMaps, manageMapCreators;
+	forceRunwave, brushSandbox, longname, whitelist, manageMaps, manageMapCreators, manageMcp;
 	
 	public final String name;
 	

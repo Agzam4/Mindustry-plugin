@@ -1,7 +1,6 @@
 package agzam4.mcp;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.function.BiFunction;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -9,30 +8,35 @@ import com.sun.net.httpserver.HttpExchange;
 import agzam4.AgzamPlugin;
 import agzam4gen.mcp.tools.McpTools;
 import agzam4proc.apt.api.lib.ApiResponse;
-import arc.Core;
+import arc.files.Fi;
 import arc.struct.ObjectMap;
-import arc.util.Log;
+import arc.struct.ObjectSet;
+import arc.struct.Seq;
 import io.modelcontextprotocol.common.McpTransportContext;
 import io.modelcontextprotocol.json.McpJsonDefaults;
 import io.modelcontextprotocol.server.McpServer;
-import io.modelcontextprotocol.server.McpStatelessServerFeatures.SyncResourceSpecification;
 import io.modelcontextprotocol.server.McpStatelessSyncServer;
 import io.modelcontextprotocol.spec.McpSchema;
-import io.modelcontextprotocol.spec.McpSchema.CallToolRequest;
-import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
-import io.modelcontextprotocol.spec.McpSchema.Tool;
 import mindustry.Vars;
-import mindustry.content.Blocks;
-import mindustry.world.meta.BlockGroup;
 
 public class Mcp {
 
-    private static McpStatelessSyncServer server;
+	public static McpStatelessSyncServer server;
     private static McpStatelessTransport transport;
     public static ObjectMap<String, BiFunction<McpTransportContext, McpSchema.CallToolRequest, McpSchema.CallToolResult>> tools = ObjectMap.of();
     public static ObjectMap<String, BiFunction<McpTransportContext, McpSchema.CallToolRequest, McpSchema.CallToolResult>> schemes = ObjectMap.of();
+
+    private static Fi tokensFile = Vars.saveDirectory.child("mcp").child("tokens.txt");
+    
+	private static ObjectSet<String> tokens = ObjectSet.with();
 	
 	public static void init() {
+		if(!tokensFile.exists()) {
+			tokensFile.parent().mkdirs();
+		} else {
+			tokens.addAll(tokensFile.readString().split("\n"));
+		}
+		
 		ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
 		try {
 			Thread.currentThread().setContextClassLoader(Mcp.class.getClassLoader());
@@ -52,6 +56,9 @@ public class Mcp {
 				tools.put(tool.name(), handler);
 			});
 		
+			
+			
+			
 //			builder.resources(
 //					new SyncResourceSpecification(McpSchema.Resource.builder("mindustry://glossary", "glossary").mimeType("text/markdown").build(),
 //							(context, req) -> {
@@ -82,6 +89,29 @@ public class Mcp {
 
 	public static void processMessage(HttpExchange exchange) throws ApiResponse, IOException {
          transport.handle(exchange);
+	}
+
+	public static String[] tokens() {
+		return tokens.toSeq().toArray(String.class);
+	}
+
+	public static boolean hasToken(String token) {
+		if(token.isEmpty()) return false;
+		return tokens.contains(token);
+	}
+
+	public static boolean createToken(String token) {
+		boolean ok = tokens.add(token);
+		tokensFile.parent().mkdirs();
+		tokensFile.writeString(Seq.with(token).toString("\n"));
+		return ok;
+	}
+	
+	public static boolean removeToken(String token) {
+		boolean ok = tokens.remove(token);
+		tokensFile.parent().mkdirs();
+		tokensFile.writeString(Seq.with(token).toString("\n"));
+		return ok;
 	}
 	
 }
