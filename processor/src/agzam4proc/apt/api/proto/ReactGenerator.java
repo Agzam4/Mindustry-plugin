@@ -142,7 +142,7 @@ public class ReactGenerator extends TypescriptGenerator {
 		if (isVoid) {
 			sb.append(inner).append("return [ error, loading ] as const\n");
 		} else {
-			sb.append(inner).append("return [ data, error, loading ] as const\n");
+			sb.append(inner).append("return [ data, error, loading, setData ] as const\n");
 		}
 
 		sb.append(indent).append("},\n");
