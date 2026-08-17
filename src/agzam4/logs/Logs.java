@@ -9,6 +9,7 @@ import agzam4.database.Table;
 import agzam4.logs.LogEvents.*;
 import agzam4.utils.Log;
 import agzam4.utils.Seqs;
+import agzam4gen.config.LogsConfig;
 import arc.files.Fi;
 import arc.math.Mathf;
 import arc.struct.ObjectMap;
@@ -51,7 +52,7 @@ public class Logs {
 	 * 10 MB / 162 bytes = ~61_728 bytes = ~50_000
 	 * 50_000 / 11_219 ≈ 4.45 days
 	 */
-	private static final int maxRows = 50_000; 
+	private static final int maxRows = LogsConfig.maxRows; 
 	
 	private static final String prefix = "log-";
 	private static Fi root = Vars.dataDirectory.child("logs/");
@@ -434,7 +435,7 @@ public class Logs {
 
 
 	public static void event(LogEvent event) {
-		queue.add(event);
+		if(LogsConfig.logging) queue.add(event);
 	}
 
 }
