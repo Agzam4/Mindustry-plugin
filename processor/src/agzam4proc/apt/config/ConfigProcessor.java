@@ -1,33 +1,23 @@
 package agzam4proc.apt.config;
 
-import javax.lang.model.element.Element;
-import javax.lang.model.element.TypeElement;
+import javax.annotation.processing.Processor;
+
+import com.google.auto.service.AutoService;
+import com.google.common.collect.ImmutableSet;
 
 import agzam4proc.BaseProcessor;
-import agzam4proc.apt.config.ConfigAnnotations.Config;
-import agzam4proc.utils.element.TypeElem;
-import arc.struct.ObjectMap;
-import arc.struct.Seq;
-import arc.util.Log;
+import agzam4proc.BaseStep;
+import net.ltgt.gradle.incap.IncrementalAnnotationProcessor;
+import net.ltgt.gradle.incap.IncrementalAnnotationProcessorType;
 
-public class ConfigProcessor {
+@AutoService(Processor.class)
+@IncrementalAnnotationProcessor(IncrementalAnnotationProcessorType.AGGREGATING)
+public class ConfigProcessor extends BaseProcessor {
 
-//	@Override
-//	public Seq<Class<?>> classes() {
-//		return Seq.with(Config.class);
-//	}
-//
-//	@Override
-//	public void onElement(ObjectMap<Class<?>, Seq<Element>> map) throws Throwable {
-//
-//		if(round == 1) {
-//			Log.info("&lc Phase 1: Generating config managers");
-//			for (var config : map.get(Config.class)) {
-//				if (!(config instanceof TypeElement type)) continue;
-//				var elem = TypeElem.of(type);
-//				
-//			}
-//		}
-//	}
-	
+	@Override
+	protected ImmutableSet<? extends BaseStep> baseSteps() {
+		return ImmutableSet.of(
+				new ConfigStep()
+				);
+	}
 }
