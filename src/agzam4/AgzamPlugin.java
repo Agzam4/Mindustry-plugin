@@ -30,6 +30,7 @@ import agzam4.mcp.Mcp;
 import agzam4.net.NetMenu;
 import agzam4.utils.Log;
 import agzam4.votes.SkipmapVoteSession;
+import agzam4gen.config.Configs;
 
 import static agzam4.Emoji.*;
 import static mindustry.Vars.*;
@@ -51,6 +52,10 @@ public class AgzamPlugin extends Plugin {
     public void init() {
     	plugin = Vars.mods.getMod("agzam4plugin");
     	Log.init();
+    	
+    	Log.info("Loading configs...");
+    	Configs.load();
+    	
     	Log.info("init");
     	try {
 			Databases.init();

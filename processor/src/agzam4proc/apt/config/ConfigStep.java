@@ -18,19 +18,23 @@ import agzam4proc.BaseStep;
 import agzam4proc.Docs;
 import agzam4proc.Proc;
 import agzam4proc.apt.config.ConfigAnnotations.Config;
+import agzam4proc.lib.PVars;
 import arc.files.Fi;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
+import arc.util.Log;
+import arc.util.Strings;
 import arc.util.serialization.Jval;
-import arc.util.serialization.Jval.Jformat;
 import mindustry.Vars;
 
 public class ConfigStep extends BaseStep {
 
 	private static final ClassName $Fi = ClassName.get(Fi.class);
 	private static final ClassName $Vars = ClassName.get(Vars.class);
+	private static final ClassName $PVars = ClassName.get(PVars.class);
 	private static final ClassName $Jval = ClassName.get(Jval.class);
 	private static final ClassName $Jformat = ClassName.get(Jval.class).nestedClass("Jformat");
+	private static final ClassName $Config = ClassName.get(mindustry.net.Administration.Config.class);
 	private static final ClassName $StringBuilder = ClassName.get(StringBuilder.class);
 
 	@Override
@@ -41,12 +45,15 @@ public class ConfigStep extends BaseStep {
 	@Override
 	public Set<? extends Element> step() {
 		var configs = getElements(Config.class);
+		var generatedClassNames = new Seq<ClassName>();
+		var configTypeElements = new Seq<TypeElement>();
 
 		for (var element : configs) {
 			if (!(element instanceof TypeElement typeElement)) continue;
 
 			var config = typeElement.getAnnotation(Config.class);
 			if (config == null) continue;
+			configTypeElements.add(typeElement);
 
 			String filename = config.value();
 			ClassName originalClass = ClassName.get(typeElement);
@@ -68,21 +75,79 @@ public class ConfigStep extends BaseStep {
 				}
 			}
 
-			TypeSpec.Builder classBuilder = TypeSpec.classBuilder(typeElement.getSimpleName() + "Gen")
+			String genName = Strings.kebabToCamel("-" + filename + "-config");
+			ClassName genClass = ClassName.get(processor.packageName, genName);
+			generatedClassNames.add(genClass);
+
+			TypeSpec.Builder classBuilder = TypeSpec.classBuilder(genName)
 					.addAnnotation(Proc.generated("agzam4proc.apt.config.ConfigStep"))
 					.addModifiers(Modifier.PUBLIC, Modifier.FINAL);
 
+			classBuilder.addField(FieldSpec.builder($Fi, "file", Modifier.STATIC, Modifier.FINAL, Modifier.PUBLIC)
+					.initializer(CodeBlock.of("$T.dataDirectory.child($S).child($S)", $PVars, "config", filename + ".hjson")).build());
+			
+			
 			classBuilder.addMethod(buildLoad(filename, originalClass, fields));
 			classBuilder.addMethod(buildSave(filename, originalClass, fields, fieldDocs));
 
 			for (var field : fields) {
+				String name = field.getSimpleName().toString();
+				classBuilder.addField(FieldSpec.builder(TypeName.get(field.asType()), name, Modifier.STATIC, Modifier.PUBLIC)
+						.initializer(CodeBlock.of("$T.$L", originalClass, name)).build());
+				
+				classBuilder.addField(FieldSpec.builder($Config, name + "Config", Modifier.STATIC, Modifier.PUBLIC)
+						.initializer(CodeBlock.of("new $T($S, $S, $T.$L)", 
+								$Config, 
+								filename + "." + Strings.camelToKebab(name), 
+								fieldDocs.get(name, name + " config"),
+								originalClass, name
+								)).build());
+				
 				classBuilder.addMethod(buildSetter(originalClass, field));
 			}
 
 			processor.write(null, classBuilder.build(), typeElement);
 		}
 
+		if (!generatedClassNames.isEmpty()) {
+			generateConfigsLoader(generatedClassNames, configTypeElements);
+		}
+
 		return none();
+	}
+
+	private void generateConfigsLoader(Seq<ClassName> generatedClasses, Seq<TypeElement> originatingElements) {
+		var classBuilder = TypeSpec.classBuilder("Configs")
+				.addAnnotation(Proc.generated("agzam4proc.apt.config.ConfigStep"))
+				.addModifiers(Modifier.PUBLIC, Modifier.FINAL);
+
+		var loadMethod = MethodSpec.methodBuilder("load")
+				.addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+				.returns(void.class);
+
+		for (var genClass : generatedClasses) {
+			loadMethod.addStatement("$T.load()", genClass);
+		}
+
+		classBuilder.addMethod(loadMethod.build());
+		processor.write(null, classBuilder.build(), originatingElements.toArray(Element.class));
+	}
+
+	private void generateConfigsLoader(Seq<ClassName> generatedClasses) {
+		var classBuilder = TypeSpec.classBuilder("Configs")
+				.addAnnotation(Proc.generated("agzam4proc.apt.config.ConfigStep"))
+				.addModifiers(Modifier.PUBLIC, Modifier.FINAL);
+
+		var loadMethod = MethodSpec.methodBuilder("load")
+				.addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+				.returns(void.class);
+
+		for (var genClass : generatedClasses) {
+			loadMethod.addStatement("$T.load()", genClass);
+		}
+
+		classBuilder.addMethod(loadMethod.build());
+		processor.write(null, classBuilder.build());
 	}
 
 	private MethodSpec buildLoad(String filename, ClassName originalClass, Seq<VariableElement> fields) {
@@ -90,8 +155,10 @@ public class ConfigStep extends BaseStep {
 				.addModifiers(Modifier.PUBLIC, Modifier.STATIC)
 				.returns(void.class);
 
-		method.addStatement("$T $L = $T.dataDirectory.child($S)", $Fi, "file", $Vars, filename + ".hjson");
+//		method.addStatement("$T $L = $T.dataDirectory.child($S).child($S).child($S)", $Fi, "file", $Vars, filename + ".hjson");
 		method.beginControlFlow("if (!$L.exists())", "file");
+		method.addStatement("$T.warn($S, $L)", ClassName.get(Log.class), "@ config not found, creating default", "file");
+		method.addStatement("save()");
 		method.addStatement("return");
 		method.endControlFlow();
 
@@ -102,7 +169,7 @@ public class ConfigStep extends BaseStep {
 			String asMethod = jvalAsMethod(field);
 			String cast = fieldCast(field);
 			method.beginControlFlow("if ($L.has($S))", "data", name);
-			method.addStatement("$T.$L = $L$L.get($S).$L()", originalClass, name, cast, "data", name, asMethod);
+			method.addStatement("$L = $L$L.get($S).$L()", name, cast, "data", name, asMethod);
 			method.endControlFlow();
 		}
 
@@ -119,10 +186,10 @@ public class ConfigStep extends BaseStep {
 
 		for (var field : fields) {
 			String name = field.getSimpleName().toString();
-			method.addStatement("$L.put($S, $T.valueOf($T.$L))", "obj", name, $Jval, originalClass, name);
+			method.addStatement("$L.put($S, $T.valueOf($L))", "obj", name, $Jval, name);
 		}
 
-		method.addStatement("$T[] $L = $L.toString($T.formatted).split($S)", String.class, "lines", "obj", $Jformat, "\n");
+		method.addStatement("$T[] $L = $L.toString($T.hjson).split($S)", String.class, "lines", "obj", $Jformat, "\n");
 		method.addStatement("$T $L = new $T()", $StringBuilder, "sb", $StringBuilder);
 
 		method.beginControlFlow("for ($T $L : $L)", String.class, "line", "lines");
@@ -133,7 +200,7 @@ public class ConfigStep extends BaseStep {
 			String doc = fieldDocs.get(name);
 			if (doc != null && !doc.isEmpty()) {
 				String escaped = doc.replace("\\", "\\\\").replace("\"", "\\\"");
-				method.beginControlFlow("if ($L.startsWith($S))", "trimmed", "\"" + name + "\"");
+				method.beginControlFlow("if ($L.startsWith($S))", "trimmed", name);
 				method.addStatement("$L.append($S)", "sb", "// " + escaped + "\n");
 				method.endControlFlow();
 			}
@@ -142,7 +209,8 @@ public class ConfigStep extends BaseStep {
 		method.addStatement("$L.append($L).append($S)", "sb", "line", "\n");
 		method.endControlFlow();
 
-		method.addStatement("$T.dataDirectory.child($S).writeString($L.toString(), $L)", $Vars, filename + ".hjson", "sb", false);
+		method.addStatement("$L.parent().mkdirs()", "file");
+		method.addStatement("$L.writeString($L.toString(), $L)", "file", "sb", false);
 
 		return method.build();
 	}
@@ -156,7 +224,7 @@ public class ConfigStep extends BaseStep {
 				.addParameter(type, "value")
 				.returns(void.class);
 
-		method.addStatement("$T.$L = $L", originalClass, name, "value");
+		method.addStatement("$L = $L", name, "value");
 		method.addStatement("save()");
 
 		return method.build();
