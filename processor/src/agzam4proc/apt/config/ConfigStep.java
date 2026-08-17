@@ -95,13 +95,14 @@ public class ConfigStep extends BaseStep {
 				classBuilder.addField(FieldSpec.builder(TypeName.get(field.asType()), name, Modifier.STATIC, Modifier.PUBLIC)
 						.initializer(CodeBlock.of("$T.$L", originalClass, name)).build());
 				
-				classBuilder.addField(FieldSpec.builder($Config, name + "Config", Modifier.STATIC, Modifier.PUBLIC)
-						.initializer(CodeBlock.of("new $T($S, $S, $T.$L)", 
-								$Config, 
-								filename + "." + Strings.camelToKebab(name), 
-								fieldDocs.get(name, name + " config"),
-								originalClass, name
-								)).build());
+				// TODO: custom config system to prevent double saving
+//				classBuilder.addField(FieldSpec.builder($Config, name + "Config", Modifier.STATIC, Modifier.PUBLIC)
+//						.initializer(CodeBlock.of("new $T($S, $S, $T.$L)", 
+//								$Config, 
+//								filename + "." + Strings.camelToKebab(name), 
+//								fieldDocs.get(name, name + " config"),
+//								originalClass, name
+//								)).build());
 				
 				classBuilder.addMethod(buildSetter(originalClass, field));
 			}
@@ -190,7 +191,7 @@ public class ConfigStep extends BaseStep {
 		}
 
 		method.addStatement("$T[] $L = $L.toString($T.hjson).split($S)", String.class, "lines", "obj", $Jformat, "\n");
-		method.addStatement("$T $L = new $T()", $StringBuilder, "sb", $StringBuilder);
+		method.addStatement("$T $L = new $T($S)", $StringBuilder, "sb", $StringBuilder, "{\n");
 
 		method.beginControlFlow("for ($T $L : $L)", String.class, "line", "lines");
 		method.addStatement("$T $L = $L.trim()", String.class, "trimmed", "line");
@@ -201,14 +202,15 @@ public class ConfigStep extends BaseStep {
 			if (doc != null && !doc.isEmpty()) {
 				String escaped = doc.replace("\\", "\\\\").replace("\"", "\\\"");
 				method.beginControlFlow("if ($L.startsWith($S))", "trimmed", name);
-				method.addStatement("$L.append($S)", "sb", "// " + escaped + "\n");
+				method.addStatement("$L.append($S)", "sb", "\t// " + escaped + "\n");
 				method.endControlFlow();
 			}
 		}
 
-		method.addStatement("$L.append($L).append($S)", "sb", "line", "\n");
+		method.addStatement("$L.append($S).append($L).append($S)", "sb", "\t", "line", "\n");
 		method.endControlFlow();
 
+		method.addStatement("$L.append($S)", "sb", "}\n");
 		method.addStatement("$L.parent().mkdirs()", "file");
 		method.addStatement("$L.writeString($L.toString(), $L)", "file", "sb", false);
 
