@@ -6,12 +6,14 @@ import java.util.function.BiFunction;
 import com.sun.net.httpserver.HttpExchange;
 
 import agzam4.AgzamPlugin;
+import agzam4gen.config.McpConfig;
 import agzam4gen.mcp.tools.McpTools;
 import agzam4proc.apt.api.lib.ApiResponse;
 import arc.files.Fi;
 import arc.struct.ObjectMap;
 import arc.struct.ObjectSet;
 import arc.struct.Seq;
+import arc.util.Log;
 import io.modelcontextprotocol.common.McpTransportContext;
 import io.modelcontextprotocol.json.McpJsonDefaults;
 import io.modelcontextprotocol.server.McpServer;
@@ -50,6 +52,9 @@ public class Mcp {
 //			        		.resources(true, false)
 			        		.build());
 			
+			if(!McpConfig.instructions.isEmpty()) {
+				builder.instructions(McpConfig.instructions);
+			}
 			
 			McpTools.build().each((tool, handler) -> {
 				builder.toolCall(tool, handler);
@@ -88,7 +93,8 @@ public class Mcp {
 	}
 
 	public static void processMessage(HttpExchange exchange) throws ApiResponse, IOException {
-         transport.handle(exchange);
+		if(!McpConfig.enabled) throw ApiResponse.notFound;
+		transport.handle(exchange);
 	}
 
 	public static String[] tokens() {
