@@ -4,8 +4,9 @@ import agzam4.Game;
 import agzam4.bot.Bots;
 import agzam4.bot.TelegramBot;
 import agzam4.bot.Bots.NotifyTag;
-import agzam4.managers.Kicks;
 import agzam4.managers.Players;
+import agzam4.moderation.Kicks;
+import agzam4gen.config.ModerationConfig;
 import arc.util.Nullable;
 import arc.util.Strings;
 import mindustry.core.NetServer;
@@ -47,12 +48,12 @@ public class KickVoteSession extends VoteSession {
 	
 	@Override
 	public void onPass() {
-		Call.sendMessage(Strings.format("[orange]Голосование принято. [red] @[orange] забанен на @ минут", target.name, (NetServer.kickDuration / 60)));
+		Call.sendMessage(Strings.format("[orange]Голосование принято. [red] @[orange] забанен на @ минут", target.name, ModerationConfig.votekickBanDuration));
 		Bots.notify(NotifyTag.votekick, 
-			Strings.format(bungle("pass.bot"), TelegramBot.strip(target.name), NetServer.kickDuration / 60),
-			Strings.format(bungle("pass.admin.bot"), TelegramBot.strip(target.name), (NetServer.kickDuration / 60), target.uuid(), target.usid(), target.ip())
+			Strings.format(bungle("pass.bot"), TelegramBot.strip(target.name), ModerationConfig.votekickBanDuration),
+			Strings.format(bungle("pass.admin.bot"), TelegramBot.strip(target.name), ModerationConfig.votekickBanDuration, target.uuid(), target.usid(), target.ip())
 		);
-		Kicks.kick(kicker, target, reason, NetServer.kickDuration);
+		Kicks.kick(kicker, target, reason, ModerationConfig.votekickBanDuration*60);
 		passListener.run();
 	}
 	

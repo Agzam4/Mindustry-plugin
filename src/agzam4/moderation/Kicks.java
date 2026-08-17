@@ -1,10 +1,11 @@
-package agzam4.managers;
+package agzam4.moderation;
 
 import agzam4.Images;
 import agzam4.bot.Bots;
 import agzam4.bot.TelegramBot;
 import agzam4.commands.Server;
 import agzam4.logs.Logs;
+import agzam4gen.config.ModerationConfig;
 import agzam4.logs.LogEvents.KickLogEvent;
 import agzam4.bot.Bots.NotifyTag;
 import arc.Events;
@@ -40,11 +41,11 @@ public class Kicks {
 	}
 
 	private static void kick(@Nullable Player kicker, String kickerName, Player target, String reason) {
-		int minutes = 5;
+		int minutes = ModerationConfig.startBanTime;
 		Integer last = lastkickTime.get(target.uuid());
 		if(last != null) minutes = last;
-		minutes = Math.min(minutes, 60);
-		lastkickTime.put(target.uuid(), minutes*2);
+		minutes = Math.min(minutes, ModerationConfig.maxBanTime);
+		lastkickTime.put(target.uuid(), (int)(minutes*ModerationConfig.banTimeMultiplier));
 		Bots.notify(NotifyTag.votekick, Strings.format("Выдан бан на <b>@</b> минут\nПричина: <i>@</i>\nБан выдал: <i>@</i>", minutes, TelegramBot.strip(reason), TelegramBot.strip(kickerName)));
         Bots.notify(NotifyTag.votekick, Images.screenshot(target));
 		

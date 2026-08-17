@@ -5,7 +5,7 @@ import agzam4.CommandsManager.CommandSender;
 import agzam4.bot.TUser.MessageData;
 import agzam4.commands.CommandHandler;
 import agzam4.commands.Server;
-import agzam4.managers.Kicks;
+import agzam4.moderation.Kicks;
 import agzam4.votes.KickVoteSession;
 import arc.util.Strings;
 import mindustry.gen.Call;
