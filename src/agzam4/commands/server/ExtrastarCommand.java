@@ -5,7 +5,7 @@ import agzam4.CommandsManager.ReceiverType;
 import agzam4.CommandsManager.CommandSender;
 import agzam4.Game;
 import agzam4.commands.CommandHandler;
-import agzam4.commands.Server;
+import agzam4.server.Server;
 import arc.Core;
 import arc.struct.ObjectSet;
 import arc.struct.Seq;

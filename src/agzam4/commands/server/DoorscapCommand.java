@@ -4,7 +4,7 @@ import agzam4.AgzamPlugin;
 import agzam4.CommandsManager.ReceiverType;
 import agzam4.CommandsManager.CommandSender;
 import agzam4.commands.CommandHandler;
-import agzam4.commands.Server;
+import agzam4.server.Server;
 import arc.Core;
 import arc.Events;
 import arc.func.Cons;

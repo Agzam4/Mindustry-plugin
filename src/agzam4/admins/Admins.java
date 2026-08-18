@@ -2,7 +2,7 @@ package agzam4.admins;
 
 import agzam4.bot.TUser.MessageData;
 import agzam4.commands.Permissions;
-import agzam4.commands.Server;
+import agzam4.server.Server;
 import agzam4.utils.Log;
 import arc.files.Fi;
 import arc.struct.ObjectMap;
