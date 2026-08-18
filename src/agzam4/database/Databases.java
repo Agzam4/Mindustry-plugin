@@ -11,6 +11,7 @@ import agzam4.database.DBFields.DEFAULT;
 import agzam4.database.DBFields.FIELD;
 import agzam4.database.DBFields.PRIMARY_KEY;
 import agzam4.utils.Log;
+import agzam4proc.lib.PVars;
 import arc.func.Cons;
 import arc.math.Mathf;
 import arc.struct.Seq;
@@ -30,7 +31,16 @@ public class Databases {
 	public static Database mainDatabase, logsDatabase;
 	
 	public static void init() throws ClassNotFoundException, SQLException {
-		mainDatabase = new Database(Vars.dataDirectory.child("database.db"));
+		// [MIGRATION] TODO: remove in future
+		var oldFile = Vars.dataDirectory.child("database.db");
+		var file = PVars.databasesDirectory.child("database.db");
+		file.parent().mkdirs();
+		if(oldFile.exists()) {
+			oldFile.copyTo(file);
+			oldFile.moveTo(oldFile.parent().child("database.db.back"));
+		}
+		
+		mainDatabase = new Database(file);
         players = mainDatabase.createTable("players", PlayerEntity.class);
         achievements = mainDatabase.createTable("achievements", AchievementEntity.class);
 	}

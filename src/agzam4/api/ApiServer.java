@@ -16,6 +16,7 @@ import agzam4.api.auth.AuthDatabase;
 import agzam4.api.auth.SensitiveData;
 import agzam4.utils.Log;
 import agzam4gen.api.Routers;
+import agzam4proc.lib.PVars;
 import arc.struct.Seq;
 import mindustry.Vars;
 import mindustry.net.Administration.Config;
@@ -41,8 +42,28 @@ public class ApiServer {
 	
 	public static void init() {
 		try {
-			AuthDatabase.init(Vars.dataDirectory.child("auth.db"));
-			SensitiveData.init(Vars.dataDirectory.child("sensitive.db"));
+			// [MIGRATION] TODO: remove in future
+			var authOld = Vars.dataDirectory.child("auth.db");
+			var authFile = PVars.databasesDirectory.child("auth.db");
+			
+			var sensitiveOld = Vars.dataDirectory.child("sensitive.db");
+			var sensitiveFile = PVars.databasesDirectory.child("sensitive.db");
+
+			authFile.parent().mkdirs();
+			sensitiveFile.parent().mkdirs();
+			
+			if(authOld.exists()) {
+				authOld.copyTo(authFile);
+				authOld.moveTo(authOld.parent().child("auth.db.back"));
+			}
+			if(sensitiveOld.exists()) {
+				sensitiveOld.copyTo(sensitiveFile);
+				sensitiveOld.moveTo(sensitiveOld.parent().child("sensitive.db.back"));
+			}
+			
+			
+			AuthDatabase.init(authFile);
+			SensitiveData.init(sensitiveFile);
 		} catch (Exception e) {
 			Log.err(e);
 		}
