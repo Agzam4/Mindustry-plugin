@@ -18,7 +18,10 @@ import agzam4proc.BaseStep;
 import agzam4proc.Docs;
 import agzam4proc.Proc;
 import agzam4proc.apt.config.ConfigAnnotations.Config;
+import agzam4proc.lib.PConfig;
 import agzam4proc.lib.PVars;
+import agzam4proc.utils.MoreTypeUtils;
+import agzam4proc.utils.element.TypeElem;
 import arc.files.Fi;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
@@ -34,7 +37,7 @@ public class ConfigStep extends BaseStep {
 	private static final ClassName $PVars = ClassName.get(PVars.class);
 	private static final ClassName $Jval = ClassName.get(Jval.class);
 	private static final ClassName $Jformat = ClassName.get(Jval.class).nestedClass("Jformat");
-	private static final ClassName $Config = ClassName.get(mindustry.net.Administration.Config.class);
+	private static final ClassName $Config = ClassName.get(PConfig.class);
 	private static final ClassName $StringBuilder = ClassName.get(StringBuilder.class);
 
 	@Override
@@ -95,14 +98,16 @@ public class ConfigStep extends BaseStep {
 				classBuilder.addField(FieldSpec.builder(TypeName.get(field.asType()), name, Modifier.STATIC, Modifier.PUBLIC)
 						.initializer(CodeBlock.of("$T.$L", originalClass, name)).build());
 				
-				// TODO: custom config system to prevent double saving
-//				classBuilder.addField(FieldSpec.builder($Config, name + "Config", Modifier.STATIC, Modifier.PUBLIC)
-//						.initializer(CodeBlock.of("new $T($S, $S, $T.$L)", 
-//								$Config, 
-//								filename + "." + Strings.camelToKebab(name), 
-//								fieldDocs.get(name, name + " config"),
-//								originalClass, name
-//								)).build());
+				classBuilder.addField(FieldSpec.builder($Config, name + "Config", Modifier.STATIC, Modifier.PUBLIC)
+						.initializer(CodeBlock.of("new $T($S, $S, $T.$L, () -> $L, o -> $L($L))", 
+								$Config, 
+								filename + "." + Strings.camelToKebab(name), 
+								fieldDocs.get(name, name + " config"),
+								originalClass, name,
+								name,
+								name,
+								MoreTypeUtils.of(TypeElem.of(field.asType())).valueOf.get("o")
+								)).build());
 				
 				classBuilder.addMethod(buildSetter(originalClass, field));
 			}
