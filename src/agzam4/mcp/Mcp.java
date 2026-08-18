@@ -9,6 +9,7 @@ import agzam4.AgzamPlugin;
 import agzam4gen.config.McpConfig;
 import agzam4gen.mcp.tools.McpTools;
 import agzam4proc.apt.api.lib.ApiResponse;
+import agzam4proc.lib.PVars;
 import arc.files.Fi;
 import arc.struct.ObjectMap;
 import arc.struct.ObjectSet;
@@ -28,7 +29,7 @@ public class Mcp {
     public static ObjectMap<String, BiFunction<McpTransportContext, McpSchema.CallToolRequest, McpSchema.CallToolResult>> tools = ObjectMap.of();
     public static ObjectMap<String, BiFunction<McpTransportContext, McpSchema.CallToolRequest, McpSchema.CallToolResult>> schemes = ObjectMap.of();
 
-    private static Fi tokensFile = Vars.saveDirectory.child("mcp").child("tokens.txt");
+    private static Fi tokensFile = PVars.dataDirectory.child("mcp").child("tokens.txt");
     
 	private static ObjectSet<String> tokens = ObjectSet.with();
 	
