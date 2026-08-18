@@ -16,6 +16,7 @@ import agzam4.moderation.Kicks;
 import agzam4.utils.Log;
 import agzam4.votes.Cooldowns;
 import agzam4.votes.KickVoteSession;
+import agzam4gen.config.ModerationConfig;
 import arc.struct.Seq;
 import arc.util.Strings;
 import mindustry.core.NetServer;
@@ -41,8 +42,8 @@ public class VotekickCommand extends CommandHandler<Player> {
             if(require(player.isLocal(), sender, "[red]Просто кикни их сам, если ты хост")) return;
             boolean permission = Admins.has(player, "votekick");
             if(require(KickVoteSession.current != null && !(permission && !player.admin), sender, "[red]Голосование уже идет")) return;
-            if(require(!permission && Players.mapPlaytime(player) < KickVoteSession.requiredMapPlayertime.num(), sender,"[red]Вам запрещено голосовать")) return;
-            if(require(!permission && Players.gamePlaytime(player) < KickVoteSession.requiredTotalPlayertime.num(), sender,"[red]Вам запрещено голосовать")) return;
+            if(require(!permission && Players.mapPlaytime(player) < ModerationConfig.votekickRequiredMapPlaytime, sender,"[red]Вам запрещено голосовать")) return;
+            if(require(!permission && Players.gamePlaytime(player) < ModerationConfig.votekickRequiredTotalPlaytime, sender,"[red]Вам запрещено голосовать")) return;
 
             if(args.length == 0){
                 StringBuilder builder = new StringBuilder();
