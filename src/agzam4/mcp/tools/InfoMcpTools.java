@@ -7,13 +7,10 @@ import agzam4.database.Databases;
 import agzam4.managers.Players;
 import agzam4.mcp.McpUlits;
 import agzam4.utils.Strs;
-import agzam4gen.api.dependencies.Auth;
-import agzam4gen.api.dependencies.BodyParm;
 import agzam4proc.apt.mcp.McpAnnotations.McpTool;
 import arc.util.Strings;
 import mindustry.Vars;
 import mindustry.gen.Groups;
-import mindustry.net.Administration.PlayerInfo;
 
 public class InfoMcpTools {
 
