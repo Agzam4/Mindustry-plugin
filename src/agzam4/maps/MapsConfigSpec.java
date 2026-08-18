@@ -7,5 +7,12 @@ public class MapsConfigSpec {
 
 	/** Is custom maps system enabled */
 	public static boolean enabled = true;
+
+	/** Minimum map playtime to start voting*/
+	public static int skipmapRequiredMapPlaytime = 0;
+
+	/** Minimum server playtime to start voting*/
+	public static int skipmapRequiredTotalPlaytime = 5;
+	
 	
 }

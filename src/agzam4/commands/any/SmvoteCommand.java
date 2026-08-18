@@ -4,7 +4,9 @@ import agzam4.CommandsManager.ReceiverType;
 import agzam4.CommandsManager.CommandSender;
 import agzam4.admins.Admins;
 import agzam4.commands.CommandHandler;
+import agzam4.managers.Players;
 import agzam4.votes.SkipmapVoteSession;
+import agzam4gen.config.MapsConfig;
 import arc.struct.Seq;
 import mindustry.game.Team;
 import mindustry.gen.Player;
@@ -30,6 +32,11 @@ public class SmvoteCommand extends CommandHandler<Object> {
 		
 		if(require(player.team() == Team.derelict, sender, "[red]Вы не можете использовать эту команду")) return;
 		if(require(SkipmapVoteSession.current == null, sender, "[red]Нет открытого голосования")) return;
+
+        boolean permission = sender.hasPermissions("skipmap");
+        if(require(!permission && Players.mapPlaytime(player) < MapsConfig.skipmapRequiredMapPlaytime, sender,"[red]Вам запрещено голосовать")) return;
+        if(require(!permission && Players.gamePlaytime(player) < MapsConfig.skipmapRequiredTotalPlaytime, sender,"[red]Вам запрещено голосовать")) return;
+        
 		if(require(player.isLocal(), sender, "[red]Локальные игроки не могут голосовать")) return;
 		int sign = 0;
 		if(voteSign.equals("y")) sign = +1;
