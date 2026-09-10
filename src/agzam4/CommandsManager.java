@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 import agzam4.achievements.AchievementsManager;
 import agzam4.achievements.AchievementsManager.Achievement;
 import agzam4.admins.Admins;
+import agzam4.bans.Bans;
 import agzam4.bot.Bots;
 import agzam4.bot.Bots.NotifyTag;
 import agzam4.bot.TUser.MessageData;
@@ -178,6 +179,21 @@ public class CommandsManager {
 			} else {
 				Call.sendMessage("Игрок " + e.player.name() + "[white] в первый раз на этом сервере!");
 			}
+			
+			if(e.player != null) {
+				if(Bans.bots.has(e.player.ip())) {
+					// TODO: kick if under player limit
+					// FIXME: voting can allow to enable player
+					// TODO: voting to allow to join
+					// TODO: better logging
+					Players.disable(e.player);
+					String text = "[scarlet] " + Iconc.warning + " Вы ограничены из-за подозрительной активности " +  Iconc.warning + "\n[]Обратитесь в [gold]/discord[]\nИли сообщите в админ чат [gold]/a[] (если админы на сервере)";
+					Call.setHudText(e.player.con, text);
+					Call.announce(e.player.con, text);
+					Call.sendMessage(e.player.con, text, null, null);
+				}
+			}
+			
     	});
 		
 		Vars.netServer.admins.addActionFilter(action -> {
@@ -414,14 +430,14 @@ public class CommandsManager {
 	public static void serverCommand(CommandHandler<Object> run) {
 		commandCompleters.put(run.text, run);
 		playerCommands.add(new PlayerCommand(run.text, run.parms, run.desc, (arg, player) -> run.command(arg, playerSender.get(player), player, ReceiverType.player)).admin(true));
-		serverCommands.add(new BaseCommand(run.text, run.parms, run.desc, (arg) -> run.command(arg, serverSender.get(), null, ReceiverType.server)));
+		serverCommands.add(new BaseCommand(run.text, run.parms, run.desc, (arg) -> run.command(arg, serverSender.get(), server, ReceiverType.server)));
 		botCommands.add(new BotCommand(run.text, run.parms, run.desc, (arg, chat) -> run.command(arg, botSender.get(chat), chat, ReceiverType.bot)));
 	}
 	
 	public static void serverCommand(String text, String parms, String desc, CommandHandler<Object> run) {
 		commandCompleters.put(text, run);
 		playerCommands.add(new PlayerCommand(text, parms, desc, (arg, player) -> run.command(arg, playerSender.get(player), player, ReceiverType.player)).admin(true));
-		serverCommands.add(new BaseCommand(text, parms, desc, (arg) -> run.command(arg, serverSender.get(), null, ReceiverType.server)));
+		serverCommands.add(new BaseCommand(text, parms, desc, (arg) -> run.command(arg, serverSender.get(), server, ReceiverType.server)));
 		botCommands.add(new BotCommand(text, parms, desc, (arg, chat) -> run.command(arg, botSender.get(chat), chat, ReceiverType.bot)));
 	}
 
@@ -682,6 +698,7 @@ public class CommandsManager {
 		adminCommand(new agzam4.commands.admin.BotCommand());
 		adminCommand(new NickCommand());
 		adminCommand(new MCommand());
+		adminCommand(new MbCommand());
 		adminCommand(new CustomCommand());
 		adminCommand("etrigger", "<trigger> [args...]", "Устанваливает кисточку", (args, player) -> ServerEventsManager.trigger(player, args));
 		
@@ -699,6 +716,7 @@ public class CommandsManager {
 		serverCommand(new ReloadmapsCommand());
 		serverCommand(new RunwaveCommand());
 		serverCommand(new BansCommand());
+		serverCommand(new Banlist());
 		serverCommand(new ChatfilterCommand());
 		serverCommand(new JsCommand());
 		serverCommand(new SetdiscordCommand());

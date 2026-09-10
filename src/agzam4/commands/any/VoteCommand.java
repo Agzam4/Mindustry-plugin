@@ -39,6 +39,7 @@ public class VoteCommand extends CommandHandler<Object> {
 			sender.sendMessage("Только игроки и пользователи с правами могут голосовать");
 			return;
 		}
+		if(require(Players.disabled(player), sender, "[red]Вам запрещено голосовать")) return;
 		
 		if(require(receiver instanceof Player p && p.isLocal(), sender, "[red]Локальные игроки не могут голосовать. Вместо этого кикните игрока сами")) return;
 

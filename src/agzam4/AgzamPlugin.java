@@ -14,6 +14,7 @@ import agzam4.achievements.*;
 import agzam4.admins.Admins;
 import agzam4.antigrif.Antigriefs;
 import agzam4.api.ApiServer;
+import agzam4.bans.Bans;
 import agzam4.bot.Bots;
 import agzam4.bot.Bots.NotifyTag;
 import agzam4.bot.TelegramBot;
@@ -91,6 +92,7 @@ public class AgzamPlugin extends Plugin {
 		CommandsManager.flushCommands();
     	
     	Kicks.init();
+    	Bans.init();
     	Antigriefs.init();
     	
     	MapsManager.init();

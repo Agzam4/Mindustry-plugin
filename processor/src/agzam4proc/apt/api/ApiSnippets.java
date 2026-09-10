@@ -30,6 +30,7 @@ public class ApiSnippets {
 	public static void registerEndpoint(HttpServer server, String path, RouterHandler handler) {
 		server.createContext(path, exchange -> {
 			try {
+				Log.info("[HTTP] @ @", exchange.getRequestHeaders().get("X-Real-IP"), path);
 				String response = handler.get(exchange);
 				exchange.sendResponseHeaders(200, response.getBytes().length);
 				exchange.getResponseBody().write(response.getBytes());
@@ -57,6 +58,7 @@ public class ApiSnippets {
 	public static void registerEndpoint(HttpServer server, String path, VoidRouterHandler handler) {
 		server.createContext(path, exchange -> {
 			try {
+				Log.info("[HTTP] @ @", exchange.getRequestHeaders().get("X-Real-IP"), path);
 				handler.get(exchange);
 			} catch (IOException e) {
 				Log.info("IOException: @", e.getMessage());

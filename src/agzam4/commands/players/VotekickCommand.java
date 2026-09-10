@@ -38,6 +38,7 @@ public class VotekickCommand extends CommandHandler<Player> {
 	@Override
 	public void command(String[] args, CommandSender sender, Player player, ReceiverType type) {
 		try {
+			if(require(Players.disabled(player), sender, "[red]Вам запрещено голосовать")) return;
             if(require(!Config.enableVotekick.bool(), sender, "[red]Голосование на этом сервере отключено")) return;
             if(require(player.isLocal(), sender, "[red]Просто кикни их сам, если ты хост")) return;
             boolean permission = Admins.has(player, "votekick");

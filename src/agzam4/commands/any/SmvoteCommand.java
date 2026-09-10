@@ -29,6 +29,7 @@ public class SmvoteCommand extends CommandHandler<Object> {
 			sender.sendMessage("Только игроки и пользователи с правами могут голосовать");
 			return;
 		}
+		if(require(Players.disabled(player), sender, "[red]Вам запрещено голосовать")) return;
 		
 		if(require(player.team() == Team.derelict, sender, "[red]Вы не можете использовать эту команду")) return;
 		if(require(SkipmapVoteSession.current == null, sender, "[red]Нет открытого голосования")) return;
