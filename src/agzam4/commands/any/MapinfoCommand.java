@@ -73,7 +73,7 @@ public class MapinfoCommand extends CommandHandler<Object> {
 		worldInfo.append("[gold]Название: [lightgray]" + Vars.state.map.name() + "\n");
 		worldInfo.append("[gold]Автор: [lightgray]" + Vars.state.map.author() + "\n");
 		if(receiver instanceof Player player && Admins.has(player, "mapinfo")) worldInfo.append("[gold]Файл: [lightgray]" + Vars.state.map.file.name() + "\n");
-		worldInfo.append("[gold]Рекорд: [lightgray]" + Vars.state.map.getHightScore() + "\n");
+		worldInfo.append("[gold]Рекорд: [lightgray]" + Vars.state.map.getHighScore() + "\n");
 		worldInfo.append("[white]Ресурсы:\n");
 		for (int i = 0; i < counter.length; i++) {
 			float cv = ((float)counter[i])*typesCounter/summaryCounter/3f;

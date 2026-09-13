@@ -131,15 +131,15 @@ public class AgzamPlugin extends Plugin {
     		result.append("\nСчёт: [lightgray]");
     		result.append(state.wave);
     		result.append('/');
-    		result.append(state.map.getHightScore());
-    		if(state.wave > state.map.getHightScore()) {
+    		result.append(state.map.getHighScore());
+    		if(state.wave > state.map.getHighScore()) {
         		result.append("[gold] (Новый рекорд!)");
         		state.map.setHighScore(state.wave);
     		}
     		Call.sendMessage(result.toString());
     		SkipmapVoteSession.stop();
-			Bots.notify(NotifyTag.round, "<b>Game over</b>: " + state.wave + "/" + state.map.getHightScore());
-			Logs.event(new GameOverLogEvent(state.map.name(), state.wave, state.map.getHightScore()));
+			Bots.notify(NotifyTag.round, "<b>Game over</b>: " + state.wave + "/" + state.map.getHighScore());
+			Logs.event(new GameOverLogEvent(state.map.name(), state.wave, state.map.getHighScore()));
     	});
 
     	Events.on(WorldLoadBeginEvent.class, e -> {

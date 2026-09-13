@@ -26,10 +26,10 @@ public class NextmapCommand extends CommandHandler<Object> {
 				var m = map.map();
 				if(type == ReceiverType.bot) {
 					maps.append(Strings.format("\n<code>#@</code> <i>@</i> <code>@</code> <i>(@x@, рекорд: @)</i>", 
-							map.id+1, map.custom ? "Кастомная" : "Дефолтная", mapName, m.width, m.height, m.getHightScore()));
+							map.id+1, map.custom ? "Кастомная" : "Дефолтная", mapName, m.width, m.height, m.getHighScore()));
 				} else {
 					maps.append(Strings.format("\n[gold]#@ @ [white]| @ [white](@x@, рекорд: @)", 
-							map.id+1, map.custom ? "Кастомная" : "Дефолтная", mapName, m.width, m.height, m.getHightScore()));
+							map.id+1, map.custom ? "Кастомная" : "Дефолтная", mapName, m.width, m.height, m.getHighScore()));
 				}
 			}
 			sender.sendMessage(maps.toString());

@@ -45,7 +45,7 @@ public class ApiLogs {
 			@BodyParm int[] tags, 
 			@BodyParm String query
 			) throws ApiResponse {
-		if(!Admins.has(info, Permissions.logs)) throw new ApiResponse("Forbidden").forbidden();
+		if(!Admins.has(info, Permissions.logs)) throw ApiResponse.forbidden;
 		return Logs.filtredPage(id, limit, t1, t2, tags);
 	}
 

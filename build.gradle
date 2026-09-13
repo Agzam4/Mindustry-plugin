@@ -1,10 +1,10 @@
 plugins {
     id 'java'
     id 'eclipse'
-//    id 'maven-publish'
+    id 'maven-publish'
 }
 
-version '1.0'
+version 'v160.3.a'
 
 
 java {
@@ -13,7 +13,7 @@ java {
 }
 
 ext{
-    mindustryVersion = 'v159.7'
+    mindustryVersion = 'v160.3'
     generatedSrc = 'gen'
 }
 
@@ -108,7 +108,7 @@ tasks.register('aptGenerateSources') {
 }
 
 
-/*
+//*
 group = 'com.github.Agzam4'
 publishing {
     publications {

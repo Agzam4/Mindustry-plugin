@@ -1,7 +1,9 @@
 package agzam4.bans;
 
+import agzam4.managers.Players;
 import agzam4.moderation.Kicks;
 import arc.files.Fi;
+import mindustry.Vars;
 import mindustry.gen.Groups;
 import mindustry.gen.Player;
 
@@ -29,6 +31,17 @@ public class BanGroup {
 	public boolean has(String ip) {
 		if(ip == null) return false;
 		return list.has(ip);
+	}
+
+	public void removeSubnet(String cidr) {
+		if(cidr == null) return;
+		// FIXME: that removing plain IP, not CIDR
+		Groups.player.each(p -> {
+			if(cidr.equals(p.ip())) {
+				Players.enable(p);
+			}
+		});
+		list.removeSubnet(cidr);
 	}
 	
 }

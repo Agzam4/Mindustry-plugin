@@ -35,21 +35,33 @@ public class ApiBans {
     @Post
     public static long add(@Auth PlayerInfo player, @BodyParm String group, @BodyParm String cidr) throws ApiResponse {
     	if(!Admins.has(player, "banslist")) throw ApiResponse.forbidden;
-    	Bans.bots.list.addSubnet(cidr);
-    	return Bans.bots.list.size();
+    	try {
+        	Bans.bots.list.addSubnet(cidr);
+        	return Bans.bots.list.size();
+		} catch (Exception e) {
+			 throw new ApiResponse(e.getMessage()).serverError();
+		}
     }
 
     @Post
     public static long remove(@Auth PlayerInfo player, @BodyParm String group, @BodyParm String cidr) throws ApiResponse {
     	if(!Admins.has(player, "banslist")) throw ApiResponse.forbidden;
-    	Bans.bots.list.removeSubnet(cidr);
-    	return Bans.bots.list.size();
+    	try {
+    		Bans.bots.removeSubnet(cidr);
+    		return Bans.bots.list.size();
+		} catch (Exception e) {
+			 throw new ApiResponse(e.getMessage()).serverError();
+		}
     }
 
     @Post
     public static boolean test(@Auth PlayerInfo player, @BodyParm String group, @BodyParm String ip) throws ApiResponse {
     	if(!Admins.has(player, "banslist")) throw ApiResponse.forbidden;
-    	return Bans.bots.has(ip);
+    	try {
+        	return Bans.bots.has(ip);
+		} catch (Exception e) {
+			 throw new ApiResponse(e.getMessage()).serverError();
+		}
     }
     
 

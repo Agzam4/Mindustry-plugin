@@ -28,7 +28,7 @@ public class MapsCommand extends CommandHandler<Object> {
         		var m = map.map();
         		if(m == null) continue;
         		sender.sendMessage(Strings.format("[gold]#@ @ [white]| @ [white](@x@, рекорд: @)", 
-        				map.id+1, map.custom ? "Кастомная" : "Дефолтная", map.name(), m.width, m.height, m.getHightScore()));
+        				map.id+1, map.custom ? "Кастомная" : "Дефолтная", map.name(), m.width, m.height, m.getHighScore()));
         	}
 			return;
 		}
@@ -54,7 +54,7 @@ public class MapsCommand extends CommandHandler<Object> {
         		var m = map.map();
         		if(m == null) continue;
         		sender.sendMessage(Strings.format("[gold]#@ @ [white]| @ [white](@x@, рекорд: @)", 
-        				map.id+1, map.custom ? "Кастомная" : "Дефолтная", map.name(), m.width, m.height, m.getHightScore()));
+        				map.id+1, map.custom ? "Кастомная" : "Дефолтная", map.name(), m.width, m.height, m.getHighScore()));
         	}
         }
 	}
