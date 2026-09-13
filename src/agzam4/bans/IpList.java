@@ -20,6 +20,10 @@ public class IpList {
 
     public void removeSubnet(String subnetCidr) {
         String[] parts = subnetCidr.split("/");
+        if(parts.length == 1) {
+        	removeIp(subnetCidr);
+        	return;
+        }
         long ip = ipToLong(parts[0]);
         int prefix = Integer.parseInt(parts[1]);
         long mask = (0xFFFFFFFFL << (32 - prefix)) & 0xFFFFFFFFL;
@@ -60,6 +64,10 @@ public class IpList {
 
     public void addSubnet(String subnetCidr) {
         String[] parts = subnetCidr.split("/");
+        if(parts.length == 1) {
+        	addIp(subnetCidr);
+        	return;
+        }
         long ip = ipToLong(parts[0]);
         int prefix = Integer.parseInt(parts[1]);
         long mask = (0xFFFFFFFFL << (32 - prefix)) & 0xFFFFFFFFL;
