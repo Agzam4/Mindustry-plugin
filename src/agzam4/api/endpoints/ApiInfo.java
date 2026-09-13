@@ -116,7 +116,7 @@ public class ApiInfo {
 			trace.timesKicked = target.timesKicked;
 			
 			trace.names = target.names.toArray(String.class);
-			trace.playtime = Players.gamePlaytime(info.id);
+			trace.playtime = Players.gamePlaytime(uuid);
 			
 			trace.lastKicked = target.lastKicked;
 			trace.permaban = target.banned;
