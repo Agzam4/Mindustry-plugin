@@ -1,7 +1,9 @@
 package agzam4.votes;
 
 import agzam4.Game;
+import agzam4.admins.Admins;
 import agzam4.managers.Players;
+import agzam4gen.config.MapsConfig;
 import arc.Events;
 import arc.math.Mathf;
 import arc.util.Nullable;
@@ -46,6 +48,9 @@ public class SkipmapVoteSession extends VoteSession {
 	@Override
 	public int playerScale(Player player) {
 		int minutes = Players.mapPlaytime(player);
+		boolean permission = Admins.has(player, "skipmap");
+		if(!permission && Players.mapPlaytime(player) < MapsConfig.skipmapRequiredMapPlaytime) return 0;
+		if(!permission && Players.gamePlaytime(player) < MapsConfig.skipmapRequiredTotalPlaytime) return 0;
 		if(minutes == 0) return 0;
 		return (int) (10*Mathf.log(10, minutes+1));
 	}
