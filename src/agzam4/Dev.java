@@ -49,6 +49,7 @@ public class Dev {
 			eventsFileDst[i] = user.child("build").child("libs").child("config").child("events").child(type[i] + ".jar");
 			Log.info("Events src: [blue]@[]", eventsFileSrc[i].absolutePath());
 			Log.info("Events trget: [blue]@[]", eventsFileDst[i].absolutePath());
+			
 		}
 		
 		Log.info("Java files:\n[cyan]@[]", pluginFiles.toString("\n"));
@@ -76,18 +77,35 @@ public class Dev {
 			}
 		}, pluginFiles);
 		
-		ProcessController proxy = new ProcessController("Proxy", "proxy"); //.out();
+		for (int i = 0; i < eventsFileDst.length; i++) {
+			final int id = i;
+			FileWatcher.watch(f -> {
+				eventsFileSrc[id].copyTo(eventsFileDst[id]);
+				Log.info("@ -> @", eventsFileSrc[id], eventsFileDst[id]);
+				plugin.stop();
+				try {
+					plugin.start();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}, eventsFileSrc[id]);
+			
+		}
+		
+		ProcessController proxy = new ProcessController("Proxy", "proxy").out();
 		proxy.workdir = proxyRoot;
 		
 		ObjectMap<String, String> goenv = ObjectMap.of(
 				"JAVA_API_URL", "http://127.0.0.1:" + (Vars.port + 1),
 				"LISTEN_ADDR", ":8080",
-				"TLS_MODE", "none",
-				"DOMAIN", "",
-				"STATIC_DIR", "./static"
+				"TLS_MODE", "none"//,
+//				"DOMAIN", "",
+//				"STATIC_DIR", "./static"
 		);		
 		proxy.env = goenv;
 		proxy.start();
+		
+		Log.info(proxyRoot);
 		
 		FileWatcher.watch(f -> {
 			plugin.stop();
