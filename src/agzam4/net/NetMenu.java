@@ -60,6 +60,11 @@ public class NetMenu {
 		return this;
 	}
 	
+	public NetMenu clear() {
+		table.clear();
+		return this;
+	}
+	
 	
 	private String[][] array = {};
 	private NetMenuListener[] listeners = {};
