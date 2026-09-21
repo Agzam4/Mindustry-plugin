@@ -145,7 +145,12 @@ public class Table<T> {
 		for (int i = 0; i < args.length; i++) args[i] = column(columnsNoKey.get(i), entity);
 		database.update(sql, args);
 	}
-	
+
+	public void delete(T entity) {
+		String sql = Strings.format("DELETE FROM @ WHERE @ = ?", name, keyName);
+		database.update(sql, key(entity));
+	}
+
 	private @Nullable T readNext(ResultSet r) {
 		try {
 			if(!r.next()) return null;
