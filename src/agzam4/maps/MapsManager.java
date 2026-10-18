@@ -66,7 +66,6 @@ public class MapsManager {
 			Log.warn("Valid maps not found");
 			return prev;
 		});
-		Log.info("LOADED: " + Vars.maps);
 	}
 	
 	
@@ -153,6 +152,5 @@ public class MapsManager {
 
 	public static void nextMap(MapSlot res) {
 		nextMapOverride = res;
-        ServerEventsManager.setNextMapEvents(null);		
 	}
 }

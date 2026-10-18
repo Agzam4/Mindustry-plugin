@@ -11,11 +11,8 @@ import arc.struct.ObjectSet;
 import arc.struct.Seq;
 import arc.util.Nullable;
 import mindustry.Vars;
-import mindustry.content.Blocks;
 import mindustry.game.EventType.*;
-import mindustry.gen.Building;
 import mindustry.gen.Player;
-import mindustry.world.blocks.logic.MessageBlock.MessageBuild;
 
 import static mindustry.Vars.*;
 
@@ -78,6 +75,8 @@ public class ServerEventsManager {
 		registerEvent(ConfigEvent.class, 		(se,e) -> se.config(e));
 		registerEvent(BlockBuildEndEvent.class, (se,e) -> se.blockBuildEnd(e));
 		registerEvent(BlockDestroyEvent.class, 	(se,e) -> se.blockDestroy(e));
+		
+    	Log.info("[blue]@[] events loaded", events.size);
 	}
 
 	
@@ -90,8 +89,6 @@ public class ServerEventsManager {
 		});
 	}
 
-
-	private static Seq<MessageBuild> worldMessages = new Seq<>();
 	private static boolean firstUpdate = false;
 	
 	public static void worldLoadEnd(WorldLoadEndEvent e) {
@@ -103,7 +100,6 @@ public class ServerEventsManager {
 		world.setGenerating(false);
 		firstUpdate = true;
 		isLoaded = true;
-		worldMessages.clear();
 	}
 	
 	public static void update() {
@@ -111,17 +107,6 @@ public class ServerEventsManager {
 			activeEvents.each(e -> e.update());
 			if(firstUpdate) {
 				firstUpdate = false;
-
-				worldMessages.clear();
-				if(eventMap != null) {
-					Seq<Building> bs = Vars.state.rules.waveTeam.data().getBuildings(Blocks.worldMessage);
-					Log.info("found: @", bs);
-					for (int i = 0; i < bs.size; i++) {
-						if(bs.get(i) instanceof MessageBuild ms) {
-							worldMessages.add(ms);
-						}
-					}
-				}
 			}
 			EventsBlocks.update();
 		}
@@ -213,47 +198,19 @@ public class ServerEventsManager {
 		activeEvents.each(e -> e.trigger(player, args));
 	}
 	
-	
-//	boolean[] defaultEvents = new boolean[ServerEvents.values().length];
-	private static EventMap eventMap = null;
-//	EventMap nextEventMap = null;
-	
-	public static void setNextMapEvents(EventMap map) {
-//		if(map == null) {
-//			nextEventMap = null;
-//			return;
-//		}
-//		if(eventMap == null) {
-//			for (int i = 0; i < defaultEvents.length; i++) defaultEvents[i] = false;
-//			for (int i = 0; i < activeEvents.size(); i++) {
-//				int id = activeEvents.get(i).id();
-//				if(id == -1) continue;
-//				defaultEvents[id] = true;
-//			}
-//			Log.info("saved events: @", Arrays.toString(defaultEvents));
-//		}
-//		nextEventMap = map;
-	}
-	
-
 	private static void applyMapEvents() {
 		ObjectSet<ServerEvent> events = ObjectSet.with();
 		
 		// Global events
 		events.addAll(targetEvents);
-		Log.info("Applying events:");
-		Log.info("Server: @", targetEvents);
 		
 		// Map events
-		Log.info("Slot: @", MapsManager.current);
 		if(MapsManager.current != null) {
-			Log.info("Ovveride: @", MapsManager.current.events);
 			MapsManager.current.events.each((event, value) -> {
 				if(value) events.add(find(event));
 				else events.remove(find(event));
 			});
 		}
-		Log.info("Map: @", events);
 
 		activeEvents.clear();
 		activeEvents.addAll(events);

@@ -1,12 +1,13 @@
 package agzam4.events;
 
 import static mindustry.Vars.platform;
+
+import agzam4.utils.Log;
 import arc.files.Fi;
 import arc.files.ZipFi;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
 import arc.util.I18NBundle;
-import arc.util.Log;
 import arc.util.OS;
 import arc.util.Time;
 import arc.util.io.PropertiesUtils;
@@ -106,7 +107,6 @@ public class EventsLoader {
     					}
     					event.init();
                         
-                    	Log.info("[cyan]Event [blue]@[] loaded!", event.name);
                     	events.add(event);
                     } else {
                     	Log.info("main file not found");
