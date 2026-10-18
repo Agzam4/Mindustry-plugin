@@ -4,6 +4,7 @@ import agzam4.Game;
 import agzam4.admins.AdminData;
 import agzam4.admins.Admins;
 import agzam4.api.auth.SensitiveData;
+import agzam4.bans.Bans;
 import agzam4.commands.Permissions;
 import agzam4.managers.Players;
 import agzam4.managers.Players.PlayerSearchResult;
@@ -38,10 +39,13 @@ public class ApiInfo {
 
     	public String uuid;
     	public String name;
+    	public boolean botlisted;
     	
     	public ResolvedPlayerInfo(String uuid, String name) {
     		this.uuid = uuid;
     		this.name = name;
+    		var info = Vars.netServer.admins.playerInfo.get(uuid);
+    		botlisted = info != null && Bans.bots.has(info.lastIP);
 		}
     	
     }
@@ -67,7 +71,9 @@ public class ApiInfo {
         
         // Bans
         public long lastKicked;
-        public boolean permaban, dosBlacklist;
+        public boolean permaban, dosBlacklist, botlisted;
+        public long escalation;
+        public int escalationLevel;
 
     	public PlayerTrace() {}
 
@@ -120,12 +126,17 @@ public class ApiInfo {
 			
 			trace.lastKicked = target.lastKicked;
 			trace.permaban = target.banned;
+			trace.botlisted = Bans.bots.has(target.lastIP);
 			
 			for (int i = 0; i < target.ips.size; i++) {
 				String ip = target.ips.get(i);
 				if(!trace.dosBlacklist) trace.dosBlacklist = Vars.netServer.admins.dosBlacklist.contains(ip);
 				trace.lastKicked = Math.max(trace.lastKicked, Vars.netServer.admins.kickedIPs.get(ip, 0L));
 			}
+			
+			// TODO: into one request to database
+			trace.escalation = Bans.escalation(target.id, target.lastIP);
+			trace.escalationLevel = Bans.escalationLevel(target.id, target.lastIP);
 		}
 		
 		return trace;

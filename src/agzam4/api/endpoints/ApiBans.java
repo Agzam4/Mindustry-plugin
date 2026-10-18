@@ -1,6 +1,7 @@
 package agzam4.api.endpoints;
 
 import agzam4.admins.Admins;
+import agzam4.api.auth.SensitiveData;
 import agzam4.bans.Bans;
 import agzam4gen.api.dependencies.Auth;
 import agzam4gen.api.dependencies.BodyParm;
@@ -8,6 +9,7 @@ import agzam4proc.apt.api.ApiAnnotations.Post;
 import agzam4proc.apt.api.ApiAnnotations.Router;
 import agzam4proc.apt.api.ApiAnnotations.Type;
 import agzam4proc.apt.api.lib.ApiResponse;
+import mindustry.Vars;
 import mindustry.net.Administration.PlayerInfo;
 
 @Router("/bans")
@@ -70,5 +72,19 @@ public class ApiBans {
     	if(!Admins.has(player, "banslist")) throw ApiResponse.forbidden;
     	return Bans.bots.list.file.readString();
     }
-	
+
+
+
+    @Post
+    public static boolean unban(@Auth PlayerInfo player, @BodyParm int id) throws ApiResponse {
+    	if(!Admins.has(player, "unban")) throw ApiResponse.forbidden;
+    	String uuid = SensitiveData.resolve(id);
+    	if(uuid == null) throw ApiResponse.notFound;
+    	var info = Vars.netServer.admins.playerInfo.get(uuid);
+    	if(info == null) throw ApiResponse.notFound;
+    	Bans.unbanInfo(info);
+		return true;
+    }
+    
+    
 }
