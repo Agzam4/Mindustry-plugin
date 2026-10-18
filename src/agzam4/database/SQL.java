@@ -93,7 +93,7 @@ public class SQL {
 				isArray = true;
 			}
 			
-			String filedType = isArray ? (SQL.typesByClass.get(elementType) + "[]") : SQL.typesByClass.get(f.getType());
+			String filedType = f.getType() == byte[].class ? "BLOB" : isArray ? (SQL.typesByClass.get(elementType) + "[]") : SQL.typesByClass.get(f.getType());
 			if(filedType == null) Log.warn("SQL Filed \"@\" type is unknow: @", f.getName(), f.getType());
 			if(field == null || filedType == null) continue;
 			@Nullable PRIMARY_KEY primaryKey = f.getAnnotation(PRIMARY_KEY.class);

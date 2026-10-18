@@ -125,7 +125,7 @@ public class Table<T> {
 	}
 	
 	public void update(T entity) {
-		String sql = Strings.format("UPDATE @ SET @ WHERE @ = ?", name, filedNames.toString(" ", n -> n + " = ?"), keyName);
+		String sql = Strings.format("UPDATE @ SET @ WHERE @ = ?", name, filedNames.toString(", ", n -> n + " = ?"), keyName);
 		Object[] args = new Object[filedNames.size+1];
 		for (int i = 0; i < filedNames.size; i++) args[i] = column(filedNames.get(i), entity);
 		args[args.length-1] = key(entity);
