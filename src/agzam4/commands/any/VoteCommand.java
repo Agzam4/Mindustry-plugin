@@ -11,6 +11,7 @@ import agzam4.votes.KickVoteSession;
 import agzam4gen.config.ModerationConfig;
 import arc.util.Strings;
 import mindustry.gen.Call;
+import mindustry.gen.Groups;
 import mindustry.gen.Player;
 
 public class VoteCommand extends CommandHandler<Object> {
@@ -34,12 +35,13 @@ public class VoteCommand extends CommandHandler<Object> {
 			KickVoteSession.current.cancel();
 			return;
 		}
-		
 		if(!(receiver instanceof Player player)) {
 			sender.sendMessage("Только игроки и пользователи с правами могут голосовать");
 			return;
 		}
 		if(require(Players.disabled(player), sender, "[red]Вам запрещено голосовать")) return;
+        if(require(!permission && Players.mapPlaytime(player) < ModerationConfig.voteRequiredMapPlaytime, sender,"[red]Вам запрещено голосовать")) return;
+        if(require(!permission && Players.gamePlaytime(player) < ModerationConfig.voteRequiredTotalPlaytime, sender,"[red]Вам запрещено голосовать")) return;
 		
 		if(require(receiver instanceof Player p && p.isLocal(), sender, "[red]Локальные игроки не могут голосовать. Вместо этого кикните игрока сами")) return;
 

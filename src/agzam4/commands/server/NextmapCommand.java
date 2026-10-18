@@ -4,11 +4,9 @@ import agzam4.Game;
 import agzam4.CommandsManager.CommandSender;
 import agzam4.CommandsManager.ReceiverType;
 import agzam4.commands.CommandHandler;
-import agzam4.events.ServerEventsManager;
 import agzam4.maps.MapsManager;
 import arc.struct.Seq;
 import arc.util.Strings;
-import mindustry.Vars;
 
 public class NextmapCommand extends CommandHandler<Object> {
 

@@ -209,7 +209,8 @@ public class BrushCommand extends CommandHandler<Player> {
 	private boolean allowedBlock(Block find, Player player) {
 		if(find == Blocks.air) return true;
 		if(find.canBeBuilt() || find.buildVisibility == BuildVisibility.hidden) return true;
-		return Admins.has(player, "brush-sandbox");
+		if(Admins.has(player, "brush-sandbox")) return true;
+		return false;
 	}
 
 	@Override

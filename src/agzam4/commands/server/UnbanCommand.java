@@ -6,6 +6,7 @@ import agzam4.CommandsManager.CommandSender;
 import agzam4.CommandsManager.ReceiverType;
 import agzam4.admins.Admins;
 import agzam4.api.auth.SensitiveData;
+import agzam4.bans.Bans;
 import agzam4.commands.CommandHandler;
 import agzam4.commands.Permissions;
 import arc.struct.Seq;
@@ -58,10 +59,7 @@ public class UnbanCommand extends CommandHandler<Object> {
 			unbanUuid(sender, uuid);
 			var info = Vars.netServer.admins.playerInfo.get(uuid);
 			if(info != null) {
-				info.banned = false;
-				info.lastKicked = Time.millis();
-				Vars.netServer.admins.kickedIPs.remove(info.lastIP);
-				Vars.netServer.admins.bannedIPs.remove(info.lastIP);
+				Bans.unbanInfo(info);
 			}
 			return;
 		}
@@ -92,7 +90,7 @@ public class UnbanCommand extends CommandHandler<Object> {
 		if(Time.millis() < info.lastKicked) {
 			info.lastKicked = Time.millis();
 		}
-		sender.sendMessage(Strings.format("Unbaned:@@", info.lastName));		
+		sender.sendMessage(Strings.format("Unbaned: @", info.lastName));		
 	}
 
 	@Override
