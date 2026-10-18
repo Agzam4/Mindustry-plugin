@@ -38,7 +38,7 @@ public class GithubDownloader {
 					String fileName = asset.getString("name");
 
 					Log.info("[cyan]@[]", url);
-					Http.request(HttpMethod.GET, Vars.ghApi + "/repos/" + repo + "/releases/latest")
+					Http.request(HttpMethod.GET, url)
 					.timeout(10_000)
 					.error(err -> {
 						exceptionHolder[0] = err;
