@@ -10,6 +10,7 @@ import mindustry.gen.Groups;
 import mindustry.gen.Player;
 import mindustry.net.Administration.PlayerInfo;
 
+@Deprecated
 public class DataCollecter {
 
 	public static final String FILENAME = "agzam_s_plugin_statistics.json";
