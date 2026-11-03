@@ -22,9 +22,8 @@ public class Table<T> {
 	private String name;
 
 	private final ObjectMap<String, MethodHandle> getters = new ObjectMap<>();
-	
-	// FIXME: setters support boolean using interfaces on scan
 	private final ObjectMap<String, MethodHandle> setters = new ObjectMap<>();
+	private final ObjectMap<String, Class<?>> fieldTypes = new ObjectMap<>();
 	
 	private String keyName;
 	private final Seq<String> filedNames = new Seq<String>();
@@ -108,6 +107,7 @@ public class Table<T> {
 	            if (field.isAnnotationPresent(FIELD.class)) {
 	                getters.put(field.getName(), lookup.unreflectGetter(field));
 	                setters.put(field.getName(), lookup.unreflectSetter(field));
+	                fieldTypes.put(field.getName(), field.getType());
 	                if (field.isAnnotationPresent(PRIMARY_KEY.class)) {
 	                	keyName = field.getName();
 	                } else {
@@ -156,8 +156,28 @@ public class Table<T> {
 			if(!r.next()) return null;
 			T entity = entityType.getConstructor().newInstance();
 			for (int i = 0; i < columns.size; i++) {
-				var obj = r.getObject(columns.get(i));
-				setters.get(columns.get(i)).invoke(entity, obj);
+				String col = columns.get(i);
+				var obj = r.getObject(col);
+				if (obj != null) {
+					Class<?> fType = fieldTypes.get(col);
+					if (fType == Long.class || fType == long.class) {
+						if (obj instanceof Number n) obj = n.longValue();
+					} else if (fType == Integer.class || fType == int.class) {
+						if (obj instanceof Number n) obj = n.intValue();
+					} else if (fType == Short.class || fType == short.class) {
+						if (obj instanceof Number n) obj = n.shortValue();
+					} else if (fType == Byte.class || fType == byte.class) {
+						if (obj instanceof Number n) obj = n.byteValue();
+					} else if (fType == Double.class || fType == double.class) {
+						if (obj instanceof Number n) obj = n.doubleValue();
+					} else if (fType == Float.class || fType == float.class) {
+						if (obj instanceof Number n) obj = n.floatValue();
+					} else if (fType == Boolean.class || fType == boolean.class) {
+						if (obj instanceof Number n) obj = n.intValue() != 0;
+						else if (obj instanceof String s) obj = Boolean.parseBoolean(s);
+					}
+				}
+				setters.get(col).invoke(entity, obj);
 			}
 			return entity;
 		} catch (Throwable e) {
@@ -231,12 +251,8 @@ public class Table<T> {
 		return database.query(sql.toString(), r -> {
 			try {
 				Seq<T> ts = new Seq<>();
-				while (r.next()) {
-					T entity = entityType.getConstructor().newInstance();
-					for (int i = 0; i < columns.size; i++) {
-						var obj = r.getObject(columns.get(i));
-						setters.get(columns.get(i)).invoke(entity, obj);
-					}
+				T entity;
+				while ((entity = readNext(r)) != null) {
 					ts.add(entity);
 				}
 				return ts;
