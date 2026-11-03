@@ -176,6 +176,8 @@ public class ConfigStep extends BaseStep {
 			String cast = fieldCast(field);
 			method.beginControlFlow("if ($L.has($S))", "data", name);
 			method.addStatement("$L = $L$L.get($S).$L()", name, cast, "data", name, asMethod);
+//			method.addStatement("$T.info(\"@: @\", $S, $L)", ClassName.get(Log.class), name, name);
+			
 			method.endControlFlow();
 		}
 
@@ -207,6 +209,9 @@ public class ConfigStep extends BaseStep {
 			if (doc != null && !doc.isEmpty()) {
 				String escaped = doc.replace("\\", "\\\\").replace("\"", "\\\"");
 				method.beginControlFlow("if ($L.startsWith($S))", "trimmed", name);
+				method.beginControlFlow("if ($L.startsWith($S))", "line", name+": https://");
+				method.addStatement("$L = $S + $L.substring($L).trim() + \"\\\"\"", "line", name+": \"", "line", name.length()+2);
+				method.endControlFlow();
 				method.addStatement("$L.append($S)", "sb", "\t// " + escaped + "\n");
 				method.endControlFlow();
 			}
