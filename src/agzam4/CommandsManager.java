@@ -187,6 +187,7 @@ public class CommandsManager {
 					// TODO: voting to allow to join
 					// TODO: better logging
 					Players.disable(e.player);
+					Players.mute(e.player);
 					String text = "[scarlet] " + Iconc.warning + " Вы ограничены из-за подозрительной активности " +  Iconc.warning + "\n[]Обратитесь в [gold]/discord[]\nИли сообщите в админ чат [gold]/a[] (если админы на сервере)";
 					Call.setHudText(e.player.con, text);
 					Call.announce(e.player.con, text);
@@ -194,6 +195,12 @@ public class CommandsManager {
 				}
 			}
 			
+    	});
+    	Events.on(PlayerLeave.class, e -> {
+			if(Bans.bots.has(e.player.ip())) {
+				Players.enable(e.player);
+				Players.unmute(e.player);
+			}
     	});
 		
 		Vars.netServer.admins.addActionFilter(action -> {
@@ -214,46 +221,29 @@ public class CommandsManager {
 	                	}
 	                }
 				}
+				if(Vars.state.hasSpawns() && action.tile.block() != Blocks.thoriumReactor){
+					for(Tile spawn : Vars.spawner.getSpawns()) {
 
-//				if(action.block.category == Category.defense || action.block.category == Category.turret) {
-					if(Vars.state.hasSpawns() && action.tile.block() != Blocks.thoriumReactor){
-						for(Tile spawn : Vars.spawner.getSpawns()) {
+						int trad = (int)(Vars.state.rules.dropZoneRadius / Vars.tilesize);
 
-							int trad = (int)(Vars.state.rules.dropZoneRadius / Vars.tilesize);
-							
-							
-							Tile tile = action.tile;//world.tile(Math.round(x / tilesize) + dx, Math.round(y / tilesize) + dy);
-							if(tile != null && action.block != null) {
-								int minx = tile.x + action.block.sizeOffset;
-								int miny = tile.y + action.block.sizeOffset;
-								int cx = spawn.x;
-								int cy = spawn.y;
-								if(cx < minx) cx = minx;
-								if(cx > minx + action.block.size-1) cx = minx + action.block.size-1;
+						Tile tile = action.tile;
+						if(tile != null && action.block != null) {
+							int minx = tile.x + action.block.sizeOffset;
+							int miny = tile.y + action.block.sizeOffset;
+							int cx = spawn.x;
+							int cy = spawn.y;
+							if(cx < minx) cx = minx;
+							if(cx > minx + action.block.size-1) cx = minx + action.block.size-1;
 
-								if(cy < miny) cy = miny;
-								if(cy > miny + action.block.size-1) cy = miny + action.block.size-1;
+							if(cy < miny) cy = miny;
+							if(cy > miny + action.block.size-1) cy = miny + action.block.size-1;
 
-//								Log.info("tile: @, @ at @ @", action.tile, action.block, cx, cy);
-								int dx = spawn.x - cx;
-								int dy = spawn.y - cy;
-								if(dx*dx + dy*dy <= trad*trad) return false;
-//								Log.info("Game.effect(Fx.rotateBlock, @, @, 1, Color.red)", cx*Vars.tilesize, cy*Vars.tilesize);
-//								int ctilex = tile.build.tileX() + tile.build.block.sizeOffset;
-//								if(tile.build.tileX() > spawn.x ? tile.x;
-								
-//								Block block = tile.build.block;
-//								float o = block.offset;
-//								SolidPump
-							}
-//							if(tile != null && tile.build != null && dx*dx + dy*dy <= trad*trad){
-//								tile.build.damage(team, damage);
-//							}
-//							int dx = 
-							
-//							if(spawn.within(action.tile, state.rules.dropZoneRadius + action.block.size*Vars.tilesize*Mathf.sqrt2/2f)) return false;
+							int dx = spawn.x - cx;
+							int dy = spawn.y - cy;
+							if(dx*dx + dy*dy <= trad*trad) return false;
 						}
 					}
+				}
 			}
 			return true;
 		});
@@ -261,6 +251,12 @@ public class CommandsManager {
 			if(player != null && text != null) {
 				Bots.notify(NotifyTag.chatMessage, "<u><b>" + TelegramBot.strip(player.name) + "</b></u>: " + TelegramBot.strip(text));
 				Logs.event(new ChatMessageLogEvent(player, text));
+			}
+			if(Players.muted(player)) {
+				final String t = text;
+	            String raw = "[lightgray]" + Iconc.volumeOff + " [gray]" + Strings.stripColors(player.name()) + ":[gray] " + t;
+	            Groups.player.each(p -> Admins.has(p, Permissions.readMute), a -> a.sendMessage(raw, player, t));
+	            return null;
 			}
 			if(ChatfilterCommand.chatFilter) {
 				text = "[white]" + text + "[white]";
@@ -728,6 +724,7 @@ public class CommandsManager {
 		serverCommand(new AsCommand());
 		serverCommand(new StatCommand());
 		serverCommand(new McpCommand());
+		serverCommand(new MuteCommand());
 
 
 //		adminCommand("pardon", "<ID> [index]", "Прощает выбор игрока по ID и позволяет ему присоединиться снова.", (arg, player) -> {

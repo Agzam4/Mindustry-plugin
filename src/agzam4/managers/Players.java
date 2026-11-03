@@ -29,8 +29,9 @@ public class Players {
 	private static ObjectMap<String, PlayerEntity> joined = ObjectMap.of(); // UUID, PlayerEntity
 
 	private static ObjectMap<String, PlayerMapSession> mapPlaytime = ObjectMap.of(); // UUID, PlayerMapSession
-	
+
 	private static ObjectSet<String> disabled = ObjectSet.with();
+	public static ObjectSet<String> muted = ObjectSet.with();
 	
 	public static void init() {
     	Events.on(PlayerJoin.class, e -> {
@@ -117,6 +118,19 @@ public class Players {
 	
 	public static boolean enable(Player player) {
 		return disabled.remove(player.uuid());
+	}
+	
+
+	public static boolean muted(Player player) {
+		return muted.contains(player.uuid());
+	}
+
+	public static boolean mute(Player player) {
+		return muted.add(player.uuid());
+	}
+	
+	public static boolean unmute(Player player) {
+		return muted.remove(player.uuid());
 	}
 	
 	@Deprecated
